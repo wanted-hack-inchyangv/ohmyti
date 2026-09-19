@@ -121,10 +121,14 @@ export const PERSONA_ORG_REPOS: FakeProfileRepo[] = [
   },
 ];
 
-/** 가짜 GitHub API용 조직 프로필. 모든 저장소에 README·커밋 하나를 둔다 */
+/**
+ * 가짜 GitHub API용 조직 프로필(`owner.type` `Organization`). 모든 저장소에 README·커밋 하나를 둔다.
+ * 조직은 커밋 작성자가 될 수 없으므로 `?author=<조직>` 조회는 0건이다(실측, T-604)
+ */
 export function personaOrgProfile(): FakeProfile {
   return {
     login: PERSONA_ORG_LOGIN,
+    type: "Organization",
     repos: PERSONA_ORG_REPOS.map((repo, i) => ({
       ...repo,
       readme: `# ${repo.name}\n`,
@@ -135,6 +139,8 @@ export function personaOrgProfile(): FakeProfile {
           sha: (i + 1).toString(16).padStart(40, "0"),
           message: `init ${repo.name}`,
           date: repo.pushedAt ?? "2026-09-19T00:00:00Z",
+          // 작성자는 조직이 아닌 개인 계정이다(조직은 커밋 작성자가 될 수 없다)
+          author: "persona-member",
         },
       ],
       pulls: [],

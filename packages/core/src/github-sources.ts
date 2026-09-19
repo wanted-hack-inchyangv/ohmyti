@@ -60,7 +60,13 @@ export const GitHubRepoSourceSchema = z.strictObject({
   topLevelFiles: z
     .array(z.strictObject({ name: z.string().max(255), type: z.enum(["file", "dir", "other"]) }))
     .max(100),
-  /** 기본 브랜치에서 해당 사용자가 작성한 최근 커밋 (최대 20개) */
+  /**
+   * 커밋·병합 PR의 작성자 조건 (T-604). `LOGIN`은 프로필 로그인이 작성한 것만, `NONE`은 조직 저장소라
+   * 작성자 구분 없이 수집했다(조직은 커밋 작성자가 될 수 없다). 지원자 본인의 커밋으로 단정하지 않는다.
+   * T-604 이전 기록에는 없으며 `LOGIN`과 같다
+   */
+  authorFilter: z.enum(["LOGIN", "NONE"]).optional(),
+  /** 기본 브랜치의 최근 커밋 (최대 20개). `authorFilter`가 `LOGIN`이면 해당 사용자가 작성한 것만 */
   commits: z
     .array(
       z.strictObject({
@@ -70,7 +76,7 @@ export const GitHubRepoSourceSchema = z.strictObject({
       }),
     )
     .max(20),
-  /** 해당 사용자의 병합된 PR 제목 (최대 10개) */
+  /** 병합된 PR 제목 (최대 10개). `authorFilter`가 `LOGIN`이면 해당 사용자의 PR만 */
   mergedPulls: z
     .array(
       z.strictObject({

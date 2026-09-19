@@ -17,13 +17,29 @@ export interface FakeProfileRepo {
   readme?: string | Uint8Array | null | undefined;
   languages?: Record<string, number> | undefined;
   files?: Array<{ name: string; type: "file" | "dir" | "symlink" }> | undefined;
-  /** 없으면 빈 저장소(commits 409, contents 404) */
-  commits?: Array<{ sha: string; message: string; date: string }> | undefined;
-  pulls?: Array<{ number: number; title: string; mergedAt: string }> | undefined;
+  /**
+   * 없으면 빈 저장소(commits 409, contents 404). `author`는 커밋 작성자 로그인이며, 없으면 사용자 프로필은
+   * 프로필 로그인, 조직 프로필은 `null`(연결된 계정 없음)이다. `?author=`는 이 값으로 거른다
+   */
+  commits?:
+    | Array<{
+        sha: string;
+        message: string;
+        date: string;
+        author?: string | null | undefined;
+        email?: string | undefined;
+      }>
+    | undefined;
+  /** `author`는 PR 작성자 로그인. 없으면 프로필 로그인이다. 검색어의 `author:`로 거른다 */
+  pulls?:
+    | Array<{ number: number; title: string; mergedAt: string; author?: string | undefined }>
+    | undefined;
 }
 
 export interface FakeProfile {
   login: string;
+  /** 목록 응답의 `owner.type`. 기본 `User` (T-604) */
+  type?: "User" | "Organization" | undefined;
   repos: FakeProfileRepo[];
 }
 
@@ -60,6 +76,12 @@ export function fakeGitHubProfileApi(
     return byLogin.get(owner.toLowerCase())?.repos.find((r) => r.name === name);
   }
 
+  /** 작성자를 적지 않은 커밋·PR의 작성자. 조직은 커밋 작성자가 될 수 없다 */
+  function defaultCommitAuthor(owner: string): string | null {
+    const profile = byLogin.get(owner.toLowerCase());
+    return profile?.type === "Organization" ? null : (profile?.login ?? owner);
+  }
+
   function handle(pathAndQuery: string): Response {
     const url = new URL(pathAndQuery, "https://api.github.test");
     const segments = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
@@ -73,7 +95,7 @@ export function fakeGitHubProfileApi(
           name: r.name,
           full_name: `${profile.login}/${r.name}`,
           html_url: `https://github.com/${profile.login}/${r.name}`,
-          owner: { login: profile.login, followers_url: "x" },
+          owner: { login: profile.login, type: profile.type ?? "User", followers_url: "x" },
           description: r.description ?? null,
           language: r.language ?? null,
           topics: r.topics ?? [],
@@ -108,17 +130,30 @@ export function fakeGitHubProfileApi(
         case "commits": {
           if (!repo.commits) return json({ message: "Git Repository is empty." }, 409);
           const perPage = Number(url.searchParams.get("per_page") ?? 30);
+          const authorQuery = url.searchParams.get("author");
+          const commits = repo.commits
+            .map((c) => ({
+              ...c,
+              login: c.author === undefined ? defaultCommitAuthor(owner) : c.author,
+            }))
+            .filter(
+              (c) => authorQuery === null || c.login?.toLowerCase() === authorQuery.toLowerCase(),
+            );
           return json(
-            repo.commits.slice(0, perPage).map((c) => ({
-              sha: c.sha,
-              commit: {
-                message: c.message,
-                author: { name: owner, email: `${owner}@example.com`, date: c.date },
-                committer: { name: owner, email: `${owner}@example.com`, date: c.date },
-                comment_count: 0,
-              },
-              author: { login: owner, followers_url: "x" },
-            })),
+            commits.slice(0, perPage).map((c) => {
+              const name = c.login ?? "someone";
+              const email = c.email ?? `${name}@example.com`;
+              return {
+                sha: c.sha,
+                commit: {
+                  message: c.message,
+                  author: { name, email, date: c.date },
+                  committer: { name, email, date: c.date },
+                  comment_count: 0,
+                },
+                author: c.login ? { login: c.login, followers_url: "x" } : null,
+              };
+            }),
           );
         }
       }
@@ -131,7 +166,10 @@ export function fakeGitHubProfileApi(
       const repo = owner && name ? findRepo(owner, name) : undefined;
       if (!repo) return json({ message: "Validation Failed" }, 422);
       const perPage = Number(url.searchParams.get("per_page") ?? 30);
-      const pulls = repo.pulls ?? [];
+      const author = /author:(\S+)/.exec(q)?.[1]?.toLowerCase();
+      const pulls = (repo.pulls ?? []).filter(
+        (p) => author === undefined || (p.author ?? owner ?? "").toLowerCase() === author,
+      );
       return json({
         total_count: pulls.length,
         incomplete_results: false,

@@ -30,7 +30,11 @@ import {
   type EvaluationContextData,
   type EvaluationContextInput,
 } from "@/lib/context/service";
-import { buildContextTabsView, CONTEXT_STATUS_LABEL } from "@/lib/workbench/context-tabs";
+import {
+  buildContextTabsView,
+  CONTEXT_STATUS_LABEL,
+  ORG_PROFILE_AUTHOR_NOTE,
+} from "@/lib/workbench/context-tabs";
 import {
   DEFECTIVE_SAMPLE_VERDICTS,
   FIXTURE_EVALUATION_ID,
@@ -529,6 +533,34 @@ describe("이력서 연결 · GitHub 근거 · 후속 질문", () => {
     expect(html.indexOf("github-selection-notes")).toBeLessThan(
       html.indexOf('data-testid="repo-list"'),
     );
+  });
+
+  it("조직 프로필에서 작성자 구분 없이 모은 커밋·PR이면 탭 상단에 알린다 (T-604)", () => {
+    const base = contextData();
+    const sources: GitHubSources = GitHubSourcesSchema.parse({
+      ...GITHUB,
+      repos: GITHUB.repos.map((r) => ({ ...r, authorFilter: "NONE" })),
+    });
+    const context = {
+      ok: true as const,
+      data: { ...base, github: { login: "octo", sources, invalid: false } },
+    };
+    const { view } = build("github", { context });
+    expect(view.github.selectionNotes).toEqual([ORG_PROFILE_AUTHOR_NOTE]);
+    const text = textOf(render("github", { context }));
+    expect(text).toContain("조직 프로필: 작성자 구분 없이 수집");
+    // 사용자 프로필(LOGIN)이나 T-604 이전 기록(필드 없음)은 안내가 없다
+    const userSources = GitHubSourcesSchema.parse({
+      ...GITHUB,
+      repos: GITHUB.repos.map((r) => ({ ...r, authorFilter: "LOGIN" })),
+    });
+    const userView = build("github", {
+      context: {
+        ok: true as const,
+        data: { ...base, github: { login: "octo", sources: userSources, invalid: false } },
+      },
+    }).view;
+    expect(userView.github.selectionNotes).toEqual([]);
   });
 
   it("GitHub 조회 전·형태 오류·자료 없음은 이유를 그대로 보인다", () => {

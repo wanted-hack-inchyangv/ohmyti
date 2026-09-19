@@ -670,6 +670,197 @@ describe("근거 선정 보강: 제출 저장소 제외와 범용 키워드 (git
   });
 });
 
+describe("조직 프로필의 커밋·PR 수집 (github, T-604)", () => {
+  /** 사용자 프로필(devProfile)에서 T-604 이전과 같아야 하는 요청 순서 */
+  const USER_REQUESTS = ["inventory-service", "payment-idempotency", "order-api"].flatMap(
+    (name) => [
+      `/repos/dev-kim/${name}/readme`,
+      `/repos/dev-kim/${name}/languages`,
+      `/repos/dev-kim/${name}/contents`,
+      `/repos/dev-kim/${name}/commits?author=dev-kim&per_page=20`,
+      `/search/issues?q=${encodeURIComponent(`repo:dev-kim/${name} is:pr is:merged author:dev-kim`)}&sort=updated&order=desc&per_page=10`,
+    ],
+  );
+
+  it.each(PERSONA_HANDLES)(
+    "%s: 조직 프로필이면 작성자 조건 없이 커밋·PR을 수집하고 authorFilter가 NONE이다",
+    async (handle) => {
+      const expected = PERSONA_EXPECTED[handle];
+      const api = fakeGitHubProfileApi([personaOrgProfile()]);
+      const sources = await collectGitHubSources(
+        {
+          login: PERSONA_ORG_LOGIN,
+          resumeText: PERSONA_RESUME_TEXTS[handle],
+          excludeRepos: [expected.submittedAs, expected.submissionRepo],
+        },
+        { fetch: api.fetch, now: () => NOW },
+      );
+      expect(GitHubSourcesSchema.safeParse(sources).success).toBe(true);
+      expect(sources.status).toBe("COLLECTED");
+      expect(sources.repos.length).toBeGreaterThan(0);
+      for (const repo of sources.repos) {
+        expect(repo.authorFilter).toBe("NONE");
+        expect(repo.commits.length).toBeGreaterThanOrEqual(1);
+        expect(repo.missing).toEqual([]);
+      }
+      // 저장소 목록 응답의 owner.type으로만 판별한다. 추가 요청이 없다
+      expect(api.requests.length).toBe(1 + 5 * sources.repos.length);
+      expect(api.requests.length).toBeLessThanOrEqual(profileRequestLimit(3));
+      expect(sources.requestCount).toBe(api.requests.length);
+      const commitRequests = api.requests.filter((r) => r.includes("/commits?"));
+      expect(commitRequests).toHaveLength(sources.repos.length);
+      for (const r of commitRequests) expect(r).toMatch(/\/commits\?per_page=20$/);
+      const searches = api.requests
+        .filter((r) => r.startsWith("/search/issues?"))
+        .map((r) => new URL(r, "https://api.github.test").searchParams.get("q"));
+      expect(searches).toEqual(sources.repos.map((r) => `repo:${r.fullName} is:pr is:merged`));
+    },
+  );
+
+  it("대조: 같은 조직을 작성자 조건으로 조회하면 커밋이 0개다 (실측 결함 재현)", async () => {
+    const profile = personaOrgProfile();
+    const api = fakeGitHubProfileApi([{ ...profile, type: "User" }]);
+    const sources = await collectGitHubSources(
+      { login: PERSONA_ORG_LOGIN, resumeText: PERSONA_RESUME_TEXTS.seojin },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    // owner.type이 User로 오면 기존 동작이다. 조직 저장소의 커밋 작성자는 조직이 아니므로 0개다
+    for (const repo of sources.repos) {
+      expect(repo.authorFilter).toBe("LOGIN");
+      expect(repo.commits).toEqual([]);
+    }
+  });
+
+  it("조직 저장소의 병합 PR도 작성자 조건 없이 모은다", async () => {
+    const api = fakeGitHubProfileApi([
+      {
+        login: "acme",
+        type: "Organization",
+        repos: [
+          repo("inventory", {
+            pulls: [
+              {
+                number: 3,
+                title: "feat: 재고 예약",
+                mergedAt: "2026-03-01T00:00:00Z",
+                author: "a",
+              },
+              { number: 4, title: "fix: 예약 만료", mergedAt: "2026-03-02T00:00:00Z", author: "b" },
+            ],
+          }),
+        ],
+      },
+    ]);
+    const sources = await collectGitHubSources(
+      { login: "acme", resumeText: "inventory" },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(sources.repos[0]!.mergedPulls.map((p) => p.number)).toEqual([3, 4]);
+    expect(sources.repos[0]!.authorFilter).toBe("NONE");
+  });
+
+  it("사용자 프로필의 요청 URL과 결과는 이전과 같고 authorFilter가 LOGIN이다", async () => {
+    const profile = devProfile();
+    // 다른 사람이 작성한 커밋·PR은 사용자 프로필에서 계속 빠진다
+    profile.repos[0]!.commits!.push({
+      sha: fakeSha(9),
+      message: "chore: 다른 사람의 커밋",
+      date: "2026-02-01T00:00:00Z",
+      author: "someone-else",
+    });
+    profile.repos[0]!.pulls!.push({
+      number: 9,
+      title: "다른 사람의 PR",
+      mergedAt: "2026-02-02T00:00:00Z",
+      author: "someone-else",
+    });
+    const api = fakeGitHubProfileApi([profile]);
+    const sources = await collectGitHubSources(
+      { login: "dev-kim", resumeText: RESUME },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(api.requests).toEqual([
+      "/users/dev-kim/repos?type=owner&sort=pushed&direction=desc&per_page=100",
+      ...USER_REQUESTS,
+    ]);
+    for (const r of sources.repos) expect(r.authorFilter).toBe("LOGIN");
+    const inventory = sources.repos.find((r) => r.fullName === "dev-kim/inventory-service")!;
+    expect(inventory.commits.map((c) => c.sha)).toEqual([fakeSha(1)]);
+    expect(inventory.mergedPulls.map((p) => p.number)).toEqual([1]);
+  });
+
+  it("조직 저장소 커밋 메시지의 Co-Authored-By 트레일러 이메일은 저장되지 않는다", async () => {
+    const api = fakeGitHubProfileApi([
+      {
+        login: "acme",
+        type: "Organization",
+        repos: [
+          repo("inventory", {
+            commits: [
+              {
+                sha: fakeSha(11),
+                message:
+                  "feat: 재고 예약\n\nCo-Authored-By: Kim Dev <kim.dev@example.com>\nSigned-off-by: Lee <lee+work@corp.co.kr>",
+                date: "2026-03-01T00:00:00Z",
+                author: "kim-dev",
+                email: "kim.dev@example.com",
+              },
+              {
+                sha: fakeSha(12),
+                message: "chore: 배포 설정",
+                date: "2026-03-02T00:00:00Z",
+                author: null,
+                email: "bot@noreply.github.com",
+              },
+            ],
+          }),
+        ],
+      },
+    ]);
+    const sources = await collectGitHubSources(
+      { login: "acme", resumeText: "inventory" },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    const commits = sources.repos[0]!.commits;
+    expect(commits).toHaveLength(2);
+    expect(commits[0]!.message).toContain("Co-Authored-By: Kim Dev");
+    const stored = JSON.stringify(sources);
+    expect(stored).not.toMatch(/[\w.+-]+@[\w-]+(\.[\w-]+)+/);
+    // 응답의 작성자 로그인·이메일 필드는 읽지 않는다
+    expect(allKeys(sources)).not.toContain("email");
+    expect(stored).not.toContain("kim-dev");
+  });
+
+  it("owner.type이 없거나 User면 LOGIN, Organization이면 NONE이다", async () => {
+    const list = [
+      { owner: undefined, expected: "LOGIN" },
+      { owner: { type: "User" }, expected: "LOGIN" },
+      { owner: { type: "Organization" }, expected: "NONE" },
+    ] as const;
+    for (const { owner, expected } of list) {
+      const api = fakeGitHubProfileApi([{ login: "x-org", repos: [repo("inventory")] }], (path) =>
+        path.startsWith("/users/")
+          ? Response.json([
+              {
+                name: "inventory",
+                full_name: "x-org/inventory",
+                html_url: "https://github.com/x-org/inventory",
+                fork: false,
+                private: false,
+                ...(owner ? { owner } : {}),
+              },
+            ])
+          : undefined,
+      );
+      const sources = await collectGitHubSources(
+        { login: "x-org", resumeText: "inventory" },
+        { fetch: api.fetch, now: () => NOW },
+      );
+      expect(sources.repos[0]!.authorFilter).toBe(expected);
+    }
+  });
+});
+
 describe("loadGitHubProfileConfig (github)", () => {
   it("기본 3, 1~10 정수만 받는다", () => {
     expect(loadGitHubProfileConfig({})).toEqual({ maxRepos: 3, token: undefined });

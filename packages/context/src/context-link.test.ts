@@ -304,7 +304,50 @@ describe("출력 스키마와 입력 (context-link)", () => {
     expect(blocks).toEqual(["resume", "github:jane_payments", "assignment-observations"]);
     expect(input).toContain(`https://github.com/jane/payments/commit/${SHA}`);
     expect(input).not.toMatch(/maxPoints|earned|relevance/i);
-    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v1\+[0-9a-f]{8}$/);
+    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v2\+[0-9a-f]{8}$/);
+  });
+
+  it("GitHub 근거 블록에 커밋·PR의 작성자 구분이 들어간다 (T-604)", () => {
+    const base = githubSources();
+    const user = base.repos[0]!;
+    const github: GitHubSources = {
+      ...base,
+      login: "acme",
+      repos: [
+        {
+          ...user,
+          fullName: "acme/payments",
+          url: "https://github.com/acme/payments",
+          authorFilter: "NONE",
+        },
+        { ...user, fullName: "acme/legacy", url: "https://github.com/acme/legacy" },
+      ],
+    };
+    const input = buildContextLinkInput({
+      resumeText: RESUME,
+      github,
+      observations: [],
+      criteria: [],
+    });
+    const section = input.slice(input.indexOf("## GitHub 근거 URL"), input.indexOf("## 과제 관측"));
+    const authorLines = section
+      .split("\n")
+      .filter((l) => l.startsWith("### ") || l.startsWith("커밋·PR 작성자"));
+    expect(authorLines).toMatchInlineSnapshot(`
+      [
+        "### acme/payments — https://github.com/acme/payments",
+        "커밋·PR 작성자: 작성자 구분 없음 (조직 프로필: 여러 사람의 커밋·PR일 수 있다)",
+        "### acme/legacy — https://github.com/acme/legacy",
+        "커밋·PR 작성자: @acme의 커밋·PR만",
+      ]
+    `);
+    // 작성자 구분은 신뢰하지 않는 블록 밖(시스템이 쓴 사실)에 있다
+    for (const block of section.matchAll(
+      /<<<UNTRUSTED_DATA[\s\S]*?<<<END_UNTRUSTED_DATA[^>]*>>>/g,
+    )) {
+      expect(block[0]).not.toContain("커밋·PR 작성자");
+    }
+    expect(CONTEXT_LINK_PROMPT.system).toContain("지원자 본인의 커밋·PR이라고 단정하지 말고");
   });
 });
 
@@ -492,6 +535,7 @@ describe.skipIf(!hasTestDb)("runContextLinkStage (context-link, DB 통합)", () 
     const sent = JSON.stringify(fake.sent[0]!.messages);
     expect(sent).toContain("Designed idempotent payment endpoints");
     expect(sent).toContain("https://github.com/jane/payments");
+    expect(sent).toContain("커밋·PR 작성자: @jane의 커밋·PR만");
 
     // 이력서를 지우고 다시 실행하면 제출의 연결이 "이력서 미제공" 하나로 바뀐다
     await setResumeText(tdb.db, seeded.submissionId, { status: "NONE", text: null, reason: null });

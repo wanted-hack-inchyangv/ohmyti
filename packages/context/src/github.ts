@@ -12,6 +12,8 @@
  *   3. 키워드가 하나도 없으면(이력서 없음) 최근 push 순으로 고른다(`RECENT_PUSH`).
  *   키워드가 있는데 고를 저장소가 없으면 관련 없는 저장소를 억지로 채우지 않고 `NO_DATA`(`NO_RELATED_REPOS`)다 (G-09).
  * - 저장소별 수집: README 앞 4 KiB, 언어 목록, 최상위 파일 목록, 해당 사용자의 최근 커밋 메시지 20개, 해당 사용자의 병합된 PR 제목 10개.
+ *   조직 프로필(목록 응답의 `owner.type`이 `Organization`)은 커밋 작성자가 될 수 없으므로 작성자 조건 없이 수집하고
+ *   `authorFilter: "NONE"`을 남긴다 (T-604). 추가 요청은 없다.
  * - 요청 수 상한: 목록 1회 + 저장소당 5회 = `1 + 5 × maxRepos` (기본 16). 상한에 닿으면 더 보내지 않는다.
  *   속도 제한 응답을 한 번 받으면 이후 요청은 보내지 않는다.
  * - 스타·팔로워·포크 수 같은 인기도 지표는 응답에서 읽지 않고 저장하지 않는다. 포크 저장소는 후보에서 뺀다.
@@ -239,6 +241,8 @@ const RepoListItem = z.object({
   pushed_at: z.string().nullable().optional(),
   fork: z.boolean(),
   private: z.boolean(),
+  /** 조직 여부 판별용 (T-604). 없으면 사용자로 본다 */
+  owner: z.object({ type: z.string().optional() }).nullable().optional(),
 });
 type RepoListItem = z.infer<typeof RepoListItem>;
 
@@ -682,10 +686,15 @@ async function collectRepo(
     }
   }
 
-  // 기본 브랜치에서 해당 사용자가 작성한 커밋. 빈 저장소는 409다
+  // 조직은 커밋·PR 작성자가 될 수 없으므로 작성자 조건 없이 수집한다 (T-604)
+  const authorFilter: NonNullable<GitHubRepoSource["authorFilter"]> =
+    item.owner?.type === "Organization" ? "NONE" : "LOGIN";
+
+  // 기본 브랜치의 최근 커밋(사용자면 해당 사용자가 작성한 것만). 빈 저장소는 409다
   let commits: GitHubRepoSource["commits"] = [];
+  const authorParam = authorFilter === "LOGIN" ? `author=${encodeURIComponent(login)}&` : "";
   const commitsBody = await requester.json(
-    `${base}/commits?author=${encodeURIComponent(login)}&per_page=${GITHUB_PROFILE_LIMITS.commitCount}`,
+    `${base}/commits?${authorParam}per_page=${GITHUB_PROFILE_LIMITS.commitCount}`,
   );
   if (commitsBody instanceof GitHubFailure) {
     if (commitsBody.code !== "EMPTY") miss("commits", commitsBody);
@@ -702,7 +711,7 @@ async function collectRepo(
   }
 
   let mergedPulls: GitHubRepoSource["mergedPulls"] = [];
-  const query = `repo:${item.full_name} is:pr is:merged author:${login}`;
+  const query = `repo:${item.full_name} is:pr is:merged${authorFilter === "LOGIN" ? ` author:${login}` : ""}`;
   const searchBody = await requester.json(
     `/search/issues?q=${encodeURIComponent(query)}&sort=updated&order=desc&per_page=${GITHUB_PROFILE_LIMITS.pullCount}`,
   );
@@ -728,6 +737,7 @@ async function collectRepo(
     pushedAt: candidate.pushedAt,
     matchedKeywords: candidate.matched.slice(0, 50).map((t) => truncate(t, 100)),
     relevanceScore: candidate.matched.length,
+    authorFilter,
     readme,
     readmeTruncated,
     languages,

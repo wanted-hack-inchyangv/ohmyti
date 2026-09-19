@@ -277,8 +277,13 @@ function selectionReason(sources: GitHubSources, repo: GitHubRepoSource): string
   return `이력서·JD 키워드와 겹침: ${repo.matchedKeywords.join(", ")}`;
 }
 
+/** 조직 프로필 저장소의 커밋·PR 수집 방식 안내 (T-604) */
+export const ORG_PROFILE_AUTHOR_NOTE =
+  "조직 프로필: 작성자 구분 없이 수집했습니다. 커밋·PR이 지원자 본인의 것인지는 확인이 필요합니다";
+
 function selectionNotes(sources: GitHubSources): string[] {
   const notes: string[] = [];
+  if (sources.repos.some((r) => r.authorFilter === "NONE")) notes.push(ORG_PROFILE_AUTHOR_NOTE);
   if (sources.excludedRepos && sources.excludedRepos.length > 0) {
     notes.push(`제출 저장소는 근거 후보에서 뺐습니다: ${sources.excludedRepos.join(", ")}`);
   }
