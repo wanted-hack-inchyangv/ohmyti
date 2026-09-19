@@ -292,6 +292,53 @@ describe("EvidencePanel: LLM 근거 탐색·리뷰 (T-407)", () => {
       'data-testid="interpretation-empty">추정 없음. LLM 미실행(예산 초과)<',
     );
   });
+
+  it("형식 오류로 제외한 항목이 있으면 AI 리뷰 영역에 건수를 작게 보이고, 최소 재현이 없는 추정은 추정만 보인다 (T-601)", () => {
+    const stage = reviewStage({
+      detail: {
+        ...reviewStage().detail,
+        interpretations: [
+          { criterionId: "R-05", confidence: "LOW", evidenceIds: [], minimalRepro: null },
+        ],
+        droppedItems: 2,
+        invalidItems: [
+          {
+            section: "failures",
+            index: 5,
+            criterionId: "G1",
+            issueCode: "too_small",
+            path: "minimalReproSummary.summary",
+          },
+          {
+            section: "designReviews",
+            index: 0,
+            criterionId: "R-12",
+            issueCode: "invalid_type",
+            path: "rationale",
+          },
+        ],
+      },
+    });
+    const overview = panelHtml(render({}, { stages: [stage] }).html);
+    expect(overview).toMatch(
+      /data-testid="review-dropped-items">형식 오류로 제외한 항목 (<!-- -->)?2(<!-- -->)?건</,
+    );
+    expect(overview).not.toContain("minimalReproSummary");
+
+    const selected = panelHtml(
+      render(
+        { criterion: "R-05" },
+        { stages: [stage], interpretations: { "R-05": "Idempotency-Key를 저장하지 않는다" } },
+      ).html,
+    );
+    expect(selected).toContain('data-testid="interpretation">Idempotency-Key를 저장하지 않는다<');
+    expect(selected).not.toContain('data-testid="minimal-repro"');
+
+    // 제외한 항목이 없거나 T-601 이전 기록(필드 없음)이면 표시하지 않는다
+    const before = render({}, { stages: [reviewStage()] });
+    expect(panelHtml(before.html)).toContain('data-testid="review-suggestion"');
+    expect(panelHtml(before.html)).not.toContain('data-testid="review-dropped-items"');
+  });
 });
 
 describe("EvidencePanel: 검토 이력", () => {

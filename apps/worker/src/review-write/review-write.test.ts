@@ -132,7 +132,7 @@ describe("postprocessEvidenceReview", () => {
 
   it("최소 재현 설명은 입력으로 준 timeline 스텝만 참조한다", () => {
     const processed = postprocessEvidenceReview(output, targets, lineCount);
-    expect(processed.failures[0]!.minimalRepro.stepIds).toEqual(["idem-same#1", "idem-same#2"]);
+    expect(processed.failures[0]!.minimalRepro!.stepIds).toEqual(["idem-same#1", "idem-same#2"]);
     expect(processed.dropped).toContainEqual({
       kind: "STEP",
       criterionId: "R-05",
@@ -169,6 +169,43 @@ describe("postprocessEvidenceReview", () => {
     expect(processed.suggestions).toEqual([
       { title: "로그", detail: "구조화 로그를 쓴다", outsideSpec: true },
     ]);
+  });
+});
+
+describe("postprocessEvidenceReview: 최소 재현 (T-601)", () => {
+  const targets = {
+    failures: new Map([
+      ["G1", new Set<string>()],
+      ["R-05", new Set(["idem-same#1"])],
+    ]),
+    design: new Map<string, number>(),
+  };
+  const base = { interpretation: "추정", confidence: "LOW" as const, sourceRefs: [] };
+
+  it("minimalReproSummary가 없거나 summary가 공백뿐이면 최소 재현은 null이고 추정은 남는다", () => {
+    const processed = postprocessEvidenceReview(
+      {
+        failures: [
+          { ...base, criterionId: "G1" },
+          {
+            ...base,
+            criterionId: "R-05",
+            minimalReproSummary: { summary: "  \n ", stepIds: ["idem-same#1"] },
+          },
+        ],
+        designReviews: [],
+        suggestions: [],
+      },
+      targets,
+      () => null,
+    );
+    expect(
+      processed.failures.map((f) => [f.criterionId, f.interpretation, f.minimalRepro]),
+    ).toEqual([
+      ["G1", "추정", null],
+      ["R-05", "추정", null],
+    ]);
+    expect(processed.dropped).toEqual([]);
   });
 });
 
@@ -306,7 +343,7 @@ function firstStepIds(message: string): Map<string, string> {
  * 가짜 LLM 응답: FAIL 기준마다 유효 참조 1개 + 무효 참조 2개(없는 파일, 파일 길이를 넘는 범위),
  * PASS 기준(R-01) 하나, R-12 만점 제안, 명세 외 제안 하나
  */
-function fakeReview(messages: ChatMessage[]): FakeReply {
+function fakeReviewOutput(messages: ChatMessage[]): EvidenceReviewOutput {
   const user = messages.find((m) => m.role === "user")!.content;
   const steps = firstStepIds(user);
   const failIds = [...steps.keys()];
@@ -346,8 +383,15 @@ function fakeReview(messages: ChatMessage[]): FakeReply {
       { title: "요청 로그", detail: "주문 요청마다 구조화 로그를 남긴다", outsideSpec: true },
     ],
   };
-  return { output };
+  return output;
 }
+
+function fakeReview(messages: ChatMessage[]): FakeReply {
+  return { output: fakeReviewOutput(messages) };
+}
+
+/** 버린 항목에만 넣는 문장. 로그·DB 어디에도 남으면 안 된다 (T-601) */
+const DROPPED_BODY = "버린-항목-본문-7f3a";
 
 const hasTestDb = Boolean(process.env.DATABASE_URL_TEST);
 if (!hasTestDb) {
@@ -449,12 +493,16 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
     fake: FakeLlmClient;
   }
 
-  async function evaluate(ref: "c" | "d", limits: LlmBudgetLimits = LIMITS): Promise<Evaluated> {
+  async function evaluate(
+    ref: "c" | "d",
+    limits: LlmBudgetLimits = LIMITS,
+    respond: (messages: ChatMessage[]) => FakeReply = fakeReview,
+  ): Promise<Evaluated> {
     const workRoot = await mkdtemp(path.join(os.tmpdir(), "ohmyti-review-write-"));
     workRoots.push(workRoot);
     const store = new FsArtifactStore({ root: path.join(workRoot, "artifacts") });
     const fake = new FakeLlmClient({
-      responses: { EVIDENCE_REVIEW: ({ messages }) => fakeReview(messages) },
+      responses: { EVIDENCE_REVIEW: ({ messages }) => respond(messages) },
     });
     fakes.push(fake);
     let before: ScoreRow[] = [];
@@ -559,7 +607,7 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
       // 관측 근거(하네스 기록)는 그대로 앞에 남는다
       expect(evidences.get(row.evidenceIds[0]!)!.kind).toBeNull();
       const interpretation = summary.interpretations.find((i) => i.criterionId === id)!;
-      expect(interpretation.minimalRepro.stepIds).toHaveLength(1);
+      expect(interpretation.minimalRepro!.stepIds).toHaveLength(1);
     }
     expect(
       summary.dropped
@@ -718,5 +766,225 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
     expect(outcome.reason).toMatch(new RegExp(`^${REVIEW_WRITE_INCONCLUSIVE_REASON}: `));
     expect(outcome.detail.llm).toBe("INCONCLUSIVE");
     expect(await listCriterionResults(tdb.db, evaluationId)).toEqual(rowsBefore);
+  }, 240_000);
+
+  // ─── 항목 단위 수용 (T-601) ─────────────────────────────────────────────────
+
+  /** 판정·점수와 LLM이 아닌 근거 연결. 부분 수용 전후로 같아야 한다 (판정 digest 대상, 결정 로그 T-507) */
+  async function judgmentFingerprint(evaluationId: string) {
+    const kinds = new Map((await listEvidences(tdb.db, evaluationId)).map((e) => [e.id, e.kind]));
+    const rows = await listCriterionResults(tdb.db, evaluationId);
+    return {
+      score: await evaluationScore(evaluationId),
+      rows: rows.map((r) => ({
+        criterionId: r.criterionId,
+        verdict: r.verdict,
+        earnedPoints: r.earnedPoints,
+        issueId: r.issueId,
+        reviewState: r.reviewState,
+        observation: r.observation,
+        evidenceIds: r.evidenceIds.filter((id) => kinds.get(id) !== "LLM_INTERPRETATION"),
+      })),
+    };
+  }
+
+  /** 평가에 속한 DB 행 전체(ai_reviews·근거·판정·단계 기록)를 JSON 하나로 모은다 */
+  async function dbDump(evaluationId: string): Promise<string> {
+    return JSON.stringify([
+      await tdb.db.select().from(aiReviews).where(eq(aiReviews.evaluationId, evaluationId)),
+      await listEvidences(tdb.db, evaluationId),
+      await listCriterionResults(tdb.db, evaluationId),
+      await getEvaluation(tdb.db, evaluationId),
+    ]);
+  }
+
+  async function rerunStage(
+    evaluationId: string,
+    store: FsArtifactStore,
+    respond: (messages: ChatMessage[]) => FakeReply,
+  ) {
+    const evaluation = (await getEvaluation(tdb.db, evaluationId))!;
+    const logs: string[] = [];
+    const outcome = await runReviewWriteStage(
+      {
+        evaluationId,
+        submissionSha: evaluation.submissionSha,
+        rubric,
+        snapshotRef: artifactKeys.snapshot(evaluation.submissionId),
+      },
+      {
+        db: tdb.db,
+        store,
+        llm: createEvaluationLlmClient({
+          base: new FakeLlmClient({
+            responses: { EVIDENCE_REVIEW: ({ messages }) => respond(messages) },
+          }),
+          sink: createDbAiReviewSink(tdb.db),
+          scope: { evaluationId },
+          limits: LIMITS,
+        }),
+        logger: createLogger({ destination: { write: (line) => logs.push(line) }, level: "debug" }),
+      },
+    );
+    return { outcome, logs: logs.join("") };
+  }
+
+  it("(a) 6번째 failure의 summary가 빈 문자열이면 그 항목만 버리고 DONE이다. 유효 항목·설계 초안이 저장되고 판정·점수는 그대로다", async () => {
+    const { evaluationId, before, scoreBefore, fake } = await evaluate("c", LIMITS, (messages) => {
+      const output = fakeReviewOutput(messages);
+      const byId = new Map(output.failures.map((f) => [f.criterionId, f]));
+      const r05 = byId.get("R-05")!;
+      const r06 = byId.get("R-06")!;
+      output.failures = [
+        byId.get("R-01")!,
+        r05,
+        r06,
+        { ...r05, interpretation: "반복" },
+        { ...r06, interpretation: "반복" },
+        {
+          ...byId.get("R-07")!,
+          interpretation: DROPPED_BODY,
+          minimalReproSummary: { summary: "", stepIds: [DROPPED_BODY] },
+        },
+      ];
+      return { output };
+    });
+    expect(fake.sent).toHaveLength(1);
+    const stage = await reviewStage(evaluationId);
+    expect(stage.state).toBe("DONE");
+    expect(stage.reason).toBeUndefined();
+    const summary = ReviewWriteSummarySchema.parse(stage.detail);
+    expect(summary.llm).toBe("OK");
+    expect(summary.droppedItems).toBe(1);
+    expect(summary.invalidItems).toEqual([
+      {
+        section: "failures",
+        index: 5,
+        criterionId: "R-07",
+        issueCode: "too_small",
+        path: "minimalReproSummary.summary",
+      },
+    ]);
+    expect(summary.interpretations.map((i) => i.criterionId)).toEqual(["R-05", "R-06"]);
+    expect(summary.designSuggestions.map((d) => d.criterionId)).toEqual(["R-12"]);
+    expect(summary.suggestions).toHaveLength(1);
+    // 유효 항목은 ai_reviews의 출력으로 저장된다
+    const reviews = await listAiReviews(tdb.db, { evaluationId, kind: "EVIDENCE_REVIEW" });
+    expect(reviews).toHaveLength(1);
+    expect(summary.aiReviewId).toBe(reviews[0]!.id);
+    expect(JSON.stringify(reviews[0]!.output)).toContain("R-05: Idempotency-Key");
+    const rows = await listCriterionResults(tdb.db, evaluationId);
+    expect(rows.find((r) => r.criterionId === "R-05")!.interpretation).toMatch(/^R-05: /);
+    expect(rows.find((r) => r.criterionId === "R-07")!.interpretation).toBeNull();
+    // 판정·점수 불변
+    expect(await scoreRows(evaluationId)).toEqual(before);
+    expect(await evaluationScore(evaluationId)).toEqual(scoreBefore);
+    // 버린 항목의 본문은 DB 어디에도 없다
+    expect(await dbDump(evaluationId)).not.toContain(DROPPED_BODY);
+  }, 240_000);
+
+  it("(a') 부분 수용은 판정·점수와 LLM이 아닌 근거 연결을 바꾸지 않고, 버린 항목의 본문을 로그에 남기지 않는다", async () => {
+    const { evaluationId, store } = await evaluated("c");
+    const before = await judgmentFingerprint(evaluationId);
+    const { outcome, logs } = await rerunStage(evaluationId, store, (messages) => {
+      const output = fakeReviewOutput(messages);
+      output.failures[2] = {
+        ...output.failures[2]!,
+        interpretation: DROPPED_BODY,
+        minimalReproSummary: { summary: "", stepIds: [] },
+      };
+      return { output };
+    });
+    expect(outcome.reason).toBeUndefined();
+    expect(outcome.detail.droppedItems).toBe(1);
+    expect(logs).toContain("형식 오류 항목을 제외했습니다");
+    expect(logs).toContain("minimalReproSummary.summary");
+    expect(logs).not.toContain(DROPPED_BODY);
+    expect(await judgmentFingerprint(evaluationId)).toEqual(before);
+    expect(await dbDump(evaluationId)).not.toContain(DROPPED_BODY);
+  }, 240_000);
+
+  it("(b) rationale이 없는 designReviews 항목은 버리고 나머지를 저장한다", async () => {
+    const { evaluationId, store } = await evaluated("c");
+    const { outcome, logs } = await rerunStage(evaluationId, store, (messages) => {
+      const output = fakeReviewOutput(messages);
+      return {
+        output: {
+          ...output,
+          designReviews: [
+            { criterionId: "R-12", suggestedPoints: 5, sourceRefs: [], note: DROPPED_BODY },
+          ],
+        },
+      };
+    });
+    expect(outcome.state).toBe("DONE");
+    expect(outcome.reason).toBeUndefined();
+    expect(outcome.detail.llm).toBe("OK");
+    expect(outcome.detail.designSuggestions).toEqual([]);
+    expect(outcome.detail.interpretations.map((i) => i.criterionId)).toEqual([
+      "R-05",
+      "R-06",
+      "R-07",
+    ]);
+    expect(outcome.detail.invalidItems).toEqual([
+      {
+        section: "designReviews",
+        index: 0,
+        criterionId: "R-12",
+        issueCode: "invalid_type",
+        path: "rationale",
+      },
+    ]);
+    expect(logs).not.toContain(DROPPED_BODY);
+    expect(await dbDump(evaluationId)).not.toContain(DROPPED_BODY);
+  }, 240_000);
+
+  it("(c) 외곽은 맞지만 유효 항목이 0개면 LLM 결과 미확정이고 판정 행을 바꾸지 않는다", async () => {
+    const { evaluationId, store } = await evaluated("c");
+    const rowsBefore = await listCriterionResults(tdb.db, evaluationId);
+    const { outcome, logs } = await rerunStage(evaluationId, store, () => ({
+      output: {
+        failures: [{ criterionId: "R-05", interpretation: DROPPED_BODY }],
+        designReviews: [{ criterionId: "R-12", rationale: DROPPED_BODY }],
+        suggestions: [],
+      },
+    }));
+    expect(outcome.state).toBe("DONE");
+    expect(outcome.reason).toBe(
+      `${REVIEW_WRITE_INCONCLUSIVE_REASON}: 유효한 출력 항목이 없습니다(형식 오류 2건)`,
+    );
+    expect(outcome.detail).toMatchObject({
+      llm: "INCONCLUSIVE",
+      llmError: "LlmOutputInvalidError",
+      interpretations: [],
+      designSuggestions: [],
+      droppedItems: 2,
+    });
+    expect(outcome.detail.invalidItems.map((i) => [i.section, i.index, i.criterionId])).toEqual([
+      ["failures", 0, "R-05"],
+      ["designReviews", 0, "R-12"],
+    ]);
+    expect(await listCriterionResults(tdb.db, evaluationId)).toEqual(rowsBefore);
+    expect(logs).not.toContain(DROPPED_BODY);
+    expect(await dbDump(evaluationId)).not.toContain(DROPPED_BODY);
+  }, 240_000);
+
+  it("(d) 최소 재현(minimalReproSummary)이 없는 FAIL 기준 출력도 유효하고 추정이 저장된다", async () => {
+    const { evaluationId, store } = await evaluated("c");
+    const { outcome } = await rerunStage(evaluationId, store, (messages) => {
+      const output = fakeReviewOutput(messages);
+      output.failures = output.failures.map((f) => {
+        if (f.criterionId !== "R-07") return f;
+        const { minimalReproSummary: _omit, ...rest } = f;
+        return rest;
+      });
+      return { output };
+    });
+    expect(outcome.reason).toBeUndefined();
+    expect(outcome.detail.droppedItems).toBe(0);
+    const r07 = outcome.detail.interpretations.find((i) => i.criterionId === "R-07")!;
+    expect(r07.minimalRepro).toBeNull();
+    const rows = await listCriterionResults(tdb.db, evaluationId);
+    expect(rows.find((r) => r.criterionId === "R-07")!.interpretation).toMatch(/^R-07: /);
   }, 240_000);
 });

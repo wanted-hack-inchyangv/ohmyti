@@ -79,6 +79,8 @@ export interface ReviewWriteView {
   minimalRepro: { summary: string; stepIds: string[] } | null;
   /** 명세 외 개선 제안 (평가 전체) */
   suggestions: ReviewSuggestion[];
+  /** LLM 출력에서 형식 오류로 제외한 항목 수 (T-601, 평가 전체) */
+  droppedItems: number;
 }
 
 /** 이력 한 줄. 값은 저장된 이벤트를 문자열로 옮긴 것이다 */
@@ -163,6 +165,7 @@ export function reviewWriteViewOf(
     confidence: interpretation?.confidence ?? null,
     minimalRepro: interpretation?.minimalRepro ?? null,
     suggestions: summary?.suggestions ?? [],
+    droppedItems: summary?.droppedItems ?? 0,
   };
 }
 

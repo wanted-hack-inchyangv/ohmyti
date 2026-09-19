@@ -9,14 +9,18 @@
  * - 명세 외 개선 제안은 단계 기록(`stage_log[].detail.suggestions`)에만 둔다. 점수와 무관하다.
  * - 다시 실행하면(job 재시도) `ai_reviews`에 새 버전이 쌓이고, 판정 행은 새 버전의 근거로 다시 연결된다(이전 근거 행은 남는다).
  * - 예산 초과·설정 오류는 "LLM 미실행", 스키마 불일치·제공자 오류는 "LLM 결과 미확정"으로 단계는 DONE이며 점수는 그대로다 (G-14).
+ * - 출력은 항목 단위로 받는다 (T-601). 외곽 구조가 맞으면 스키마에 맞지 않는 항목만 버리고(`droppedItems`·`invalidItems`,
+ *   위치와 사유 코드만 기록) 나머지를 저장한다. 버린 항목뿐이고 유효 항목이 0개면 "LLM 결과 미확정"이다.
  */
 import {
   REVIEW_WRITE_BUDGET_EXCEEDED_REASON,
   REVIEW_WRITE_INCONCLUSIVE_REASON,
   REVIEW_WRITE_LLM_CONFIG_REASON,
-  EvidenceReviewOutputSchema,
+  EvidenceReviewLenientOutputSchema,
+  evidenceReviewItemCount,
+  splitEvidenceReviewOutput,
   type EvidenceDetail,
-  type EvidenceReviewOutput,
+  type EvidenceReviewLenientOutput,
   type Rubric,
   type ReviewWriteSummary,
   type SourceLocation,
@@ -85,6 +89,8 @@ function emptySummary(
     designSuggestions: [],
     suggestions: [],
     dropped: [],
+    droppedItems: 0,
+    invalidItems: [],
   };
 }
 
@@ -112,13 +118,13 @@ export async function runReviewWriteStage(
   });
   const targetIds = context.failures.map((f) => f.criterion.id);
 
-  const outcome = await llmStepOutcome<LlmResult<EvidenceReviewOutput>>(() =>
+  const outcome = await llmStepOutcome<LlmResult<EvidenceReviewLenientOutput>>(() =>
     deps.llm.complete({
       purpose: EVIDENCE_REVIEW_PROMPT.purpose,
       promptVersion: EVIDENCE_REVIEW_PROMPT.promptVersion,
       system: EVIDENCE_REVIEW_PROMPT.system,
       input: buildReviewWriteInput(context),
-      schema: EvidenceReviewOutputSchema,
+      schema: EvidenceReviewLenientOutputSchema,
       example: EVIDENCE_REVIEW_EXAMPLE,
       maxTokens: EVIDENCE_REVIEW_MAX_TOKENS,
     }),
@@ -152,6 +158,27 @@ export async function runReviewWriteStage(
       ? { id: latest.id, version: latest.version }
       : null;
 
+  const { output, invalidItems } = splitEvidenceReviewOutput(outcome.value.output);
+  const itemsDetail = { droppedItems: invalidItems.length, invalidItems };
+  if (invalidItems.length > 0) {
+    // 위치·사유 코드만 남긴다. 버린 항목의 본문은 로그에 쓰지 않는다
+    logger.warn(itemsDetail, "LLM 출력에서 형식 오류 항목을 제외했습니다");
+  }
+  if (invalidItems.length > 0 && evidenceReviewItemCount(output) === 0) {
+    const reason = `${REVIEW_WRITE_INCONCLUSIVE_REASON}: 유효한 출력 항목이 없습니다(형식 오류 ${invalidItems.length}건)`;
+    return {
+      state: "DONE",
+      reason,
+      detail: {
+        ...emptySummary("INCONCLUSIVE", "LlmOutputInvalidError", targetIds),
+        model: outcome.value.model,
+        aiReviewId: aiReview?.id ?? null,
+        aiReviewVersion: aiReview?.version ?? null,
+        ...itemsDetail,
+      },
+    };
+  }
+
   const lineCache = new Map<string, string[] | null>();
   const linesOf = async (path: string): Promise<string[] | null> => {
     if (!lineCache.has(path)) {
@@ -161,7 +188,6 @@ export async function runReviewWriteStage(
     return lineCache.get(path)!;
   };
   // 후처리는 동기 함수라 참조된 경로를 미리 읽어 둔다
-  const output = outcome.value.output;
   for (const ref of [...output.failures, ...output.designReviews].flatMap((x) => x.sourceRefs)) {
     await linesOf(
       ref.path
@@ -201,6 +227,7 @@ export async function runReviewWriteStage(
       interpretations: summary.interpretations.length,
       designSuggestions: summary.designSuggestions.length,
       suggestions: summary.suggestions.length,
+      droppedItems: invalidItems.length,
     },
     "REVIEW_WRITE 결과를 저장했습니다",
   );
@@ -215,6 +242,7 @@ export async function runReviewWriteStage(
       aiReviewId: aiReview?.id ?? null,
       aiReviewVersion: aiReview?.version ?? null,
       targets: targetIds,
+      ...itemsDetail,
     },
   };
 }

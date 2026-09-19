@@ -199,6 +199,11 @@ function SuggestionsSection({ review }: { review: ReviewWriteView }) {
         </p>
       </div>
       <p className="text-[13px] text-neutral-500">LLM 리뷰 초안입니다. 점수와 무관합니다.</p>
+      {review.droppedItems > 0 ? (
+        <p className="text-[12px] text-neutral-400" data-testid="review-dropped-items">
+          형식 오류로 제외한 항목 {review.droppedItems}건
+        </p>
+      ) : null}
       {review.suggestions.length === 0 ? (
         <p className="text-[13px] text-neutral-500" data-testid="review-suggestions-empty">
           {review.reason ? `제안 없음. ${review.reason}` : "제안 없음."}

@@ -441,7 +441,7 @@ async function collectLlm(
             criterionId: i.criterionId,
             confidence: i.confidence,
             evidenceCount: i.evidenceIds.length,
-            minimalRepro: i.minimalRepro.summary,
+            minimalRepro: i.minimalRepro?.summary ?? "(없음)",
           }))
         : [],
       designSuggestions: summary.success

@@ -4,6 +4,7 @@
  * - `sourceRefs`: 스냅샷에 실제로 있는 파일이고 `1 ≤ startLine ≤ endLine ≤ 파일 줄 수`인 것만 남긴다. 무효 참조는 그 참조만 버리고
  *   `dropped`에 사유를 남긴다. 나머지 출력은 그대로 쓴다.
  * - `minimalReproSummary.stepIds`: 그 기준에 입력으로 준 실패 재생 스텝(`<caseId>#<seq>`)만 남긴다.
+ *   `minimalReproSummary`가 없거나 `summary`가 공백뿐이면 최소 재현은 null이다 (T-601).
  * - `failures`: 추정 원인을 요청한 FAIL 기준만 받는다. 같은 기준이 두 번 나오면 처음 것만 쓴다.
  * - `designReviews`: 요청한 사람 검토 기준만 받고, `suggestedPoints`가 그 기준의 만점을 넘으면 항목 전체를 버린다.
  *   제안 점수는 근거로만 저장되며 판정 점수로 옮기지 않는다 (G-01).
@@ -32,7 +33,7 @@ export interface ProcessedFailure {
   interpretation: string;
   confidence: ReviewConfidence;
   refs: SourceLocation[];
-  minimalRepro: { summary: string; stepIds: string[] };
+  minimalRepro: { summary: string; stepIds: string[] } | null;
 }
 
 export interface ProcessedDesignReview {
@@ -145,8 +146,10 @@ export function postprocessEvidenceReview(
       continue;
     }
     seenFailures.add(failure.criterionId);
+    const repro = failure.minimalReproSummary;
+    const summary = repro?.summary.trim() ?? "";
     const stepIds: string[] = [];
-    for (const stepId of failure.minimalReproSummary.stepIds) {
+    for (const stepId of summary === "" ? [] : (repro?.stepIds ?? [])) {
       if (!allowedSteps.has(stepId)) {
         dropped.push({
           kind: "STEP",
@@ -163,7 +166,7 @@ export function postprocessEvidenceReview(
       interpretation: failure.interpretation.trim(),
       confidence: failure.confidence,
       refs: keepRefs(failure.sourceRefs, failure.criterionId, lineCount, dropped),
-      minimalRepro: { summary: failure.minimalReproSummary.summary.trim(), stepIds },
+      minimalRepro: summary === "" ? null : { summary, stepIds },
     });
   }
 

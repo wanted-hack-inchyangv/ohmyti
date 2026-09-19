@@ -334,7 +334,9 @@ export function buildReviewWriteInput(context: ReviewWriteContext): string {
     lines.push("관측(실행 기록에서 확인한 사실):");
     lines.push(untrusted(`observation:${failure.criterion.id}`, failure.observation));
     if (failure.cases.length === 0) {
-      lines.push("실패 재생 스텝 없음 (서비스 기동 실패 등). stepIds는 빈 배열로 둔다.");
+      lines.push(
+        "실패 재생 스텝 없음 (mutation 기준, 서비스 기동 실패 등). 이 기준은 minimalReproSummary를 생략한다.",
+      );
     }
     for (const view of failure.cases) {
       lines.push(`#### 케이스 ${view.caseId} (실행 기록 ${view.runId})`);
