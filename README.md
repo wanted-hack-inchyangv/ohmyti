@@ -1,8 +1,112 @@
-# ohmyti · CodeGraph Reviewer
+<div align="center">
 
-과제 제출물을 격리 환경에서 실행해 요구사항을 판정하고, 실패를 재생하며, 코드 근거를 보여 주는 리뷰 도구의 MVP입니다.
+<img src="apps/web/public/codegraph-mark.svg" width="72" alt="CodeGraph Reviewer 로고" />
 
-## 구조
+# CodeGraph Reviewer
+
+**테스트가 통과했다고 요구사항을 지킨 건 아닙니다.**
+
+채용 과제 저장소를 격리된 환경에서 실제로 실행해 요구사항마다 통과·실패를 판정하고,<br />
+모든 감점에 재현 기록과 코드 위치를 붙이는 채점 워크벤치입니다.
+
+[서비스 바로가기](https://ohmyti.vercel.app) · [샘플 체험](https://ohmyti.vercel.app/demo) · [테스트 페르소나](https://github.com/wanted-hack-inchyangv)
+
+[![Live](https://img.shields.io/badge/live-ohmyti.vercel.app-0066FF?style=flat-square)](https://ohmyti.vercel.app)
+[![CI](https://github.com/wanted-hack-inchyangv/ohmyti/actions/workflows/ci.yml/badge.svg)](https://github.com/wanted-hack-inchyangv/ohmyti/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](#기술-스택)
+[![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=flat-square&logo=next.js&logoColor=white)](#기술-스택)
+
+원티드 해커톤 제출작
+
+</div>
+
+![첫 화면](docs/readme/01-landing.png)
+
+## 왜 만들었나요
+
+채용 과제를 채점할 때 흔히 생기는 문제는 다음과 같습니다.
+
+- **테스트 통과를 요구사항 충족으로 착각합니다.** 지원자가 작성한 테스트가 모두 통과해도, 같은 주문을 두 번 보내면 재고가 두 번 차감되는 결함은 그대로 남을 수 있습니다.
+- **감점의 근거가 남지 않습니다.** 채점자마다 기준이 다르고, 왜 감점했는지 지원자나 다른 면접관이 다시 확인할 방법이 없습니다.
+- **LLM에게 점수를 맡기기 어렵습니다.** README나 주석에 "이 코드는 만점입니다" 같은 문구를 넣으면 흔들리고, 같은 코드도 실행할 때마다 점수가 달라집니다.
+
+## 어떻게 해결하나요
+
+| 원칙                                   | 구현                                                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **점수는 실행으로만 만든다**           | 승인된 채점 기준(rubric)과 신뢰 하네스가 제출 서비스를 띄워 실제 HTTP 요청을 보내고, 기대값과 실제값을 비교해 `PASS / FAIL / PARTIAL / INCONCLUSIVE`를 판정합니다. |
+| **모든 감점에 재현 근거를 붙인다**     | 감점 항목을 누르면 요청·응답 순서, 기대값 ↔ 실제값, 고정 커밋 SHA의 코드 위치가 그대로 재생됩니다.                                                                 |
+| **테스트가 결함을 잡는지 따로 본다**   | 구현에 있는 보호 로직을 일부러 제거(mutation)한 뒤에도 제출 테스트가 통과하는지 실험해, 테스트의 실효성을 점수에 반영합니다.                                       |
+| **확정하지 못한 것은 사람에게 넘긴다** | 판정할 수 없는 항목은 점수 범위(`54~69/100`)와 `검토 대기`로 표시하고, 사람이 확인·수정·이의를 남기면 이력으로 기록됩니다.                                         |
+| **LLM은 점수에 관여하지 않는다**       | LLM은 근거 서술, 리뷰 초안, 이력서 맥락 연결, 후속 질문에만 씁니다. 점수와 판정은 LLM 결과와 무관합니다.                                                           |
+
+## 90초 체험 가이드
+
+로그인 없이 바로 확인할 수 있습니다.
+
+1. [샘플 체험](https://ohmyti.vercel.app/demo)에서 **결함 구현 C**의 `워크벤치 열기`를 누릅니다. 제출 테스트는 모두 통과한 저장소입니다.
+2. 워크벤치가 첫 실패 기준인 **R-05 멱등 재전송**을 바로 엽니다. 같은 Idempotency-Key로 두 번 주문하자 기대 재고 `1`, 실제 재고 `0`이 된 기록을 확인할 수 있습니다.
+3. 왼쪽 `테스트 실효성`의 **G1**을 누르면, 재고 부족 검사를 지운 변형에서도 제출 테스트 11개가 모두 통과했다는 실험 결과와 diff가 열립니다.
+4. 하단 `후속 질문` 탭에서 이력서 주장과 채점 근거를 연결해 만든 면접 질문을 확인합니다.
+
+가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
+
+| 페르소나        | 과제 제출물                                                                     | 설계한 결함                               | 채점 결과                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                      | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769) |
+| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청           | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/e2611352-232d-47cd-aebe-a4617aa3afe8)  |
+| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구 | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe)  |
+
+## 화면
+
+| 샘플 체험                             | 채점 요청                                        |
+| ------------------------------------- | ------------------------------------------------ |
+| ![샘플 체험](docs/readme/02-demo.png) | ![채점 요청](docs/readme/07-submission-form.png) |
+
+**채점 워크벤치.** 왼쪽은 요구사항별 점수, 가운데는 실패 재생과 코드, 오른쪽은 평가 근거입니다. 빨강은 실제 실패에만, 주황은 미확정에만 씁니다.
+
+![채점 워크벤치](docs/readme/03-workbench-r05.png)
+
+| 기대값 ↔ 실제값 재생                          | 테스트 실효성 (mutation)                                |
+| --------------------------------------------- | ------------------------------------------------------- |
+| ![기대값과 실제값](docs/readme/04-replay.png) | ![테스트 실효성](docs/readme/05-test-effectiveness.png) |
+
+**후속 질문.** 이력서 주장과 채점 근거를 연결해 면접에서 확인할 질문을 만듭니다. 이 단계는 점수 계산이 끝난 뒤에 실행되므로, 이력서가 달라져도 과제 점수는 바뀌지 않습니다.
+
+![후속 질문](docs/readme/06-follow-up-questions.png)
+
+## 채점 파이프라인
+
+제출 하나는 워커에서 아래 6단계를 순서대로 거칩니다. 화면은 단계마다 워커가 남긴 기록만 보여 주며, 진행률을 꾸며 내지 않습니다.
+
+```mermaid
+flowchart LR
+    A["저장소 확인<br/><sub>공개 저장소 수집 · SHA 고정</sub>"] --> B["실행 준비<br/><sub>승인 템플릿 · 의존성 검사</sub>"]
+    B --> C["요구사항 검증<br/><sub>하네스 HTTP 판정 · 제출 테스트</sub>"]
+    C --> D["테스트 실효성<br/><sub>mutation 실험</sub>"]
+    D --> E["리뷰 작성<br/><sub>근거 서술 · LLM 초안</sub>"]
+    E --> F["맥락 연결<br/><sub>이력서 · GitHub · 후속 질문</sub>"]
+```
+
+- 점수는 **요구사항 검증**과 **테스트 실효성** 단계에서만 만들어집니다. 뒤의 두 단계는 점수 열을 읽지 않습니다(`pnpm context:isolation-check`가 AST로 확인합니다).
+- 채점 기준은 사람이 승인한 버전만 쓰며, 승인된 기준은 바꿀 수 없습니다. 기준을 승인하기 전에 정답 구현·대안 구현·결함 구현·적대적 샘플로 채점기 자체를 먼저 검증합니다.
+- 적대적 샘플 D는 결함 구현 C에 README·주석 지시문, 가짜 `score.json`, stdout `PASS` 문구, 항상 통과하는 테스트를 넣은 저장소입니다. D의 판정은 C와 같게 나옵니다.
+
+## 아키텍처
+
+```mermaid
+flowchart LR
+    U["브라우저"] --> W["apps/web<br/>Next.js · Vercel"]
+    W -- "제출 · 조회" --> DB[("PostgreSQL<br/>Railway")]
+    WK["apps/worker<br/>Railway"] -- "작업 큐 폴링" --> DB
+    WK -- "공개 저장소 수집" --> GH["GitHub"]
+    WK -- "격리 실행" --> R["SandboxRunner<br/>local-process · Vercel Sandbox"]
+    WK -- "근거 서술 · 맥락 연결" --> L["LLM<br/>DeepSeek"]
+    WK & W -- "실행 기록 · 스냅샷" --> S[("Artifact Store<br/>Vercel Blob")]
+```
+
+- 웹은 제출 코드를 실행하지 않습니다. 코드를 실행하는 주체는 워커 하나뿐이며, 웹이 러너·하네스·LLM 패키지에 의존하지 않는다는 규칙을 `pnpm deps:boundary-check`가 검사합니다.
+- 모노레포 구성은 다음과 같습니다.
 
 ```
 apps/web/          Next.js UI (Vercel). 제출 코드를 실행하지 않는다
@@ -15,24 +119,37 @@ packages/runner/   SandboxRunner (local-process, vercel-sandbox)
 packages/analysis/ TS AST 분석, 관련 함수 그래프, mutation 적용기
 packages/llm/      LLM 어댑터 (deepseek, fake)
 packages/context/  이력서·GitHub 맥락 연결 로직
-samples/order-api/ 샘플 과제 명세(SPEC.md), 실행 계약, 채점 기준 v1, 기대 결과표, 제출물 샘플 impl-a(정답, Express)·impl-b(대안 정답, Hono + 이벤트 원장)·impl-c(결함, 멱등성 없음)·impl-d(적대적: C + README·주석 지시문, score.json, stdout PASS 문구, 항상 통과 테스트)
-templates/order-api-ts/ 승인 실행 템플릿: 제출물이 쓸 수 있는 고정 의존성(package.json + package-lock.json + template.json)
+samples/order-api/ 샘플 과제 명세·실행 계약·채점 기준·기대 결과표와 제출물 샘플 A~D
+samples/personas/  가상 지원자 페르소나(이력서·설명서·실제 제출 결과)
+templates/order-api-ts/ 승인 실행 템플릿: 제출물이 쓸 수 있는 고정 의존성
 docs/              배포·데모·게이트 문서
 ```
 
-## 요구 도구
+### 기술 스택
+
+TypeScript 5.9 · Node.js 22 · Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Drizzle ORM · PostgreSQL · zod 4 · Vitest 4 · Playwright · pino · Vercel (웹·Blob·Sandbox) · Railway (워커·PostgreSQL) · DeepSeek
+
+## 검증
+
+- **CI**: 타입 검사, 린트, 단위·통합 테스트(약 1,100건), 빌드, 워커 Docker 이미지 스모크, Playwright E2E(웹 + 워커 + PostgreSQL)를 모든 push에서 실행합니다.
+- **단계별 게이트**: 샘플 A~D를 3회 반복 채점해 기대 결과표와 대조하고 판정이 매번 같은지 확인합니다. 기록은 [`docs/gates/`](docs/gates)에 있습니다.
+- **인수 기준**: 인수 기준별 상태와 증거는 [`docs/acceptance.md`](docs/acceptance.md)에 있습니다.
+
+## 로컬에서 실행하기
+
+### 요구 도구
 
 - Node.js 22 이상 (`.nvmrc`는 22)
 - pnpm 10 (`packageManager` 필드로 고정, corepack 사용 가능)
 - Docker (로컬 PostgreSQL)
 - 샘플 평가의 LLM 단계(리뷰 작성·맥락 연결·mutation 위치 제안)를 실제로 돌리려면 DeepSeek API 키(`DEEP_SEEK_API_KEY`)
 
-## 빠른 시작: 깨끗한 클론 → 로컬 스택 → 샘플 평가
+### 빠른 시작: 깨끗한 클론 → 로컬 스택 → 샘플 평가
 
 아래 명령을 순서대로 실행하면 로컬 PostgreSQL, 워커, 웹이 뜨고 샘플 A/B/C/D가 실제 파이프라인으로 채점됩니다.
 
 ```bash
-git clone https://github.com/inchyangv/ohmyti.git && cd ohmyti   # 비공개 저장소: 접근 권한이 필요하다
+git clone https://github.com/wanted-hack-inchyangv/ohmyti.git && cd ohmyti
 pnpm install --frozen-lockfile
 
 # 1. PostgreSQL (Docker). 이미 ohmyti-pg가 있으면 `docker start ohmyti-pg`
@@ -68,25 +185,28 @@ pnpm --filter @ohmyti/web dev      # http://localhost:3000 (DB를 쓰는 화면�
 pnpm --filter @ohmyti/worker dev   # 워커 (TEMPLATE_ROOT는 절대 경로로 둔다. 상대 경로는 apps/worker 기준으로 풀린다)
 ```
 
-## 환경변수
+### 환경변수
 
 전체 목록과 설명은 `.env.example`에 있고 `pnpm env:check`가 목록을 검사합니다. 로컬에서 주로 쓰는 값은 다음과 같습니다.
 
-| 변수                                                               | 사용처     | 설명                                                                                                 |
-| ------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                     | web·worker | PostgreSQL 연결 문자열                                                                               |
-| `DATABASE_URL_TEST`                                                | 테스트     | 통합 테스트가 임시 데이터베이스(`ohmyti_test_*`)를 만들 서버. CREATEDB 권한 필요                     |
-| `ARTIFACT_STORE`, `ARTIFACT_FS_ROOT`                               | web·worker | `fs`(로컬) 또는 `blob`(Vercel Blob, `BLOB_READ_WRITE_TOKEN` 필요)                                    |
-| `APP_ACCESS_PASSWORD`, `SESSION_SECRET`                            | web        | 단일 비밀번호 접근 보호. 개발 모드에서만 비워 둘 수 있다                                             |
-| `DEMO_MODE`                                                        | web        | `true`일 때만 `/demo` 샘플 체험을 연다 (`stack:local`은 `true`로 띄운다)                             |
-| `SANDBOX_RUNNER`, `TEMPLATE_ROOT`                                  | worker     | `local`(기본, LocalProcessRunner) 또는 `vercel`(Vercel Sandbox, `VERCEL_*` 필요). 템플릿 경로        |
-| `RUN_TIMEOUT_MS`, `RUN_MEMORY_MB`, `HEALTH_TIMEOUT_MS`             | worker     | 실행 제한                                                                                            |
-| `DEEP_SEEK_API_KEY`, `LLM_PROVIDER`, `LLM_MODEL`                   | worker     | LLM(DeepSeek, OpenAI 호환). `LLM_PROVIDER=fake` + `LLM_FAKE_RESPONSES_FILE`로 고정 응답을 쓸 수 있다 |
-| `LLM_MAX_CALLS_PER_EVALUATION`, `LLM_MAX_COST_USD_PER_EVALUATION`  | worker     | 평가 하나의 LLM 호출 수·비용 상한                                                                    |
-| `GITHUB_TOKEN`                                                     | worker     | 선택. GitHub 공개 API 속도 제한 완화                                                                 |
-| `WORKER_POLL_INTERVAL_MS`, `WORKER_CONCURRENCY`, `WORKER_STALE_MS` | worker     | 작업 큐                                                                                              |
+| 변수                                                               | 사용처     | 설명                                                                                                    |
+| ------------------------------------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                     | web·worker | PostgreSQL 연결 문자열                                                                                  |
+| `DATABASE_URL_TEST`                                                | 테스트     | 통합 테스트가 임시 데이터베이스(`ohmyti_test_*`)를 만들 서버. CREATEDB 권한 필요                        |
+| `ARTIFACT_STORE`, `ARTIFACT_FS_ROOT`                               | web·worker | `fs`(로컬) 또는 `blob`(Vercel Blob, `BLOB_READ_WRITE_TOKEN` 필요)                                       |
+| `APP_ACCESS_MODE`, `APP_ACCESS_PASSWORD`, `SESSION_SECRET`         | web        | `APP_ACCESS_MODE=public`이면 공개 배포. 아니면 단일 비밀번호 접근 보호(개발 모드에서만 비워 둘 수 있다) |
+| `DEMO_MODE`                                                        | web        | `true`일 때만 `/demo` 샘플 체험을 연다 (`stack:local`은 `true`로 띄운다)                                |
+| `SANDBOX_RUNNER`, `TEMPLATE_ROOT`                                  | worker     | `local`(기본, LocalProcessRunner) 또는 `vercel`(Vercel Sandbox, `VERCEL_*` 필요). 템플릿 경로           |
+| `RUN_TIMEOUT_MS`, `RUN_MEMORY_MB`, `HEALTH_TIMEOUT_MS`             | worker     | 실행 제한                                                                                               |
+| `DEEP_SEEK_API_KEY`, `LLM_PROVIDER`, `LLM_MODEL`                   | worker     | LLM(DeepSeek, OpenAI 호환). `LLM_PROVIDER=fake` + `LLM_FAKE_RESPONSES_FILE`로 고정 응답을 쓸 수 있다    |
+| `LLM_MAX_CALLS_PER_EVALUATION`, `LLM_MAX_COST_USD_PER_EVALUATION`  | worker     | 평가 하나의 LLM 호출 수·비용 상한                                                                       |
+| `GITHUB_TOKEN`                                                     | worker     | 선택. GitHub 공개 API 속도 제한 완화                                                                    |
+| `WORKER_POLL_INTERVAL_MS`, `WORKER_CONCURRENCY`, `WORKER_STALE_MS` | worker     | 작업 큐                                                                                                 |
 
-## 테스트·게이트 명령
+### 테스트·게이트 명령
+
+<details>
+<summary>명령 전체 보기</summary>
 
 ```bash
 pnpm typecheck   # 모든 패키지 + 루트 스크립트
@@ -122,20 +242,23 @@ pnpm db:seed:sample [--gate docs/gates/phase1.json] [--approved-by seed]
 pnpm format      # Prettier
 ```
 
+</details>
+
 ## 배포
 
-Railway(워커·PostgreSQL) + Vercel(웹·Blob). 절차·변수·현재 배포 식별자는 `docs/deploy.md`에 있습니다.
+Railway(워커·PostgreSQL)와 Vercel(웹·Blob)에 배포합니다. 절차와 변수는 [`docs/deploy.md`](docs/deploy.md)에 있습니다.
 
-- 웹: https://ohmyti.vercel.app (`/api/health`가 DB 연결을 확인합니다). 로그인 없이 누구나 접속할 수 있는 공개 배포입니다(`APP_ACCESS_MODE=public`). 비공개로 운영하려면 이 값을 빼고 `APP_ACCESS_PASSWORD`를 설정합니다 (`docs/deploy.md` 9절)
-- 워커: Railway 프로젝트 `ohmyti`의 서비스 `worker` (`railway up --service worker`), 서비스 설정은 `.railway/railway.ts`
-- CI: `.github/workflows/ci.yml` (typecheck·lint·test·build + 워커 이미지 스모크)
+- 웹: https://ohmyti.vercel.app (`/api/health`가 DB 연결을 확인합니다). 로그인 없이 누구나 접속할 수 있는 공개 배포입니다(`APP_ACCESS_MODE=public`). 비공개로 운영하려면 이 값을 빼고 `APP_ACCESS_PASSWORD`를 설정합니다 (`docs/deploy.md` 9절).
+- 워커: Railway 서비스 `worker` (`railway up --service worker`). 서비스 설정은 `.railway/railway.ts`에 있습니다.
+- CI: `.github/workflows/ci.yml`
 
 ## 문서
 
-- `docs/acceptance.md`: PRD 12장 인수 기준 10개의 상태·증명 방법·증거 (T-507)
-- `docs/demo.md`: 90초 데모 시나리오(구간별 URL·클릭 순서·기대 화면)와 리허설 기록
-- `docs/deploy.md`: Railway + Vercel 배포 절차·변수·현재 배포 식별자
-- `docs/gates/`: 단계별 게이트 기록(`phase1.md`·`phase2.md`·`phase3.md`·`phase4.md`)
+- [`docs/demo.md`](docs/demo.md): 90초 데모 시나리오(구간별 URL·클릭 순서·기대 화면)와 리허설 기록
+- [`docs/acceptance.md`](docs/acceptance.md): 인수 기준 10개의 상태·증명 방법·증거
+- [`docs/deploy.md`](docs/deploy.md): Railway + Vercel 배포 절차와 변수
+- [`docs/gates/`](docs/gates): 단계별 게이트 기록
+- [`samples/personas/`](samples/personas): 테스트 페르소나와 실제 제출 결과
 
 ## 지원 범위와 알려진 제약
 
@@ -143,6 +266,6 @@ Railway(워커·PostgreSQL) + Vercel(웹·Blob). 절차·변수·현재 배포 �
 - **공개 GitHub 저장소 전용**: 저장소는 GitHub 공개 저장소의 tarball API로만 수집합니다. 비공개 저장소, 다른 호스팅, 압축 파일 업로드는 지원하지 않습니다.
 - **제출 테스트는 vitest 전용**: 제출물의 자체 테스트는 vitest JSON 리포터 결과로만 수집합니다. 다른 테스트 도구의 결과나 stdout의 `PASS` 문구는 신뢰하지 않습니다 (G-07).
 - **네트워크 미차단**: MVP의 `LocalProcessRunner`(`packages/runner`, T-108)는 워커 컨테이너 안에서 비관리자 사용자로 자식 프로세스 그룹을 띄우며 일회성 임시 디렉터리, 템플릿 `node_modules` 읽기 전용 연결, 환경변수 화이트리스트(`PATH`·`HOME`·`NODE_ENV`·`PORT`·`NODE_OPTIONS`), 벽시계·힙 메모리 제한, 설치 명령 차단을 적용합니다. 그러나 컨테이너 권한 없이 아웃바운드 네트워크를 OS 수준에서 차단하지 못합니다. 강화 경로는 `SANDBOX_RUNNER=vercel`로 켜는 `VercelSandboxRunner`(T-209)이며, Firecracker microVM 안에서 실행하고 템플릿 설치 뒤 아웃바운드를 `deny-all`로 닫습니다. 자세한 내용은 `packages/runner/README.md`와 `docs/deploy.md`를 보세요.
-- **모바일 미최적화**: 워크벤치(요구사항·재생·근거 3단 + 하단 탭)는 데스크톱 너비를 전제로 만들었습니다. 좁은 화면에서는 레이아웃이 깨질 수 있습니다.
+- **데스크톱 우선**: 워크벤치(요구사항·재생·근거 3단 + 하단 탭)는 데스크톱 데모를 기준으로 설계했습니다. 좁은 화면에서는 세 열을 세로로 쌓아 보여 줍니다.
 - LLM은 기준 초안, mutation 위치 후보, 근거 서술·리뷰 초안, 맥락 연결·후속 질문에만 쓰며 점수와 PASS/FAIL 판정에는 쓰지 않습니다 (G-01). LLM 문장은 실행마다 달라질 수 있습니다.
 - 이력서 텍스트 추출은 텍스트 PDF만 지원하고 OCR은 하지 않습니다. 이미지 PDF는 직접 입력을 안내합니다.
