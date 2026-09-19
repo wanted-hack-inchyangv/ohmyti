@@ -49,13 +49,14 @@
 3. 왼쪽 `테스트 실효성`의 **G1**을 누르면, 재고 부족 검사를 지운 변형에서도 제출 테스트 11개가 모두 통과했다는 실험 결과와 diff가 열립니다.
 4. 하단 `후속 질문` 탭에서 이력서 주장과 채점 근거를 연결해 만든 면접 질문을 확인합니다.
 
-가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
+가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 백도현은 실행 기준(75점)을 한서진과 똑같이 만점 받았지만, 제출 테스트가 주입한 결함을 잡지 못해 테스트 실효성에서 점수 차이가 납니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
 
-| 페르소나        | 과제 제출물                                                                     | 설계한 결함                               | 채점 결과                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                      | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769) |
-| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청           | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/e2611352-232d-47cd-aebe-a4617aa3afe8)  |
-| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구 | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe)  |
+| 페르소나        | 과제 제출물                                                                     | 설계한 결함                                                                       | 채점 결과                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                                                              | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769) |
+| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청                                                   | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/e2611352-232d-47cd-aebe-a4617aa3afe8)  |
+| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구                                         | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe)  |
+| 백도현 · 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | 요구사항은 모두 통과하지만 테스트가 결함을 잡지 못하고 구조가 한 파일에 몰려 있음 | [75~90/100 · 15점 검토 대기](https://ohmyti.vercel.app/evaluations/58451401-116a-4aea-b13f-e20de92a869f)  |
 
 ## 화면
 
