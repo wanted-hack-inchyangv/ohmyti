@@ -13,6 +13,11 @@ export interface WorkerConfig {
   heartbeatIntervalMs: number;
   /** 오래된 lock 회수 검사 주기. 기본 staleMs / 2 */
   reclaimIntervalMs: number;
+  /**
+   * 큐가 이 시간 동안 비어 있으면 폴링을 멈추고 `/wake`를 기다린다. 0이면 계속 폴링한다.
+   * 폴링이 멈추면 DB 연결도 닫혀 나가는 트래픽이 없어지고 Railway가 서비스를 재울 수 있다 (docs/deploy.md)
+   */
+  idleStopMs: number;
   /** SIGTERM 후 진행 중 job이 끝나기를 기다리는 최대 시간. 지나면 QUEUED로 반납한다 */
   shutdownGraceMs: number;
   /** `/healthz` 포트. 0이면 헬스 서버를 띄우지 않는다 */
@@ -24,6 +29,7 @@ export const WORKER_CONFIG_DEFAULTS = {
   pollIntervalMs: 1_000,
   concurrency: 1,
   staleMs: 60_000,
+  idleStopMs: 0,
   shutdownGraceMs: 25_000,
   healthPort: 8080,
   logLevel: "info",
@@ -62,6 +68,7 @@ export function loadWorkerConfig(env: Env = process.env): WorkerConfig {
       Math.max(Math.floor(staleMs / 2), 1),
       1,
     ),
+    idleStopMs: intFrom(env, "WORKER_IDLE_STOP_MS", WORKER_CONFIG_DEFAULTS.idleStopMs, 0),
     shutdownGraceMs: intFrom(
       env,
       "WORKER_SHUTDOWN_GRACE_MS",

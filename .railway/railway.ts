@@ -34,6 +34,9 @@ export default defineRailway(() => {
       restartPolicyMaxRetries: 10,
       // SIGTERM 후 SIGKILL까지. 워커의 WORKER_SHUTDOWN_GRACE_MS(25초)보다 길어야 한다
       drainingSeconds: 30,
+      // Serverless: 나가는 트래픽이 5~10분 없으면 컨테이너를 재우고 그동안 과금하지 않는다.
+      // 워커는 WORKER_IDLE_STOP_MS 뒤 폴링·DB 연결을 멈추고, web이 job을 적재할 때 공개 도메인의 /wake로 깨운다.
+      sleepApplication: true,
     },
     env: {
       // 비밀값: railway variable set으로 넣는다
@@ -61,6 +64,8 @@ export default defineRailway(() => {
       WORKER_CONCURRENCY: "1",
       WORKER_STALE_MS: "60000",
       WORKER_SHUTDOWN_GRACE_MS: "25000",
+      // 큐가 2분 비면 폴링을 멈춘다. 0이면 계속 폴링해 Serverless가 재우지 못한다
+      WORKER_IDLE_STOP_MS: "120000",
       PORT: "8080",
       LOG_LEVEL: "info",
     },

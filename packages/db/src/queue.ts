@@ -38,6 +38,25 @@ export interface EnqueueResult {
 
 export const DEFAULT_MAX_ATTEMPTS = 3;
 
+/** 새 job이 적재될 때 불린다. 유휴 대기 중인 워커를 깨우는 데 쓴다 (`wake.ts`) */
+export type JobEnqueuedHook = (job: { id: string; type: JobType }) => void;
+
+let jobEnqueuedHook: JobEnqueuedHook | null = null;
+
+/** 프로세스당 하나만 둔다. null이면 해제한다 */
+export function setJobEnqueuedHook(hook: JobEnqueuedHook | null): void {
+  jobEnqueuedHook = hook;
+}
+
+/** 훅의 실패가 적재를 실패시키지 않게 한다. 트랜잭션 안이면 커밋 전에 불릴 수 있다 (워커는 깨어난 뒤 한동안 폴링한다) */
+function notifyJobEnqueued(id: string, type: JobType): void {
+  try {
+    jobEnqueuedHook?.({ id, type });
+  } catch {
+    // 깨우기는 최선 노력이다. 놓치면 다음 적재나 상태 조회가 다시 깨운다.
+  }
+}
+
 /** 트랜잭션 안에서도 부를 수 있다 (`DbExecutor`) */
 export async function enqueue(db: DbExecutor, input: EnqueueInput): Promise<EnqueueResult> {
   if (
@@ -59,6 +78,7 @@ export async function enqueue(db: DbExecutor, input: EnqueueInput): Promise<Enqu
   if (values.dedupeKey === null) {
     const [row] = await db.insert(jobs).values(values).returning({ id: jobs.id });
     if (!row) throw new Error("job insert가 행을 돌려주지 않았습니다");
+    notifyJobEnqueued(row.id, input.type);
     return { id: row.id, created: true };
   }
 
@@ -74,7 +94,10 @@ export async function enqueue(db: DbExecutor, input: EnqueueInput): Promise<Enqu
       })
       .returning({ id: jobs.id });
     const created = inserted[0];
-    if (created) return { id: created.id, created: true };
+    if (created) {
+      notifyJobEnqueued(created.id, input.type);
+      return { id: created.id, created: true };
+    }
 
     const existing = await db
       .select({ id: jobs.id })
@@ -317,6 +340,15 @@ export async function reclaimStaleJobs(
     (row.status === "FAILED" ? result.failed : result.requeued).push(row.id);
   }
   return result;
+}
+
+/** 아직 끝나지 않은(QUEUED·RUNNING) job 수. 재시도 대기(`runAfter`가 미래)인 job도 포함한다 */
+export async function countPendingJobs(db: Database): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(jobs)
+    .where(sql`${jobs.status} IN ('QUEUED', 'RUNNING')`);
+  return row?.count ?? 0;
 }
 
 export async function getJob(db: Database, jobId: string): Promise<JobRow | null> {

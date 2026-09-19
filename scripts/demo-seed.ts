@@ -27,6 +27,7 @@ import {
   executionRecords,
   findLatestEvaluation,
   getSubmission,
+  installWorkerWakeHook,
   isDemoSampleId,
   mutationExperiments,
   pinSubmissionSnapshot,
@@ -363,6 +364,8 @@ async function main(): Promise<number> {
     : { ...process.env, ARTIFACT_STORE: "fs", ARTIFACT_FS_ROOT: stackArtifactRoot() };
   const store = createArtifactStore(storeEnv);
   const handle = createDb({ url: requireDatabaseUrl(), max: 2 });
+  // 배포된 워커는 큐가 비면 폴링을 멈춘다. WORKER_WAKE_URL이 있으면 적재할 때마다 깨운다.
+  if (values["external-worker"]) installWorkerWakeHook();
   let worker: ManagedProcess | null = null;
   try {
     const db = handle.db;

@@ -5,6 +5,7 @@ export * from "./client";
 export * from "./migrate";
 export * from "./timestamps";
 export * from "./queue";
+export * from "./wake";
 export * from "./assignments";
 export * from "./submissions";
 export * from "./evaluations";

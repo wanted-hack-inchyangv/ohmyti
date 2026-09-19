@@ -3,6 +3,7 @@ import {
   cancelJob,
   claimJob,
   completeJob,
+  countPendingJobs,
   defaultBackoffMs,
   enqueue,
   failJob,
@@ -10,6 +11,7 @@ import {
   heartbeatJob,
   reclaimStaleJobs,
   releaseJob,
+  setJobEnqueuedHook,
 } from "./queue";
 import { jobs } from "./schema";
 import { createTestDatabase, type TestDatabase } from "./testing";
@@ -84,6 +86,43 @@ describe.skipIf(!hasTestDb)("작업 큐 (통합)", () => {
     });
     expect(third.created).toBe(true);
     expect(third.id).not.toBe(first.id);
+  });
+
+  it("새 job을 만들 때만 적재 훅을 부르고, 훅이 던져도 적재는 성공한다", async () => {
+    const seen: string[] = [];
+    setJobEnqueuedHook((job) => {
+      seen.push(`${job.type}:${job.id}`);
+      throw new Error("깨우기 실패");
+    });
+    try {
+      const key = `hook-${Date.now()}`;
+      const first = await enqueue(tdb.db, { type: "RERUN_EXECUTION", payload: {}, dedupeKey: key });
+      const second = await enqueue(tdb.db, {
+        type: "RERUN_EXECUTION",
+        payload: {},
+        dedupeKey: key,
+      });
+      const plain = await enqueue(tdb.db, { type: "DELETE_SUBMISSION", payload: {} });
+      expect(second).toEqual({ id: first.id, created: false });
+      expect(seen).toEqual([`RERUN_EXECUTION:${first.id}`, `DELETE_SUBMISSION:${plain.id}`]);
+    } finally {
+      setJobEnqueuedHook(null);
+    }
+  });
+
+  it("countPendingJobs는 재시도 대기를 포함해 QUEUED·RUNNING만 센다", async () => {
+    const done = await enqueue(tdb.db, { type: "DELETE_SUBMISSION", payload: {} });
+    await claimJob(tdb.db, { workerId: "w-count" });
+    await completeJob(tdb.db, done.id, "w-count");
+    expect(await countPendingJobs(tdb.db)).toBe(0);
+    await enqueue(tdb.db, {
+      type: "DELETE_SUBMISSION",
+      payload: {},
+      runAfter: new Date(Date.now() + 60_000),
+    });
+    await enqueue(tdb.db, { type: "DELETE_SUBMISSION", payload: {} });
+    await claimJob(tdb.db, { workerId: "w-count" });
+    expect(await countPendingJobs(tdb.db)).toBe(2);
   });
 
   it("maxAttempts가 1 미만이면 거절한다", async () => {

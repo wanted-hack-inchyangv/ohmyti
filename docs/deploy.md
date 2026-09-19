@@ -7,7 +7,8 @@
 | 구성 요소              | 위치                                                                                  | 식별자                     |
 | ---------------------- | ------------------------------------------------------------------------------------- | -------------------------- |
 | Railway 프로젝트       | 프로젝트 `ohmyti`, 환경 `production`, 리전 `us-east4`                                 | `<railway-project-id>`     |
-| 워커 서비스            | Railway 서비스 `worker` (Dockerfile 빌드, CLI 업로드)                                 | `<worker-service-id>`      |
+| 워커 서비스            | Railway 서비스 `worker` (Dockerfile 빌드, CLI 업로드, Serverless 절전)                | `<worker-service-id>`      |
+| 워커 깨우기 주소       | `https://<worker-domain>.up.railway.app/wake` (포트 8080, 아래 "비용 절감 구성")      |                            |
 | PostgreSQL             | Railway 서비스 `Postgres` (`postgres-ssl:18`, 볼륨 `postgres-volume` 50 GB)           | `<postgres-service-id>`    |
 | PostgreSQL 공개 프록시 | `<proxy-host>.proxy.rlwy.net:<port>` → 5432 (TLS, `sslmode=require`)                  | TCP proxy `<tcp-proxy-id>` |
 | Vercel 프로젝트        | 팀 `<vercel-team>`, 프로젝트 `ohmyti`, 루트 `apps/web`, Node 22.x, 함수 리전 `iad1`   | `<project-id>`             |
@@ -70,6 +71,7 @@ railway config apply --yes        # 적용 (변수의 preserve()는 기존 값�
 | `LLM_PROVIDER` / `LLM_BASE_URL` / `LLM_MODEL`                                                     | `deepseek` / `https://api.deepseek.com` / `deepseek-chat` |                                                                                                                                                                                      |
 | `LLM_MAX_CALLS_PER_EVALUATION` / `LLM_MAX_COST_USD_PER_EVALUATION`                                | `20` / `0.50`                                             |                                                                                                                                                                                      |
 | `WORKER_POLL_INTERVAL_MS` / `WORKER_CONCURRENCY` / `WORKER_STALE_MS` / `WORKER_SHUTDOWN_GRACE_MS` | `1000` / `1` / `60000` / `25000`                          | `drainingSeconds`(30) > grace(25초)                                                                                                                                                  |
+| `WORKER_IDLE_STOP_MS`                                                                             | `120000`                                                  | 큐가 2분 비면 폴링·DB 연결을 멈추고 `/wake`를 기다린다. 0이면 계속 폴링한다 (아래 "비용 절감 구성")                                                                                  |
 | `PORT` / `LOG_LEVEL`                                                                              | `8080` / `info`                                           | 헬스 체크 포트                                                                                                                                                                       |
 | `GITHUB_TOKEN`                                                                                    | 선택 (권장)                                               | 저장소 수집(T-202)과 GitHub 프로필 보충 조회(T-502). 없으면 IP당 시간 60회 한도라 제출 몇 건이면 보충 조회가 `RATE_LIMITED`로 끝난다. 공개 저장소 읽기 전용 fine-grained 토큰을 쓴다 |
 | `VERCEL_TOKEN`·`VERCEL_TEAM_ID`·`VERCEL_PROJECT_ID`, `VERCEL_SANDBOX_*`                           | `SANDBOX_RUNNER=vercel`일 때만                            | 아래 "Vercel Sandbox 러너" 절 (T-209)                                                                                                                                                |
@@ -84,7 +86,7 @@ railway deployment list --service worker --json                    # 상태: BUI
 railway logs --service worker --lines 50                           # "db:migrate OK", "워커 시작", "폴링 중"
 ```
 
-pre-deploy 단계가 `node dist/migrate.js`로 마이그레이션을 적용한 뒤 컨테이너가 뜨고 Railway가 `/healthz`(200)를 확인한다. 워커는 유휴 상태에서도 1분마다 `폴링 중` info 로그를 남긴다.
+pre-deploy 단계가 `node dist/migrate.js`로 마이그레이션을 적용한 뒤 컨테이너가 뜨고 Railway가 `/healthz`(200)를 확인한다. 워커는 폴링하는 동안 1분마다 `폴링 중` info 로그를 남기고, 큐가 `WORKER_IDLE_STOP_MS` 동안 비면 `큐가 비어 폴링을 멈춥니다` 로그를 남긴 뒤 조용해진다.
 
 GitHub 자동 배포는 연결하지 않았다. 필요하면 `railway service source connect --repo inchyangv/ohmyti --branch main --service worker`.
 
@@ -108,22 +110,25 @@ vercel env add <KEY> production --scope <vercel-team> --force        # 값은 st
 vercel api "/v10/projects/<projectId>/env?teamId=<teamId>&upsert=true" -X POST --input body.json   # preview는 CLI가 브랜치를 요구하므로 API로 넣는다
 ```
 
-| 변수                             | 값                                           | 비고                                                                |
-| -------------------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
-| `DATABASE_URL`                   | 공개 프록시 연결 문자열 (`?sslmode=require`) | 비밀(sensitive)                                                     |
-| `ARTIFACT_STORE` / `BLOB_ACCESS` | `blob` / `private`                           |                                                                     |
-| `BLOB_READ_WRITE_TOKEN`          | Blob 스토어 연결 시 자동 추가                | Production·Preview·Development                                      |
-| `APP_ACCESS_PASSWORD`            | 데모 접근 비밀번호                           | 비밀. 없으면 production 기동 실패                                   |
-| `SESSION_SECRET`                 | 64자 hex (`openssl rand -hex 32`)            | 비밀. 32자 이상. Preview는 별도 값                                  |
-| `DEMO_MODE`                      | Production `true`, Preview `false`           | `true`일 때만 `/demo`(T-505)를 연다. 샘플 배지는 값과 상관없이 표시 |
+| 변수                             | 값                                            | 비고                                                                                  |
+| -------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                   | 공개 프록시 연결 문자열 (`?sslmode=require`)  | 비밀(sensitive)                                                                       |
+| `ARTIFACT_STORE` / `BLOB_ACCESS` | `blob` / `private`                            |                                                                                       |
+| `BLOB_READ_WRITE_TOKEN`          | Blob 스토어 연결 시 자동 추가                 | Production·Preview·Development                                                        |
+| `APP_ACCESS_PASSWORD`            | 데모 접근 비밀번호                            | 비밀. 없으면 production 기동 실패                                                     |
+| `SESSION_SECRET`                 | 64자 hex (`openssl rand -hex 32`)             | 비밀. 32자 이상. Preview는 별도 값                                                    |
+| `WORKER_WAKE_URL`                | `https://<worker-domain>.up.railway.app/wake` | job을 적재할 때마다 워커를 깨운다. 없으면 깨우지 않는다 (워커가 항상 폴링하는 구성용) |
+| `DEMO_MODE`                      | Production `true`, Preview `false`            | `true`일 때만 `/demo`(T-505)를 연다. 샘플 배지는 값과 상관없이 표시                   |
 
 ### 7. Vercel: 배포
 
 ```bash
-vercel deploy --prod --yes --scope <vercel-team>     # 프로덕션
-vercel deploy --yes --scope <vercel-team>            # 프리뷰
+pnpm deploy:web                                      # 프로덕션. 로컬에서 빌드해 산출물만 올린다 (Vercel 빌드 시간 0)
+vercel deploy --yes --scope <vercel-team>            # 프리뷰 (Vercel에서 빌드, Standard 머신)
 curl -i https://ohmyti.vercel.app/api/health      # {"ok":true,"db":"ok",...} 200. DB 실패 시 503
 ```
+
+`pnpm deploy:web`은 `vercel pull`(프로젝트 설정·환경변수) → `vercel build --prod`(로컬, 약 15초) → `vercel deploy --prebuilt --prod`를 차례로 실행한다. 함수 런타임은 로컬 Node 버전과 상관없이 프로젝트 설정(22.x)을 따른다. 로컬 빌드가 안 되는 환경에서는 `vercel deploy --prod --yes`로 Vercel에서 빌드한다.
 
 ### 8. GitHub와 CI
 
@@ -155,6 +160,29 @@ curl -i -H "accept: text/html" https://ohmyti.vercel.app/                 # 307 
 curl -i -H "content-type: application/json" -d '{"password":"<비밀번호>","next":"/"}' -c jar https://ohmyti.vercel.app/api/login   # 200 + Set-Cookie
 curl -i -b jar https://ohmyti.vercel.app/                                  # 200
 ```
+
+## 비용 절감 구성 (2026-09-20)
+
+실측(2026-09-18 ~ 09-19)으로 이 프로젝트의 비용은 Vercel은 빌드 CPU 시간이 98%, Railway는 유휴 워커의 메모리 점유가 약 70%였다. 아래 구성이 둘을 없앤다.
+
+**Vercel**
+
+- 빌드 머신 `turbo`(30 vCPU) → `standard`(4 vCPU). 빌드는 `빌드 시간 × vCPU 수`로 과금되므로 분당 단가가 7.5배 낮다. 프로젝트 설정 `resourceConfig.buildMachineType`이며 REST API(`PATCH /v9/projects/<projectId>`)로 바꾼다.
+- 프로덕션 배포는 `pnpm deploy:web`(prebuilt)이라 Vercel 빌드 머신을 쓰지 않는다.
+- 함수 기본 제한 시간 300초 → 60초(`resourceConfig.functionDefaultTimeout`). DB 연결이 멈춘 요청이 5분 동안 과금되는 것을 막는다. 웹에는 60초를 넘는 요청이 없다(오래 걸리는 일은 모두 워커 job이다).
+
+**Railway: 워커 절전 (Serverless)**
+
+- `.railway/railway.ts`의 `deploy.sleepApplication: true`. Railway는 서비스가 나가는 패킷을 5~10분 동안 보내지 않으면 컨테이너를 재우고 그동안 CPU·메모리를 과금하지 않는다. 들어오는 요청이 오면 다시 띄운다.
+- 워커는 큐가 `WORKER_IDLE_STOP_MS`(2분) 동안 비어 있고 끝나지 않은 job(재시도 대기 포함)이 하나도 없으면 폴링을 멈춘다. DB 풀은 유휴 30초 뒤 연결을 닫으므로 나가는 트래픽이 없어진다. 유휴 대기 중 `/healthz`는 DB를 확인하지 않는다(`"dormant":true,"db":"skipped"`).
+- 깨우기: `@ohmyti/db`의 `enqueue`가 새 job을 만들 때마다 `WORKER_WAKE_URL`로 `POST /wake`를 보낸다(web은 `apps/web/lib/db.ts`에서 Next.js `after`로 응답 뒤에 전송, `pnpm demo:seed --external-worker`도 같은 훅을 건다). 재운 서비스의 첫 요청은 502일 수 있어 3번까지 다시 시도한다. 보완으로 제출 상태·샘플 실행 상태 폴링 API가 끝나지 않은 job을 보는 동안 30초에 한 번 다시 깨운다.
+- 컨테이너가 재워졌다 깨어나면 프로세스가 새로 뜨고 기동 직후 폴링하므로 `/wake` 처리 여부와 상관없이 쌓인 job을 잡는다. 첫 job은 컨테이너 기동 시간(수 초)만큼 늦게 시작한다.
+- `/wake`는 인증하지 않는다. 하는 일이 폴링 재개뿐이고 Railway는 어떤 요청이 와도 재운 서비스를 깨운다.
+- 워커 도메인: `railway domain --service worker --port 8080`. 확인: `railway deployment list --service worker --json`의 상태가 유휴 10분쯤 뒤 `SLEEPING`.
+- DB에 직접 적재하는 다른 도구(`pnpm gate:phase4` 등)를 배포 워커에 쓸 때는 `WORKER_WAKE_URL`을 환경에 두거나 `curl -X POST <깨우기 주소>`를 먼저 부른다.
+- 끄기: `WORKER_IDLE_STOP_MS=0`과 `sleepApplication: false`로 `railway config apply`.
+
+**하지 않은 것**: PostgreSQL 절전. 메모리 약 90 MB(월 1달러 미만)를 아끼지만, 재운 뒤 첫 방문자의 페이지가 DB 기동을 기다리다 오류가 될 수 있다. 공개 심사 기간이 끝나면 Postgres 서비스 설정에서 Serverless를 켜는 것을 검토한다.
 
 ## 로컬에서 워커 이미지 확인
 

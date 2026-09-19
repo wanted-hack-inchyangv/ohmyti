@@ -2,6 +2,7 @@ import {
   acknowledgeCancelledJob,
   claimJob,
   completeJob,
+  countPendingJobs,
   failJob,
   heartbeatJob,
   reclaimStaleJobs,
@@ -35,6 +36,8 @@ export interface WorkerStatus {
   running: boolean;
   stopping: boolean;
   activeJobs: number;
+  /** 큐가 비어 폴링을 멈추고 `wake()`를 기다리는 중 (`idleStopMs`) */
+  dormant: boolean;
   /** 마지막 폴링 시각. 루프가 멈췄는지 판단하는 근거 */
   lastPollAt: Date | null;
   processed: { succeeded: number; retried: number; failed: number; released: number };
@@ -44,6 +47,8 @@ export interface Worker {
   start(): void;
   /** 진행 중 job이 끝나거나 반납될 때까지 기다린 뒤 resolve한다 */
   stop(): Promise<void>;
+  /** 새 job이 적재됐음을 알린다. 유휴 대기 중이면 폴링을 다시 시작하고, 아니면 곧바로 한 번 폴링한다 */
+  wake(): void;
   status(): WorkerStatus;
   /** 테스트용: 큐가 빌 때까지(진행 중 job 포함) 기다린다 */
   drain(options?: { timeoutMs?: number }): Promise<void>;
@@ -80,6 +85,8 @@ export function createWorker(deps: WorkerDeps): Worker {
   let lastReclaimAt = 0;
   let lastPollLogAt = 0;
   let wake: (() => void) | null = null;
+  /** 유휴 대기 중일 때만 있다. 부르면 대기가 끝난다 */
+  let endDormancy: (() => void) | null = null;
 
   /** 배포 로그에서 루프가 살아 있는지 볼 수 있도록 폴링 기록을 남긴다. 매 폴링은 debug, 1분에 한 번은 info. */
   function logPoll(claimed: boolean): void {
@@ -126,6 +133,44 @@ export function createWorker(deps: WorkerDeps): Worker {
     }
   }
 
+  /**
+   * 큐가 `idleStopMs` 동안 비어 있었고 끝나지 않은 job(재시도 대기 포함)이 하나도 없을 때만 true.
+   * 재시도를 기다리는 job이 있는데 멈추면 깨워 줄 요청이 오지 않으므로 그동안은 계속 폴링한다.
+   */
+  async function shouldGoDormant(): Promise<boolean> {
+    if (config.idleStopMs <= 0 || active.size > 0 || idleSince === null) return false;
+    const observedIdleSince = idleSince;
+    if (Date.now() - observedIdleSince.getTime() < config.idleStopMs) return false;
+    try {
+      const pending = await countPendingJobs(db);
+      // 조회하는 동안 wake()가 왔거나 job이 시작됐으면 계속 폴링한다.
+      if (stopping || idleSince !== observedIdleSince || active.size > 0) return false;
+      if (pending > 0) {
+        idleSince = new Date();
+        return false;
+      }
+      return true;
+    } catch (error) {
+      logger.error({ err: error }, "끝나지 않은 job 수 조회에 실패했습니다. 계속 폴링합니다");
+      idleSince = new Date();
+      return false;
+    }
+  }
+
+  async function waitForWake(): Promise<void> {
+    logger.info(
+      { idleStopMs: config.idleStopMs, processed: counters },
+      "큐가 비어 폴링을 멈춥니다. /wake 요청이 오면 다시 시작합니다",
+    );
+    await new Promise<void>((resolve) => {
+      endDormancy = resolve;
+    });
+    endDormancy = null;
+    idleSince = null;
+    lastReclaimAt = 0;
+    if (!stopping) logger.info("폴링을 다시 시작합니다");
+  }
+
   async function loop(): Promise<void> {
     while (!stopping) {
       await reclaimIfDue();
@@ -148,6 +193,10 @@ export function createWorker(deps: WorkerDeps): Worker {
       }
       if (claimed) {
         runJob(claimed);
+        continue;
+      }
+      if (await shouldGoDormant()) {
+        await waitForWake();
         continue;
       }
       await sleep(config.pollIntervalMs);
@@ -335,6 +384,7 @@ export function createWorker(deps: WorkerDeps): Worker {
       if (!running) return;
       stopping = true;
       wakeUp();
+      endDormancy?.();
       await loopPromise;
       logger.info(
         { activeJobs: active.size, graceMs: config.shutdownGraceMs },
@@ -358,12 +408,21 @@ export function createWorker(deps: WorkerDeps): Worker {
       logger.info({ processed: counters }, "워커 종료");
     },
 
+    wake() {
+      if (!running || stopping) return;
+      // 유휴 시간을 다시 센다. 적재 트랜잭션이 커밋되기 전에 불려도 그 뒤의 폴링이 job을 잡는다.
+      idleSince = null;
+      if (endDormancy) endDormancy();
+      else wakeUp();
+    },
+
     status() {
       return {
         workerId: config.workerId,
         running,
         stopping,
         activeJobs: active.size,
+        dormant: endDormancy !== null,
         lastPollAt,
         processed: { ...counters },
       };

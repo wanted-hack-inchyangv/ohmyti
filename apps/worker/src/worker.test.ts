@@ -446,6 +446,67 @@ describe.skipIf(!hasTestDb)("워커 루프 (통합)", () => {
       await health.close();
     }
   });
+  it("idleStopMs 동안 큐가 비면 폴링을 멈추고, wake() 뒤에 적재된 job을 처리한다", async () => {
+    const handled: string[] = [];
+    const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", (job) => {
+      handled.push(job.id);
+      return Promise.resolve();
+    });
+    const { worker, lines } = makeWorker("w-idle", registry, { idleStopMs: 100 });
+    worker.start();
+    await waitFor(() => Promise.resolve(worker.status().dormant), undefined, "유휴 대기 전환");
+
+    // 유휴 대기 중에는 DB를 읽지 않는다. 폴링 기록이 늘지 않고 헬스 체크도 DB 확인을 건너뛴다.
+    const pollsWhenDormant = lines.filter((l) => l.includes('"msg":"폴링"')).length;
+    const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(lines.filter((l) => l.includes('"msg":"폴링"')).length).toBe(pollsWhenDormant);
+    expect((await getJob(tdb.db, id))?.status).toBe("QUEUED");
+    expect(await buildHealthReport(worker, tdb.db)).toMatchObject({
+      ok: true,
+      dormant: true,
+      db: "skipped",
+    });
+
+    worker.wake();
+    await waitFor(async () => (await getJob(tdb.db, id))?.status === "SUCCEEDED");
+    expect(handled).toEqual([id]);
+    await waitFor(() => Promise.resolve(worker.status().dormant), undefined, "다시 유휴 대기");
+  });
+
+  it("재시도를 기다리는 job이 있으면 유휴 대기로 넘어가지 않는다", async () => {
+    const { worker } = makeWorker("w-idle-pending", new HandlerRegistry(), { idleStopMs: 50 });
+    await enqueue(tdb.db, {
+      type: "EVALUATE_SUBMISSION",
+      payload: {},
+      runAfter: new Date(Date.now() + 60_000),
+    });
+    worker.start();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(worker.status().dormant).toBe(false);
+  });
+
+  it("유휴 대기 중에도 stop()이 끝나고, /wake 요청이 폴링을 다시 시작한다", async () => {
+    const { worker } = makeWorker("w-idle-http", new HandlerRegistry(), { idleStopMs: 50 });
+    worker.start();
+    const health = await startHealthServer({
+      port: 0,
+      worker,
+      db: tdb.db,
+      logger: createLogger({ destination: bufferDestination() }),
+    });
+    try {
+      await waitFor(() => Promise.resolve(worker.status().dormant), undefined, "유휴 대기 전환");
+      const response = await fetch(`http://127.0.0.1:${health.port}/wake`, { method: "POST" });
+      expect(response.status).toBe(202);
+      expect(await response.json()).toEqual({ ok: true, wasDormant: true });
+      await waitFor(() => Promise.resolve(worker.status().dormant), undefined, "다시 유휴 대기");
+      await worker.stop();
+      expect(worker.status().running).toBe(false);
+    } finally {
+      await health.close();
+    }
+  });
 });
 
 describe.skipIf(!hasTestDb)("워커 프로세스 SIGTERM (통합)", () => {
