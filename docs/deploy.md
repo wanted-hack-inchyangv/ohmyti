@@ -4,16 +4,16 @@
 
 ## 현재 배포 (2026-09-18)
 
-| 구성 요소              | 위치                                                                                          | 식별자                                           |
-| ---------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Railway 프로젝트       | 프로젝트 `ohmyti`, 환경 `production`, 리전 `us-east4` | `<railway-project-id>`           |
-| 워커 서비스            | Railway 서비스 `worker` (Dockerfile 빌드, CLI 업로드)                                         | `<worker-service-id>`           |
-| PostgreSQL             | Railway 서비스 `Postgres` (`postgres-ssl:18`, 볼륨 `postgres-volume` 50 GB)                   | `<postgres-service-id>`           |
-| PostgreSQL 공개 프록시 | `<proxy-host>.proxy.rlwy.net:<port>` → 5432 (TLS, `sslmode=require`)                               | TCP proxy `<tcp-proxy-id>` |
-| Vercel 프로젝트        | 팀 `<vercel-team>`, 프로젝트 `ohmyti`, 루트 `apps/web`, Node 22.x, 함수 리전 `iad1`              | `<project-id>`               |
-| 웹 URL                 | https://ohmyti.vercel.app (프로덕션 별칭), 헬스: https://ohmyti.vercel.app/api/health         |                                                  |
-| Vercel Blob            | 스토어 `ohmyti-artifacts` (private, icn1), 프로젝트 `ohmyti`에 연결                           | `store_kQz8bhA5qiqhaEfo`                         |
-| GitHub                 | https://github.com/inchyangv/ohmyti (비공개). CI: `.github/workflows/ci.yml`                  |                                                  |
+| 구성 요소              | 위치                                                                                  | 식별자                     |
+| ---------------------- | ------------------------------------------------------------------------------------- | -------------------------- |
+| Railway 프로젝트       | 프로젝트 `ohmyti`, 환경 `production`, 리전 `us-east4`                                 | `<railway-project-id>`     |
+| 워커 서비스            | Railway 서비스 `worker` (Dockerfile 빌드, CLI 업로드)                                 | `<worker-service-id>`      |
+| PostgreSQL             | Railway 서비스 `Postgres` (`postgres-ssl:18`, 볼륨 `postgres-volume` 50 GB)           | `<postgres-service-id>`    |
+| PostgreSQL 공개 프록시 | `<proxy-host>.proxy.rlwy.net:<port>` → 5432 (TLS, `sslmode=require`)                  | TCP proxy `<tcp-proxy-id>` |
+| Vercel 프로젝트        | 팀 `<vercel-team>`, 프로젝트 `ohmyti`, 루트 `apps/web`, Node 22.x, 함수 리전 `iad1`   | `<project-id>`             |
+| 웹 URL                 | https://ohmyti.vercel.app (프로덕션 별칭), 헬스: https://ohmyti.vercel.app/api/health |                            |
+| Vercel Blob            | 스토어 `ohmyti-artifacts` (private, icn1), 프로젝트 `ohmyti`에 연결                   | `store_kQz8bhA5qiqhaEfo`   |
+| GitHub                 | https://github.com/inchyangv/ohmyti (비공개). CI: `.github/workflows/ci.yml`          |                            |
 
 ## 토폴로지 요약 (TICKET.md 1.1)
 
@@ -198,9 +198,9 @@ APP_ACCESS_PASSWORD=<접근 비밀번호> pnpm gate:phase2 --base-url https://oh
 
 **필요한 토큰**
 
-| 변수                | 값                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `VERCEL_TOKEN`      | Vercel 계정 토큰. Sandbox API 권한이 있어야 한다. 팀 `<vercel-team>` 범위. 비밀                                 |
+| 변수                | 값                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `VERCEL_TOKEN`      | Vercel 계정 토큰. Sandbox API 권한이 있어야 한다. 팀 `<vercel-team>` 범위. 비밀          |
 | `VERCEL_TEAM_ID`    | `<team-id>` (`.vercel/project.json`의 `orgId`)                                           |
 | `VERCEL_PROJECT_ID` | `<project-id>` (`.vercel/project.json`의 `projectId`). 샌드박스가 이 프로젝트에 귀속된다 |
 

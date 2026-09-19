@@ -11,15 +11,15 @@ export function SiteHeader() {
       data-testid="site-header"
     >
       <div className="mx-auto flex h-[60px] max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <a href="/" className="flex items-center gap-2 text-ink">
-          <span
-            aria-hidden="true"
-            className="grid size-7 place-items-center rounded-lg bg-primary text-[12px] font-extrabold text-surface"
-          >
-            CG
-          </span>
-          <span className="hidden text-[17px] font-bold tracking-tight sm:inline">
-            CodeGraph Reviewer
+        <a
+          href="/"
+          className="group flex items-center gap-2.5 text-ink"
+          aria-label="CodeGraph Reviewer 홈"
+        >
+          <LogoMark />
+          <span className="hidden items-baseline gap-1.5 tracking-tight sm:flex">
+            <span className="text-[17px] font-extrabold">CodeGraph</span>
+            <span className="text-[15px] font-semibold text-neutral-500">Reviewer</span>
           </span>
         </a>
         <nav aria-label="주요 화면" className="flex items-center gap-1">
@@ -40,5 +40,34 @@ export function SiteHeader() {
         </a>
       </div>
     </header>
+  );
+}
+
+function LogoMark() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 64 64"
+      fill="none"
+      className="size-8 shrink-0 transition-transform duration-200 group-hover:-rotate-3 group-hover:scale-105"
+    >
+      <path
+        d="M47.5 16.5 32 8 14.5 18v27L32 55l15.5-9"
+        stroke="#0066FF"
+        strokeWidth="9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m28 32.5 7.5 7.5L50 24.5"
+        stroke="currentColor"
+        strokeWidth="7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="14.5" cy="18" r="6.5" fill="#0066FF" />
+      <circle cx="14.5" cy="45" r="6.5" fill="#0066FF" />
+      <circle cx="32" cy="55" r="6.5" fill="#0066FF" />
+    </svg>
   );
 }

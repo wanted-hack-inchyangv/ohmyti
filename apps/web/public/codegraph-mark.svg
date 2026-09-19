@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>CodeGraph Reviewer</title>
+  <path
+    d="M47.5 16.5 32 8 14.5 18v27L32 55l15.5-9"
+    stroke="#0066FF"
+    stroke-width="9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="m28 32.5 7.5 7.5L50 24.5"
+    stroke="#171719"
+    stroke-width="7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="14.5" cy="18" r="6.5" fill="#0066FF" />
+  <circle cx="14.5" cy="45" r="6.5" fill="#0066FF" />
+  <circle cx="32" cy="55" r="6.5" fill="#0066FF" />
+</svg>
