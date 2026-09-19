@@ -156,7 +156,11 @@ function mutationCriterionId(report: EvaluationReport, mutationId: string): stri
   );
 }
 
-function refView(
+/**
+ * 근거 참조 하나를 워크벤치 딥링크로 바꾼다. 채용 리포트 화면(T-706)도 같은 규칙을 쓴다.
+ * `exportUrl`은 내보내기(Markdown·인쇄물)용이며 코드 위치만 고정 SHA GitHub 링크다.
+ */
+export function observationRefView(
   ref: ObservationRef,
   report: EvaluationReport,
   href: Href,
@@ -309,7 +313,7 @@ function questionView(
     positiveSignals: question.positiveSignals,
     concernSignals: question.concernSignals,
     isTemplate: question.source === "TEMPLATE",
-    refs: question.refs.map((ref) => refView(ref, report, href, origin)),
+    refs: question.refs.map((ref) => observationRefView(ref, report, href, origin)),
     claim,
   };
 }

@@ -166,8 +166,20 @@ export function hiringReportToMarkdown(report: HiringReport): string {
         );
       }
     }
-    if (competency.kitQuestionIds.length > 0) {
-      push(`- 면접에서 확인할 질문: ${competency.kitQuestionIds.join(", ")}`);
+    // 질문 참조는 슬롯 ID 대신 키트와 같은 번호와 주 질문 문장으로 적는다 (T-706)
+    if (competency.kitQuestions.length > 0) {
+      push("- 면접에서 확인할 질문");
+      for (const question of competency.kitQuestions) {
+        push(`  - Q${question.number}. ${cell(question.question)}`);
+      }
+    } else if (competency.interviewOnly) {
+      push(
+        `- 면접에서 확인할 질문: ${
+          report.interviewGuide.status === "NO_DATA"
+            ? "인터뷰 키트 없음"
+            : "이 역량을 확인하는 키트 질문이 없습니다."
+        }`,
+      );
     }
     push("");
   }
@@ -255,7 +267,7 @@ export function hiringReportToMarkdown(report: HiringReport): string {
     } else {
       for (const question of report.interviewGuide.mustQuestions) {
         push(
-          `- [${INTERVIEW_QUESTION_KIND_LABELS[question.kind]} · ${question.minutes}분${question.source === "TEMPLATE" ? " · 기본 질문" : ""}] ${cell(question.question)}`,
+          `- Q${question.number}. [${INTERVIEW_QUESTION_KIND_LABELS[question.kind]} · ${question.minutes}분${question.source === "TEMPLATE" ? " · 기본 질문" : ""}] ${cell(question.question)}`,
         );
       }
       push("");

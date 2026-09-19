@@ -80,6 +80,18 @@ export const HiringReportKeyObservationsSchema = z.strictObject({
   defects: z.array(KeyObservationSchema).max(HIRING_REPORT_KEY_OBSERVATIONS_MAX),
 });
 
+/**
+ * 인터뷰 키트 질문의 참조. 슬롯 ID(`FAILURE_DEBRIEF:R-05`)는 내부 식별자라 리포트에는 키트와 같은 질문 번호(Q1, Q2 …)와
+ * 주 질문 문장을 함께 싣는다 (T-706). 번호는 `interviewQuestionNumbers`가 정한다.
+ */
+export const HiringReportQuestionRefSchema = z.strictObject({
+  questionId: z.string().min(1),
+  /** 키트 안의 질문 번호 (Q1, Q2 …) */
+  number: z.int().min(1),
+  question: z.string().min(1),
+});
+export type HiringReportQuestionRef = z.infer<typeof HiringReportQuestionRefSchema>;
+
 /** 3. 역량별 관측 한 항목. 역량 점수를 만들지 않고 매핑된 기준의 판정과 근거만 보인다 */
 export const CompetencyObservationSchema = z.strictObject({
   competency: CompetencySchema,
@@ -95,8 +107,8 @@ export const CompetencyObservationSchema = z.strictObject({
     }),
   ),
   verdictCounts: VerdictCountsSchema,
-  /** 이 역량을 확인하는 인터뷰 키트 질문 ID (`interviewOnly` 역량의 "면접에서 확인") */
-  kitQuestionIds: z.array(z.string().min(1)),
+  /** 이 역량을 확인하는 인터뷰 키트 질문 (`interviewOnly` 역량의 "면접에서 확인") */
+  kitQuestions: z.array(HiringReportQuestionRefSchema),
 });
 export type CompetencyObservation = z.infer<typeof CompetencyObservationSchema>;
 
@@ -168,6 +180,8 @@ export const HiringReportInterviewGuideSchema = z.strictObject({
   mustQuestions: z.array(
     z.strictObject({
       questionId: z.string().min(1),
+      /** 키트 안의 질문 번호 (Q1, Q2 …) */
+      number: z.int().min(1),
       kind: InterviewQuestionKindSchema,
       competency: CompetencySchema,
       minutes: z.int().min(1),

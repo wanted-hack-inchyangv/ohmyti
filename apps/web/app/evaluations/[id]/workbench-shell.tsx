@@ -172,6 +172,14 @@ function WorkbenchHeader({
         <LinkButton href={`/submissions/${header.submissionId}`} variant="secondary" size="sm">
           제출 상태
         </LinkButton>
+        <LinkButton
+          href={`/evaluations/${header.evaluationId}/report`}
+          variant="secondary"
+          size="sm"
+          data-testid="hiring-report-link"
+        >
+          채용 리포트
+        </LinkButton>
         <LinkButton href={`/api/evaluations/${header.evaluationId}`} variant="secondary" size="sm">
           리포트 JSON
         </LinkButton>

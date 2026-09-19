@@ -123,7 +123,7 @@ function buildReport(): HiringReport {
         interviewOnly: true,
         criteria: [],
         verdictCounts: { PASS: 0, FAIL: 0, PARTIAL: 0, INCONCLUSIVE: 0 },
-        kitQuestionIds: [question.id],
+        kitQuestions: [{ questionId: question.id, number: 1, question: question.question }],
       },
     ],
     requirements: {
@@ -155,6 +155,7 @@ function buildReport(): HiringReport {
       mustQuestions: [
         {
           questionId: question.id,
+          number: 1,
           kind: question.kind,
           competency: question.competency,
           minutes: question.minutes,

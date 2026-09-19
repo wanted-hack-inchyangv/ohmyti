@@ -311,7 +311,14 @@ describe("buildHiringReport · 저장값 대조", () => {
     const debugging = report.competencies.find((c) => c.competency === "DEBUGGING")!;
     expect(debugging.interviewOnly).toBe(true);
     expect(debugging.criteria).toEqual([]);
-    expect(debugging.kitQuestionIds).toEqual(["FAILURE_DEBRIEF:R-05"]);
+    // 슬롯 ID 대신 키트와 같은 질문 번호·주 질문 문장을 싣는다 (T-706)
+    expect(debugging.kitQuestions).toEqual([
+      {
+        questionId: "FAILURE_DEBRIEF:R-05",
+        number: 1,
+        question: fullInput().kit!.questions[0]!.question,
+      },
+    ]);
     expect(report.competencies.map((c) => c.name)).toEqual(
       report.competencies.map((c) => COMPETENCIES[c.competency].name),
     );

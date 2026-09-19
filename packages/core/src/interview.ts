@@ -98,6 +98,20 @@ export const InterviewQuestionSchema = z.strictObject({
 });
 export type InterviewQuestion = z.infer<typeof InterviewQuestionSchema>;
 
+/**
+ * 키트 안의 질문 번호 (Q1, Q2 …). 우선순위(필수 → 권장 → 선택) 순으로, 같은 우선순위 안에서는 저장된 순서대로 센다.
+ * 화면(T-704)과 채용 리포트(T-706)가 같은 번호를 쓰도록 여기에 둔다. 슬롯 ID(`FAILURE_DEBRIEF:R-05`)는
+ * 내부 식별자라 채용 담당자가 읽는 문서에는 이 번호와 주 질문 문장을 보인다.
+ */
+export function interviewQuestionNumbers(
+  questions: readonly Pick<InterviewQuestion, "id" | "priority">[],
+): Map<string, number> {
+  const ordered = InterviewPrioritySchema.options.flatMap((priority) =>
+    questions.filter((question) => question.priority === priority),
+  );
+  return new Map(ordered.map((question, index) => [question.id, index + 1]));
+}
+
 /** 진행안의 길이 (분). 도입 5분과 지원자 질문 5분을 포함한다 */
 export const InterviewPlanDurationSchema = z.union([z.literal(45), z.literal(60)]);
 export type InterviewPlanDuration = z.infer<typeof InterviewPlanDurationSchema>;

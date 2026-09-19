@@ -26,6 +26,7 @@ import {
   competencyForCriterion,
   findForbiddenReportExpressions,
   impactForCriterion,
+  interviewQuestionNumbers,
   type Competency,
   type CompetencyObservation,
   type ContextLink,
@@ -36,6 +37,7 @@ import {
   type EvaluationStageRecord,
   type Evidence,
   type HiringReport,
+  type HiringReportQuestionRef,
   type InterviewKit,
   type KeyObservation,
   type MutationOutcome,
@@ -286,11 +288,17 @@ export function buildHiringReport(input: HiringReportInput): HiringReport {
   }
 
   // 3. 역량별 관측: 매핑된 기준의 판정과 근거만 옮긴다. 역량 점수·등급을 만들지 않는다
-  const kitQuestionsByCompetency = new Map<Competency, string[]>();
+  // 질문 참조는 슬롯 ID 대신 키트와 같은 번호(Q1, Q2 …)와 주 질문 문장으로 싣는다 (T-706)
+  const questionNumbers = interviewQuestionNumbers(kit?.questions ?? []);
+  const kitQuestionsByCompetency = new Map<Competency, HiringReportQuestionRef[]>();
   for (const question of kit?.questions ?? []) {
-    const ids = kitQuestionsByCompetency.get(question.competency) ?? [];
-    ids.push(question.id);
-    kitQuestionsByCompetency.set(question.competency, ids);
+    const list = kitQuestionsByCompetency.get(question.competency) ?? [];
+    list.push({
+      questionId: question.id,
+      number: questionNumbers.get(question.id) ?? list.length + 1,
+      question: question.question,
+    });
+    kitQuestionsByCompetency.set(question.competency, list);
   }
   const competencies: CompetencyObservation[] = CompetencySchema.options.map((competency) => {
     const criteria = results
@@ -311,7 +319,7 @@ export function buildHiringReport(input: HiringReportInput): HiringReport {
       interviewOnly: COMPETENCIES[competency].interviewOnly,
       criteria,
       verdictCounts: countVerdicts(criteria),
-      kitQuestionIds: kitQuestionsByCompetency.get(competency) ?? [],
+      kitQuestions: kitQuestionsByCompetency.get(competency) ?? [],
     };
   });
 
@@ -485,6 +493,7 @@ export function buildHiringReport(input: HiringReportInput): HiringReport {
         .filter((question) => question.priority === "MUST")
         .map((question) => ({
           questionId: question.id,
+          number: questionNumbers.get(question.id) ?? 1,
           kind: question.kind,
           competency: question.competency,
           minutes: question.minutes,

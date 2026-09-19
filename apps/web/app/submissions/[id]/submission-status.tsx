@@ -211,6 +211,13 @@ export function SubmissionStatus({ initial }: SubmissionStatusProps) {
                 리포트 JSON
               </a>
               <a
+                href={`/evaluations/${view.evaluation.id}/report`}
+                className={buttonClass("ghost", "md")}
+                data-testid="hiring-report-link"
+              >
+                채용 리포트
+              </a>
+              <a
                 href={`/evaluations/${view.evaluation.id}`}
                 className={buttonClass("primary", "md")}
                 data-testid="workbench-link"

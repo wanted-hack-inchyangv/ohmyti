@@ -69,8 +69,9 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
 }
 
 /*
- * 인쇄용 보기 (T-704, `/evaluations/<id>/interview-kit`). A4 세로에 14mm 여백을 쓰고, 질문 카드와 진행안 구간이
- * 페이지 경계에서 잘리지 않게 한다. 사이트 머리글과 인쇄 안내는 인쇄물에서 뺀다.
+ * 인쇄용 보기 (T-704 `/evaluations/<id>/interview-kit`, T-706 `/evaluations/<id>/report`). A4 세로에 14mm 여백을 쓰고,
+ * 질문 카드·진행안 구간과 리포트의 절·카드가 페이지 경계에서 잘리지 않게 한다.
+ * 사이트 머리글과 인쇄 안내는 인쇄물에서 뺀다.
  */
 @page {
   size: A4 portrait;
@@ -90,7 +91,9 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
 
   .kit-card,
   .kit-plan,
-  .kit-anchor {
+  .kit-anchor,
+  .report-section,
+  .report-card {
     break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -98,6 +101,53 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
   .kit-card {
     border-color: #dbdcdf;
     box-shadow: none;
+  }
+
+  /* 채용 리포트는 A4 4쪽 안에 들어가야 해서 인쇄에서만 글자와 여백을 줄이고 카드를 두 단으로 편다 (T-706) */
+  [data-testid="hiring-report"] {
+    font-size: 9.5px;
+    line-height: 1.35;
+  }
+
+  [data-testid="hiring-report"] .report-section {
+    gap: 4px;
+  }
+
+  [data-testid="hiring-report"] .report-card {
+    padding: 4px 6px;
+    border-color: #dbdcdf;
+  }
+
+  [data-testid="hiring-report"] .report-card > * + * {
+    margin-top: 0;
+  }
+
+  /* 화면 크기(12~14px)로 굳어 있는 글자를 인쇄에서는 한 단계 줄인다 */
+  [data-testid="hiring-report"] [class*="text-[12px]"],
+  [data-testid="hiring-report"] [class*="text-[13px]"],
+  [data-testid="hiring-report"] [class*="text-[14px]"] {
+    font-size: 9.5px;
+  }
+
+  [data-testid="hiring-report"] [class*="text-2xl"] {
+    font-size: 16px;
+  }
+
+  [data-testid="hiring-report"] td,
+  [data-testid="hiring-report"] th {
+    padding: 1px 4px;
+  }
+
+  [data-testid="hiring-report"] h1 {
+    font-size: 15px;
+  }
+
+  [data-testid="hiring-report"] h2 {
+    font-size: 12.5px;
+  }
+
+  [data-testid="hiring-report"] h3 {
+    font-size: 11px;
   }
 
   a {
