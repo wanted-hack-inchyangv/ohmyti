@@ -55,13 +55,16 @@ export type InterviewLintViolation = z.infer<typeof InterviewLintViolationSchema
 // 의문 절 세기
 
 /** 의문사. 연결 어미 앞 절에 의문사가 있으면 그 절도 질문이다("어떤 저장소로 구현했고, … 어떻게 달랐나요?") */
-const INTERROGATIVE_WORD = /(?:^|[\s(,])(?:어떤|어떻게|어떠|어느|왜|무엇|무슨|뭐|뭘|언제|어디|누가|누구|몇|얼마)/;
+const INTERROGATIVE_WORD =
+  /(?:^|[\s(,])(?:어떤|어떻게|어떠|어느|왜|무엇|무슨|뭐|뭘|언제|어디|누가|누구|몇|얼마)/;
 
 /** 의문 절을 끝내는 연결 어미 + 쉼표, 또는 과거 시제 연결 어미 `-고` */
-const CLAUSE_CONNECTIVE = /(?:[가-힣](?:고|며|으며|는데|은데|인데|지만|거나)\s*,|(?:했|였|었|았|웠|됐|셨)고\s)/g;
+const CLAUSE_CONNECTIVE =
+  /(?:[가-힣](?:고|며|으며|는데|은데|인데|지만|거나)\s*,|(?:했|였|었|았|웠|됐|셨)고\s)/g;
 
 /** 문장 끝의 의문 어미 (물음표가 없어도 질문으로 본다) */
-const QUESTION_ENDING = /(?:나요|까요|가요|습니까|니까|는가|은가|인가|을까|할까|죠|지요|어요|아요|해요|래요|나|니|냐)\s*[?？]$|(?:나요|까요|가요|습니까|는가요|인가요)\s*[.。]?$/;
+const QUESTION_ENDING =
+  /(?:나요|까요|가요|습니까|니까|는가|은가|인가|을까|할까|죠|지요|어요|아요|해요|래요|나|니|냐)\s*[?？]$|(?:나요|까요|가요|습니까|는가요|인가요)\s*[.。]?$/;
 
 /** 요청 형태의 문장 끝. 앞의 내포 의문절(`-는지`)이 실제 질문이다 */
 const REQUEST_ENDING =
@@ -71,7 +74,8 @@ const REQUEST_ENDING =
 const EMBEDDED_QUESTION = /(?:는|은|인|던|을|할|될|일|했을|였을)지(?=[\s,.?？와과를을도가만]|$)/g;
 
 /** 쉼표가 뒤따르는 내포 의문절: 질문 문장 안에서 나열된 두 번째 질문 */
-const LISTED_EMBEDDED_QUESTION = /(?:는|은|인|던|을|할|될|일|했을|였을)지\s*(?:,|와|과|하고|그리고)\s/g;
+const LISTED_EMBEDDED_QUESTION =
+  /(?:는|은|인|던|을|할|될|일|했을|였을)지\s*(?:,|와|과|하고|그리고)\s/g;
 
 function splitSentences(text: string): string[] {
   return text
@@ -118,7 +122,10 @@ interface LabeledPattern {
 
 /** 추궁 어조: 하지 않은 일의 이유를 캐묻거나 해명을 요구한다 */
 export const ACCUSATORY_PATTERNS: readonly LabeledPattern[] = [
-  { label: "왜 … 않았", pattern: /왜[^?？.]*?(?:않았|않으셨|안\s*했|안\s*하셨|못\s*했|못\s*하셨|없었|빠뜨|누락)/ },
+  {
+    label: "왜 … 않았",
+    pattern: /왜[^?？.]*?(?:않았|않으셨|안\s*했|안\s*하셨|못\s*했|못\s*하셨|없었|빠뜨|누락)/,
+  },
   { label: "못 하셨", pattern: /못\s*하셨|못\s*하신/ },
   { label: "설명해야", pattern: /설명해야|해명|변명/ },
   { label: "잘못", pattern: /(?:본인|지원자)[^?？.]*잘못/ },
@@ -127,7 +134,10 @@ export const ACCUSATORY_PATTERNS: readonly LabeledPattern[] = [
 /** 진위 추궁: 본인이 한 일인지, 이력서가 사실인지 확인하려 든다 */
 export const VERACITY_PATTERNS: readonly LabeledPattern[] = [
   { label: "정말 본인이", pattern: /정말(?:로)?\s*(?:본인이|직접|하셨|하신|맞)/ },
-  { label: "실제로 본인이", pattern: /실제로\s*본인이|본인이\s*(?:직접\s*)?(?:작성|구현|개발)한\s*(?:게|것이|것)\s*맞/ },
+  {
+    label: "실제로 본인이",
+    pattern: /실제로\s*본인이|본인이\s*(?:직접\s*)?(?:작성|구현|개발)한\s*(?:게|것이|것)\s*맞/,
+  },
   { label: "사실인지", pattern: /사실인지|사실입니까|사실인가요|사실이\s*맞/ },
   { label: "증명", pattern: /증명해|입증해|증명할\s*수|입증할\s*수/ },
 ];
@@ -135,7 +145,10 @@ export const VERACITY_PATTERNS: readonly LabeledPattern[] = [
 /** 개인 신상·차별 소지 주제. 기술 문장의 흔한 단어(나이브, 멱등 키가, 장애 대응, 헬스 체크)와 겹치지 않게 좁힌다 */
 export const PERSONAL_TOPIC_PATTERNS: readonly LabeledPattern[] = [
   { label: "나이", pattern: /나이(?!브)|연세|몇\s*살|생년|출생\s*연도|[1-9]0대\s*(?:초|중|후)반/ },
-  { label: "결혼·출산", pattern: /결혼|기혼|미혼|배우자|출산|임신|육아|자녀(?:가|는|를|분|\s*계획)|아이\s*계획/ },
+  {
+    label: "결혼·출산",
+    pattern: /결혼|기혼|미혼|배우자|출산|임신|육아|자녀(?:가|는|를|분|\s*계획)|아이\s*계획/,
+  },
   { label: "출신 지역", pattern: /출신|고향|본적|어느\s*지역\s*(?:분|사람)/ },
   {
     label: "출신 학교",
@@ -143,7 +156,8 @@ export const PERSONAL_TOPIC_PATTERNS: readonly LabeledPattern[] = [
   },
   {
     label: "건강",
-    pattern: /(?<!(?:서버|서비스|시스템|인스턴스|노드|컨테이너|클러스터|DB)(?:의)?\s?)건강(?:\s*(?:상태|문제|검진)|이|은|을)|질병|병력|지병|투병|복용|장애인|장애\s*등급|(?:신체|정신)\s*장애/,
+    pattern:
+      /(?<!(?:서버|서비스|시스템|인스턴스|노드|컨테이너|클러스터|DB)(?:의)?\s?)건강(?:\s*(?:상태|문제|검진)|이|은|을)|질병|병력|지병|투병|복용|장애인|장애\s*등급|(?:신체|정신)\s*장애/,
   },
   { label: "종교", pattern: /종교|신앙|교회|성당|사찰|절에\s*다니/ },
   { label: "병역", pattern: /병역|군필|미필|군\s*복무|군대|전역|입대|군\s*면제/ },

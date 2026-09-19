@@ -108,7 +108,9 @@ export const CompetencyAnchorSchema = z.strictObject({
 });
 export type CompetencyAnchor = z.infer<typeof CompetencyAnchorSchema>;
 
-function anchors(behaviors: readonly [string, string, string, string]): readonly CompetencyAnchor[] {
+function anchors(
+  behaviors: readonly [string, string, string, string],
+): readonly CompetencyAnchor[] {
   return behaviors.map((behavior, index) => {
     const value = (index + 1) as AnchorValue;
     return { value, label: ANCHOR_LABELS[value], behavior };
@@ -224,6 +226,9 @@ export function competencyForCriterion(
 }
 
 /** 기준의 영향 문장. 프로필에 없으면 null이며 문장을 지어내지 않는다 (G-09) */
-export function impactForCriterion(criterionId: string, profile?: ReportProfile | null): string | null {
+export function impactForCriterion(
+  criterionId: string,
+  profile?: ReportProfile | null,
+): string | null {
   return profile?.criteria.find((entry) => entry.criterionId === criterionId)?.impact ?? null;
 }

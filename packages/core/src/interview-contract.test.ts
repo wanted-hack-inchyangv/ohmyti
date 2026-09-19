@@ -109,7 +109,8 @@ function buildReport(): HiringReport {
           verdict: "FAIL",
           issueId: null,
           observation: "다른 본문으로 같은 키를 보내면 409 대신 201이 왔다.",
-          impact: "같은 주문 요청이 다른 내용으로 다시 오면 새 주문이 만들어져 중복 결제로 이어질 수 있다.",
+          impact:
+            "같은 주문 요청이 다른 내용으로 다시 오면 새 주문이 만들어져 중복 결제로 이어질 수 있다.",
           aiDraft: null,
           refs: [{ kind: "EXECUTION_RECORD", runId: "run-1", criterionId: "R-06" }],
         },
@@ -300,7 +301,9 @@ describe("InterviewQuestionSchema·InterviewKitSchema", () => {
 
   it("근거 참조가 없거나 꼬리 질문·신호 개수가 범위를 벗어나면 거절한다", () => {
     expect(InterviewQuestionSchema.safeParse({ ...question, refs: [] }).success).toBe(false);
-    expect(InterviewQuestionSchema.safeParse({ ...question, probes: ["하나"] }).success).toBe(false);
+    expect(InterviewQuestionSchema.safeParse({ ...question, probes: ["하나"] }).success).toBe(
+      false,
+    );
     expect(
       InterviewQuestionSchema.safeParse({ ...question, positiveSignals: ["1", "2", "3", "4", "5"] })
         .success,
