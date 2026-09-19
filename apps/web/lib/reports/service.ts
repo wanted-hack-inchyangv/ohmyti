@@ -11,6 +11,7 @@
 import { z } from "zod";
 import {
   EvaluationReportSchema,
+  DesignSignalsReportSchema,
   FunctionGraphReportSchema,
   MutationDiffReportSchema,
   RunRecordReportSchema,
@@ -19,6 +20,7 @@ import {
   RUBRIC_TOTAL_POINTS,
   type ApiErrorCode,
   type EvaluationReport,
+  type DesignSignalsReport,
   type FunctionGraphReport,
   type MutationDiffReport,
   type RunRecordReport,
@@ -303,6 +305,47 @@ export async function readFunctionGraph(
       ok: false,
       code: "ARTIFACT_NOT_FOUND",
       message: `관련 함수 그래프 분석 결과의 형태가 맞지 않습니다: ${parsed.error.issues[0]?.message ?? "알 수 없음"}`,
+    };
+  }
+  return { ok: true, data: parsed.data };
+}
+
+/**
+ * 설계 평가용 코드 신호 (T-605). 워커가 저장한 `evaluations/<id>/analysis/design-signals.json` 그대로 돌려준다.
+ * 신호를 추출하기 전의 평가이거나 형태가 맞지 않으면 `ARTIFACT_NOT_FOUND`다
+ */
+export async function readDesignSignals(
+  deps: ReportDeps,
+  evaluationId: string,
+): Promise<ReportResult<DesignSignalsReport>> {
+  if (!isUuid(evaluationId)) return invalidId("평가 ID");
+  const row = await getEvaluation(deps.db, evaluationId);
+  if (!row) {
+    return {
+      ok: false,
+      code: "EVALUATION_NOT_FOUND",
+      message: `평가 ${evaluationId}를 찾을 수 없습니다`,
+    };
+  }
+  const artifactKey = artifactKeys.designSignals(evaluationId);
+  const artifact = await readJsonArtifact(deps.store, artifactKey);
+  if (!artifact.ok) {
+    return {
+      ok: false,
+      code: "ARTIFACT_NOT_FOUND",
+      message: `평가 ${evaluationId}의 코드 신호가 없습니다 (판정 저장 전이거나 신호를 추출하기 전의 평가)`,
+    };
+  }
+  const parsed = DesignSignalsReportSchema.safeParse({
+    evaluationId,
+    artifactKey,
+    signals: artifact.value,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      code: "ARTIFACT_NOT_FOUND",
+      message: `코드 신호의 형태가 맞지 않습니다: ${parsed.error.issues[0]?.message ?? "알 수 없음"}`,
     };
   }
   return { ok: true, data: parsed.data };

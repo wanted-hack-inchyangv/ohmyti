@@ -14,7 +14,7 @@ import {
   type CaseInput,
   type IsolatedOptions,
 } from "@ohmyti/analysis";
-import type { FunctionGraphAnalysis, SourceLocation } from "@ohmyti/core";
+import type { DesignSignals, FunctionGraphAnalysis, SourceLocation } from "@ohmyti/core";
 import type { HarnessReport } from "@ohmyti/harness";
 import path from "node:path";
 
@@ -29,6 +29,11 @@ export interface StaticRelationInput {
 export interface FunctionGraphRunResult {
   analysis: FunctionGraphAnalysis;
   staticRelations: StaticRelationInput[];
+  /**
+   * 설계 평가용 코드 신호 (T-605). 같은 자식 프로세스에서 AST만 읽어 센다. 아티팩트(`artifactKeys.designSignals`)로만 저장하며
+   * 판정·점수·근거 행에 쓰지 않는다 (G-01). 입력의 `designSignals`가 false면 없다
+   */
+  designSignals?: DesignSignals | undefined;
 }
 
 /** 하네스 보고서의 케이스 timeline → 분석 입력. 보고서가 없으면(기동 실패) 케이스 없이 라우트만 분석한다 */
@@ -53,12 +58,15 @@ export async function runFunctionGraphAnalysis(input: {
   templateRoot: string;
   templateName: string;
   isolation?: IsolatedOptions | undefined;
+  /** 설계 신호(T-605)도 추출한다 (기본 true) */
+  designSignals?: boolean | undefined;
 }): Promise<FunctionGraphRunResult> {
-  const { analysis, handlerSnippets } = await analyzeFunctionGraphIsolated(
+  const { analysis, handlerSnippets, designSignals } = await analyzeFunctionGraphIsolated(
     {
       files: input.files,
       cases: caseInputsOf(input.harness),
       nodeModulesDir: templateNodeModulesDir(input.templateRoot, input.templateName),
+      designSignals: input.designSignals !== false,
     },
     input.isolation ?? {},
   );
@@ -82,5 +90,5 @@ export async function runFunctionGraphAnalysis(input: {
       }
     }
   }
-  return { analysis, staticRelations };
+  return { analysis, staticRelations, designSignals };
 }

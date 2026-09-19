@@ -29,6 +29,7 @@ export {
   CHILD_SOURCE_NAME,
   childEntry,
   ISOLATED_DEFAULTS,
+  type IsolatedAnalysisOutput,
   type IsolatedOptions,
 } from "./isolated";
 export {
@@ -54,4 +55,13 @@ export {
   ROUTE_METHOD_NAMES,
 } from "./routes";
 export { buildCaseSubgraph, type CaseInput, type CaseRequestInput } from "./subgraph";
+export {
+  DUPLICATE_MIN_NODES,
+  DUPLICATE_WINDOW,
+  extractDesignSignals,
+  functionNameOf,
+  isTestPath,
+  tsconfigStrictOf,
+  type ExtractDesignSignalsInput,
+} from "./design-signals";
 export * from "./mutation";

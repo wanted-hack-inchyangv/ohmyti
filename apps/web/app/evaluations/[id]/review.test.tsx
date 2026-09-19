@@ -2,8 +2,12 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { EvaluationStageRecord, Evidence, ReviewEvent } from "@ohmyti/core";
-import { buildEvidencePanelView, REVIEW_EVENT_KIND_LABEL } from "@/lib/workbench/evidence-panel";
+import type { DesignSignals, EvaluationStageRecord, Evidence, ReviewEvent } from "@ohmyti/core";
+import {
+  buildEvidencePanelView,
+  REVIEW_EVENT_KIND_LABEL,
+  type DesignSignalsInput,
+} from "@/lib/workbench/evidence-panel";
 import {
   FIXTURE_EVALUATION_ID,
   FIXTURE_RUN_ID,
@@ -63,12 +67,16 @@ const EVENTS: ReviewEvent[] = [
   }),
 ];
 
-function render(query: Record<string, string> = {}, options: ReportFixtureOptions = {}) {
+function render(
+  query: Record<string, string> = {},
+  options: ReportFixtureOptions = {},
+  designSignals: DesignSignalsInput | null = null,
+) {
   const report = reportFixture(options);
   const urlState = parseWorkbenchSearchParams(query);
   const href = (patch: Parameters<typeof workbenchHref>[2]) =>
     workbenchHref(report.evaluation.id, urlState, patch);
-  const view = buildWorkbenchView(report, urlState, href);
+  const view = buildWorkbenchView(report, urlState, href, null, null, null, null, designSignals);
   return { html: renderToStaticMarkup(<WorkbenchShell view={view} />), view, report };
 }
 
@@ -513,5 +521,107 @@ describe("EvidencePanel: 액션과 토큰", () => {
       workbenchHref(report.evaluation.id, urlState, patch),
     );
     expect(view.status).toBe("no-criterion");
+  });
+});
+
+describe("EvidencePanel: 설계 신호 (T-605)", () => {
+  const at = (path: string, startLine: number, endLine = startLine) => ({
+    path,
+    startLine,
+    endLine,
+  });
+  const SIGNALS: DesignSignals = {
+    status: "ok",
+    analyzerVersion: "1",
+    sourceFiles: 2,
+    testFiles: 1,
+    maxFileLines: { lines: 150, location: at("src/index.ts", 1, 150) },
+    maxFunctionLines: { lines: 51, name: "app.post 콜백", location: at("src/index.ts", 56, 106) },
+    explicitAny: {
+      count: 12,
+      asAny: 0,
+      locations: [8, 16, 17, 18, 48, 62].map((line) => at("src/index.ts", line)),
+    },
+    tsconfig: { path: "tsconfig.json", strict: false },
+    duplicateBlocks: {
+      count: 1,
+      groups: [
+        { statements: 3, locations: [at("src/index.ts", 48, 52), at("src/index.ts", 117, 121)] },
+      ],
+    },
+    busyWaits: { count: 1, locations: [at("src/index.ts", 23)] },
+    consoleLogs: { count: 0, locations: [] },
+    weakAssertions: { count: 6, total: 6, locations: [at("test/api.test.ts", 16)] },
+  };
+  const input = (signals: DesignSignals): DesignSignalsInput => ({
+    ok: true,
+    data: {
+      evaluationId: FIXTURE_EVALUATION_ID,
+      artifactKey: `evaluations/${FIXTURE_EVALUATION_ID}/analysis/design-signals.json`,
+      signals,
+    },
+  });
+
+  it("사람 검토 기준(R-12)에 관측(정적) 신호를 센 사실로 보이고, 위치는 코드 근거 뷰어로 가는 링크다", () => {
+    const { html, view } = render({ criterion: "R-12" }, {}, input(SIGNALS));
+    const signals = view.evidencePanel.designSignals!;
+    expect(signals.status).toBe("ok");
+    expect(signals.items.map((i) => `${i.label} ${i.value}`)).toContain(
+      "명시적 any 12곳 (as any 0곳)",
+    );
+    const any = signals.items.find((i) => i.id === "explicit-any")!;
+    expect(any.locations.map((l) => l.label)).toEqual([
+      "src/index.ts:8",
+      "src/index.ts:16",
+      "src/index.ts:17",
+      "src/index.ts:18",
+      "src/index.ts:48",
+    ]);
+    expect(any.moreCount).toBe(7);
+    const busy = signals.items.find((i) => i.id === "busy-waits")!;
+    expect(busy.locations[0]!.href).toBe(
+      `/evaluations/${FIXTURE_EVALUATION_ID}?criterion=R-12&source=src%2Findex.ts%3A23-23`,
+    );
+    const dup = signals.items.find((i) => i.id === "duplicate-blocks")!;
+    expect(dup.groups[0]!.locations.map((l) => l.label)).toEqual([
+      "src/index.ts:48-52",
+      "src/index.ts:117-121",
+    ]);
+    const panel = panelHtml(html);
+    expect(panel).toContain('data-testid="design-signals" data-signals-status="ok"');
+    expect(panel).toContain("관측(정적)");
+    expect(panel).toContain("tsconfig strict");
+    expect(panel).toContain("외 7곳");
+    expect(panel.match(/data-testid="design-signal"/g)).toHaveLength(9);
+    // 해석 문구(좋다·나쁘다)와 점수는 없다. 판정 점수는 저장값 그대로다
+    expect(panel).not.toMatch(/나쁨|좋음|양호|불량|감점/);
+    expect(view.evidencePanel.pointsDisplay).toBe(
+      render({ criterion: "R-12" }).view.evidencePanel.pointsDisplay,
+    );
+  });
+
+  it("실행 기준에는 신호 절이 없고, 신호가 없거나 추출에 실패한 평가는 사유를 보인다", () => {
+    expect(
+      render({ criterion: "R-05" }, {}, input(SIGNALS)).view.evidencePanel.designSignals,
+    ).toBeNull();
+    const missing = render(
+      { criterion: "R-12" },
+      {},
+      { ok: false, code: "ARTIFACT_NOT_FOUND", message: "코드 신호가 없습니다 (추출 전)" },
+    );
+    expect(missing.view.evidencePanel.designSignals).toMatchObject({
+      status: "missing",
+      items: [],
+    });
+    expect(panelHtml(missing.html)).toContain("코드 신호가 없습니다 (추출 전)");
+    const failed = render(
+      { criterion: "R-12" },
+      {},
+      input({ status: "unavailable", analyzerVersion: "1", reason: "분석 시간 초과 (120000ms)" }),
+    );
+    expect(failed.view.evidencePanel.designSignals).toMatchObject({ status: "unavailable" });
+    expect(panelHtml(failed.html)).toContain(
+      "코드 신호를 추출하지 못했습니다: 분석 시간 초과 (120000ms)",
+    );
   });
 });

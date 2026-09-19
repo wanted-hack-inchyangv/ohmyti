@@ -3,6 +3,8 @@ import { REVIEW_STATE_LABEL, VERDICT_LABEL } from "@/components/ui/badge";
 import type { CodeEvidenceLabel } from "@/lib/workbench/code-evidence";
 import {
   CONFIDENCE_LABEL,
+  type DesignSignalLocationView,
+  type DesignSignalsView,
   type EvidenceItemView,
   type EvidencePanelView,
   type ReviewHistoryItemView,
@@ -14,6 +16,7 @@ import { ReviewActions } from "./review-actions";
  * 평가 근거·검토 이력 패널 (PRD 6장 ③ 오른쪽 열, TICKET.md T-306).
  * 관측(`observation`)과 추정(`interpretation`)을 나눠 보여 주고, 근거 목록은 클릭하면 중앙 패널(실패 재생·코드 근거)로 이동한다.
  * 검토 이력은 `review_events`를 시간순으로 나열하며 삭제 액션이 없다. 액션(확인·수정·이의·설계 확정)은 `review-actions.tsx`(클라이언트)다.
+ * 사람 검토 기준에는 설계 신호(T-605)를 `관측(정적)` 절로 보인다. AST로 센 사실이며 근거 행이 아니고 점수와 무관하다.
  * `추정` 라벨은 사람 확인 전의 미확정 해석이라 `pending` 토큰을 쓰고 `data-interpretation="true"` 래퍼 뒤에만 온다 (T-301 토큰 규칙).
  */
 
@@ -72,6 +75,7 @@ export function EvidencePanel({ view }: { view: EvidencePanelView }) {
         {view.status === "ok" ? <CriterionSummary view={view} /> : null}
         {view.status === "ok" ? <ObservationSection view={view} /> : null}
         {view.status === "ok" ? <EvidenceList items={view.evidences} /> : null}
+        {view.designSignals ? <DesignSignalsSection signals={view.designSignals} /> : null}
         {view.actions ? <ReviewActions actions={view.actions} /> : null}
         <HistorySection history={view.history} scope={view.historyScope} />
         {view.status === "no-criterion" && view.review ? (
@@ -322,6 +326,82 @@ function EvidenceItem({ item }: { item: EvidenceItemView }) {
     >
       {body}
     </div>
+  );
+}
+
+function SignalLocationLink({ location }: { location: DesignSignalLocationView }) {
+  return (
+    <a
+      href={location.href}
+      className="font-mono text-[12px] break-all text-primary hover:underline"
+      data-testid="design-signal-location"
+    >
+      {location.label}
+    </a>
+  );
+}
+
+function DesignSignalsSection({ signals }: { signals: DesignSignalsView }) {
+  return (
+    <section
+      className="flex min-w-0 flex-col gap-2"
+      data-testid="design-signals"
+      data-signals-status={signals.status}
+    >
+      <div className="flex items-center gap-2">
+        <Badge tone="ink" title="제출 코드의 AST를 읽어 센 값입니다. 코드를 실행하지 않았습니다">
+          관측(정적)
+        </Badge>
+        <p className="text-sm font-bold text-ink">코드 신호</p>
+      </div>
+      <p className="text-[13px] text-neutral-500">
+        AST로 센 사실입니다. 판정과 점수에 쓰지 않으며 해석은 검토자의 몫입니다.
+      </p>
+      {signals.status !== "ok" ? (
+        <p className="text-[13px] text-neutral-500" data-testid="design-signals-empty">
+          {signals.message}
+        </p>
+      ) : (
+        <ul className="flex min-w-0 flex-col gap-1.5">
+          {signals.items.map((item) => (
+            <li
+              key={item.id}
+              className="flex min-w-0 flex-col gap-1 rounded-lg border border-neutral-200 px-3 py-2 text-[13px]"
+              data-testid="design-signal"
+              data-signal-id={item.id}
+            >
+              <p className="leading-relaxed break-words text-neutral-800">
+                <span className="font-semibold">{item.label}</span>{" "}
+                <span className="tabular-nums" data-testid="design-signal-value">
+                  {item.value}
+                </span>
+              </p>
+              {item.groups.map((group, i) => (
+                <p
+                  key={i}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-500"
+                >
+                  <span>{group.statements}문장</span>
+                  {group.locations.map((location, j) => (
+                    <SignalLocationLink key={`${j}-${location.label}`} location={location} />
+                  ))}
+                </p>
+              ))}
+              {item.locations.length > 0 ? (
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  {item.locations.map((location, j) => (
+                    <SignalLocationLink key={`${j}-${location.label}`} location={location} />
+                  ))}
+                  {item.moreCount > 0 ? (
+                    <span className="text-[12px] text-neutral-400">외 {item.moreCount}곳</span>
+                  ) : null}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

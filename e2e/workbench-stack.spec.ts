@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, request as playwrightRequest, test, type Page } from "@playwright/test";
 import {
+  DesignSignalsReportResponseSchema,
+  designSignalItems,
   EvaluationReportSchema,
   RunRecordReportSchema,
   SubmissionSummarySchema,
@@ -29,6 +31,8 @@ import {
  * 3단계 게이트 E2E (T-308): 로컬 전체 스택(web + worker + PostgreSQL)에서 결함 샘플 C를 실제로 제출·채점한 뒤
  * "감점 클릭 → 근거 확인 → 재실행 → 사람 수정" 흐름을 브라우저로 검증한다. 다른 스펙과 달리 판정을 DB에 직접 넣지 않고
  * 워커가 만든 결과만 쓴다(G-07·G-08). 단계마다 스크린샷을 남겨 CI 아티팩트로 올린다.
+ *
+ * R-12에서는 워커가 저장한 설계 신호(T-605)가 `관측(정적)` 절로 보이고 위치 링크가 코드 근거로 가는지 확인한다.
  *
  * 워커: `E2E_WORKER_PORT`(기본 4320)의 `/healthz`가 응답하면(`pnpm stack:local`) 재사용하고, 아니면 `stack-local`의
  * 설정으로 직접 띄운 뒤 끝나면 내린다. 웹은 Playwright `webServer`(또는 재사용한 dev 서버)다.
@@ -269,6 +273,59 @@ test("코드 탭: 핸들러 위치 스니펫이 리포트 근거와 같고 GitHu
   }
   expect(await page.content()).not.toMatch(/blob\/HEAD|blob\/main|\/tree\//);
   await shot(page, "03-code-evidence");
+});
+
+test("R-12 코드 신호: 워커가 저장한 신호가 관측(정적)으로 보이고 위치를 누르면 코드 근거로 간다 (T-605)", async ({
+  page,
+}) => {
+  const res = await page.request.get(`/api/evaluations/${evaluationId}/design-signals`);
+  expect(res.status()).toBe(200);
+  const body = DesignSignalsReportResponseSchema.parse(await res.json());
+  if (!("data" in body)) throw new Error(`코드 신호 API 오류: ${JSON.stringify(body)}`);
+  const signals = body.data.signals;
+  if (signals.status !== "ok") throw new Error(`코드 신호 추출 실패: ${signals.reason}`);
+  // 샘플 C는 계층이 나뉜 strict 구조다
+  expect(signals).toMatchObject({
+    tsconfig: { path: "tsconfig.json", strict: true },
+    busyWaits: { count: 0 },
+    duplicateBlocks: { count: 0 },
+  });
+
+  await page.setViewportSize({ width: 1440, height: 1400 });
+  await page.goto(`/evaluations/${evaluationId}?criterion=R-12`);
+  const section = page.getByTestId("design-signals");
+  await expect(section).toHaveAttribute("data-signals-status", "ok");
+  await expect(section).toContainText("관측(정적)");
+  const items = designSignalItems(signals);
+  await expect(section.getByTestId("design-signal")).toHaveCount(items.length);
+  for (const item of items) {
+    await expect(
+      section.locator(`[data-signal-id="${item.id}"] [data-testid="design-signal-value"]`),
+    ).toHaveText(item.value);
+  }
+  // 신호는 판정·점수를 바꾸지 않는다: R-12는 여전히 검토 대기다
+  await expect(page.getByTestId("evidence-points")).toHaveText("?/10");
+  await shot(page, "08-design-signals");
+
+  const maxFile = signals.maxFileLines!.location;
+  const expectedSource = `${maxFile.path}:${maxFile.startLine}-${maxFile.endLine}`;
+  await section
+    .locator('[data-signal-id="max-file"] [data-testid="design-signal-location"]')
+    .click();
+  await expect(page).toHaveURL(/[?&]source=/);
+  expect(new URL(page.url()).searchParams.get("source")).toBe(expectedSource);
+  expect(new URL(page.url()).searchParams.get("criterion")).toBe("R-12");
+  const code = page.getByTestId("code-evidence");
+  const target = code.locator(
+    `[data-testid="code-evidence-item"][data-source="${expectedSource}"]`,
+  );
+  await expect(target).toHaveAttribute("data-selected", "true");
+  const link = target.getByTestId("github-link");
+  await expect(link).toHaveAttribute(
+    "href",
+    `${sampleRepoUrl}/blob/${sampleSha}/${maxFile.path}#L${maxFile.startLine}-L${maxFile.endLine}`,
+  );
+  await shot(page, "09-design-signal-code");
 });
 
 test("재실행: 워커가 새 기록을 만들고 원본 기록은 그대로다", async ({ page }) => {

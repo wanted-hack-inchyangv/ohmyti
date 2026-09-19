@@ -14,6 +14,7 @@ export * from "./repo-url";
 export * from "./report";
 export * from "./replay";
 export * from "./function-graph";
+export * from "./design-signals";
 export * from "./review";
 export * from "./rerun";
 export * from "./validation";

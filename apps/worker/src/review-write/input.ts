@@ -2,16 +2,19 @@
  * REVIEW_WRITE 입력 수집과 프롬프트 입력 구성 (T-407).
  *
  * 입력(이력서 제외, G-10): rubric, 기준별 판정(관측), 실패 케이스의 실행 기록 timeline, 정적 함수 그래프,
- * 관련 함수 코드(최대 12개), README. 제출물에서 나온 텍스트(코드·README·응답 본문·관측 문장)는 모두 `untrusted()` 블록에 넣는다 (G-06).
+ * 관련 함수 코드(최대 12개), 설계 평가용 코드 신호(T-605, AST로 센 사실), README. 제출물에서 나온 텍스트(코드·README·응답 본문·관측 문장)는 모두 `untrusted()` 블록에 넣는다 (G-06).
  * 채점 기준 문장은 기업이 승인한 rubric이므로 블록 밖에 둔다.
  */
 import { artifactKeys, type ArtifactStore } from "@ohmyti/storage";
 import {
+  DesignSignalsSchema,
+  designSignalItems,
   FunctionGraphAnalysisSchema,
   HarnessCaseActualSchema,
   ReplayTimelineSchema,
   type CaseFunctionGraph,
   type Criterion,
+  type DesignSignals,
   type FunctionGraphAnalysis,
   type ReplayTimelineEntry,
   type Rubric,
@@ -72,6 +75,8 @@ export interface ReviewWriteContext {
   files: Array<{ path: string; lines: number }>;
   readme: { path: string; text: string; truncated: boolean } | null;
   graphStatus: "ok" | "unavailable" | "missing";
+  /** 설계 평가용 코드 신호 (T-605). 아티팩트가 없으면(추출 이전 평가) null */
+  designSignals: DesignSignals | null;
 }
 
 export function clip(text: string, max = MAX_VALUE_CHARS): string {
@@ -118,6 +123,16 @@ async function loadGraph(
 ): Promise<FunctionGraphAnalysis | null> {
   const parsed = FunctionGraphAnalysisSchema.safeParse(
     await readJson(store, artifactKeys.functionGraph(evaluationId)),
+  );
+  return parsed.success ? parsed.data : null;
+}
+
+async function loadDesignSignals(
+  store: ArtifactStore,
+  evaluationId: string,
+): Promise<DesignSignals | null> {
+  const parsed = DesignSignalsSchema.safeParse(
+    await readJson(store, artifactKeys.designSignals(evaluationId)),
   );
   return parsed.success ? parsed.data : null;
 }
@@ -169,6 +184,7 @@ export async function collectReviewWriteContext(input: {
 }): Promise<ReviewWriteContext> {
   const { rubric, results, store } = input;
   const graph = await loadGraph(store, input.evaluationId);
+  const designSignals = await loadDesignSignals(store, input.evaluationId);
   const resultById = new Map(results.map((r) => [r.criterionId, r]));
   const evidenceById = new Map(input.evidences.map((e) => [e.id, e]));
 
@@ -273,6 +289,7 @@ export async function collectReviewWriteContext(input: {
           }
         : null,
     graphStatus: graph === null ? "missing" : graph.status,
+    designSignals,
   };
 }
 
@@ -287,6 +304,37 @@ export function reviewTargetsOf(context: ReviewWriteContext): ReviewTargets {
     ),
     design: new Map(context.design.map((c) => [c.id, c.maxPoints])),
   };
+}
+
+/** 신호 하나에 프롬프트로 넣는 위치 수 상한 */
+export const MAX_SIGNAL_LOCATIONS_IN_PROMPT = 8;
+
+function locationText(location: SourceLocation): string {
+  return location.startLine === location.endLine
+    ? `${location.path}:${location.startLine}`
+    : `${location.path}:${location.startLine}-${location.endLine}`;
+}
+
+/** 코드 신호 목록 (값과 위치). 경로·함수 이름이 제출물에서 나오므로 호출하는 쪽이 `untrusted()`로 감싼다 */
+export function designSignalsText(signals: Extract<DesignSignals, { status: "ok" }>): string {
+  return designSignalItems(signals)
+    .map((item) => {
+      const head = `- ${item.label}: ${item.value}`;
+      if (item.groups && item.groups.length > 0) {
+        return [
+          head,
+          ...item.groups.map(
+            (g) => `  - ${g.statements}문장: ${g.locations.map(locationText).join(" ↔ ")}`,
+          ),
+        ].join("\n");
+      }
+      if (item.locations.length === 0 || item.id === "max-file") return head;
+      const shown = item.locations.slice(0, MAX_SIGNAL_LOCATIONS_IN_PROMPT).map(locationText);
+      const total = item.count ?? item.locations.length;
+      const more = total > shown.length ? ` 외 ${total - shown.length}곳` : "";
+      return `${head}\n  위치: ${shown.join(", ")}${more}`;
+    })
+    .join("\n");
 }
 
 function graphText(graph: CaseFunctionGraph): string {
@@ -396,6 +444,15 @@ export function buildReviewWriteInput(context: ReviewWriteContext): string {
         })
         .join("\n"),
     );
+  }
+
+  sections.push("## 관측된 코드 신호 (AST로 센 사실, 판정·점수와 무관)");
+  if (context.designSignals === null) {
+    sections.push("(코드 신호 없음: 신호를 추출하기 전의 평가)");
+  } else if (context.designSignals.status === "unavailable") {
+    sections.push(`(코드 신호 없음: 추출 실패 · ${context.designSignals.reason})`);
+  } else {
+    sections.push(untrusted("design_signals", designSignalsText(context.designSignals)));
   }
 
   sections.push(

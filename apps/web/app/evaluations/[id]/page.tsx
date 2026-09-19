@@ -6,6 +6,7 @@ import { readEvaluationContext, type EvaluationContextInput } from "@/lib/contex
 import { getDb } from "@/lib/db";
 import { readApprovalBadge, type ApprovalBadgeView } from "@/lib/demo/service";
 import {
+  readDesignSignals,
   readEvaluationReport,
   readFunctionGraph,
   readMutationDiff,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/reports/service";
 import { readRerunStatus } from "@/lib/reruns/service";
 import { buildContextTabsView } from "@/lib/workbench/context-tabs";
+import type { DesignSignalsInput } from "@/lib/workbench/evidence-panel";
 import type { FunctionGraphInput } from "@/lib/workbench/graph";
 import { selectMutationExperiment, type MutationDetailInput } from "@/lib/workbench/mutation";
 import {
@@ -41,6 +43,7 @@ interface EvaluationPageProps {
  * 헤더 값이 API 응답과 같다. 중앙 패널의 실행 기록 본문(T-303)은 `/api/evaluations/[id]/runs/[runId]`와 같은
  * `readRunRecord`로 읽는다. 관련 함수 그래프(T-304)는 그래프 탭(`?pane=graph`)일 때만 `/api/evaluations/[id]/graph`와 같은
  * `readFunctionGraph`로 읽는다. 재실행 상태(T-307)는 `/api/evaluations/[id]/reruns`와 같은 `readRerunStatus`로 읽는다.
+ * 사람 검토 기준(R-12 등)을 고르면 설계 신호(T-605)를 `/api/evaluations/[id]/design-signals`와 같은 `readDesignSignals`로 읽는다.
  * 테스트 실효성 그룹(T-404)을 고르면 펼친 변형 실험의 diff와 두 실행 기록(검증·제출 테스트)을 함께 읽는다.
  * 하단 탭(T-504)을 열면 맥락 연결·GitHub 근거를 `readEvaluationContext`로 읽고, 미평가 영역 탭이면 분석 범위 한계를 보이려고
  * 관련 함수 그래프 결과도 읽는다.
@@ -146,6 +149,19 @@ export default async function EvaluationPage({ params, searchParams }: Evaluatio
     ]);
     mutationDetail = { mutationId: experiment.mutationId, diff, validation, tests };
   }
+  let designSignals: DesignSignalsInput | null = null;
+  const selectedCriterion = result.data.rubric.criteria.find((c) => c.id === urlState.criterionId);
+  if (selectedCriterion?.method === "HUMAN_REVIEW") {
+    try {
+      designSignals = await readDesignSignals({ db: getDb().db, store: getArtifactStore() }, id);
+    } catch (error) {
+      designSignals = {
+        ok: false,
+        code: "READ_FAILED",
+        message: `코드 신호를 읽지 못했습니다: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
   const href = (patch: Parameters<typeof workbenchHref>[2]) => workbenchHref(id, urlState, patch);
   const view = buildWorkbenchView(
     result.data,
@@ -155,6 +171,7 @@ export default async function EvaluationPage({ params, searchParams }: Evaluatio
     urlState.pane === "graph" ? functionGraph : null,
     rerunStatus,
     mutationDetail,
+    designSignals,
   );
   let contextTabs = null;
   if (urlState.tab) {

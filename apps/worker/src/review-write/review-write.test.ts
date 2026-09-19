@@ -1,11 +1,13 @@
 import {
   EvidenceDetailSchema,
   EvidenceReviewOutputSchema,
+  DesignSignalsSchema,
   ExecutionContractSchema,
   REVIEW_WRITE_BUDGET_EXCEEDED_REASON,
   REVIEW_WRITE_INCONCLUSIVE_REASON,
   ReviewWriteSummarySchema,
   RubricSchema,
+  type DesignSignals,
   type EvidenceReviewOutput,
   type Rubric,
 } from "@ohmyti/core";
@@ -55,6 +57,49 @@ import {
 } from ".";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
+
+/** 인라인 fixture(T-602)에서 추출한 값과 같은 모양의 신호 */
+const DESIGN_SIGNALS: DesignSignals = {
+  status: "ok",
+  analyzerVersion: "1",
+  sourceFiles: 2,
+  testFiles: 1,
+  maxFileLines: { lines: 150, location: { path: "src/index.ts", startLine: 1, endLine: 150 } },
+  maxFunctionLines: {
+    lines: 51,
+    name: "app.post 콜백",
+    location: { path: "src/index.ts", startLine: 56, endLine: 106 },
+  },
+  explicitAny: {
+    count: 12,
+    asAny: 0,
+    locations: [8, 16, 17, 18, 48, 62, 79, 91, 117, 125].map((line) => ({
+      path: "src/index.ts",
+      startLine: line,
+      endLine: line,
+    })),
+  },
+  tsconfig: { path: "tsconfig.json", strict: false },
+  duplicateBlocks: {
+    count: 1,
+    groups: [
+      {
+        statements: 3,
+        locations: [
+          { path: "src/index.ts", startLine: 48, endLine: 52 },
+          { path: "src/index.ts", startLine: 117, endLine: 121 },
+        ],
+      },
+    ],
+  },
+  busyWaits: { count: 1, locations: [{ path: "src/index.ts", startLine: 23, endLine: 23 }] },
+  consoleLogs: { count: 0, locations: [] },
+  weakAssertions: {
+    count: 6,
+    total: 6,
+    locations: [{ path: "test/api.test.ts", startLine: 16, endLine: 16 }],
+  },
+};
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
 const SAMPLES_DIR = path.join(REPO_ROOT, "samples/order-api");
 
@@ -293,6 +338,14 @@ describe("buildReviewWriteInput", () => {
         truncated: false,
       },
       graphStatus: "ok",
+      designSignals: {
+        ...DESIGN_SIGNALS,
+        maxFunctionLines: {
+          lines: 51,
+          name: "SIGNAL_NAME_MARK",
+          location: { path: "src/SIGNAL_PATH_MARK.ts", startLine: 56, endLine: 106 },
+        },
+      },
     };
     const text = buildReviewWriteInput(context);
     const outside = text.replace(
@@ -306,11 +359,63 @@ describe("buildReviewWriteInput", () => {
       "RESPONSE_MARK",
       "CHECK_MARK",
       "100점",
+      "SIGNAL_NAME_MARK",
+      "SIGNAL_PATH_MARK",
     ]) {
       expect(text).toContain(mark);
       expect(outside).not.toContain(mark);
     }
     expect(text).toContain("idem#1");
+  });
+
+  it("관측된 코드 신호 절: 센 사실과 위치가 비신뢰 블록 안에 들어간다 (T-605)", () => {
+    const context: ReviewWriteContext = {
+      rubric: { version: "v1", criteria: [], groups: [], partialRules: [], independentReasons: [] },
+      results: [],
+      failures: [],
+      design: [],
+      functions: [],
+      files: [],
+      readme: null,
+      graphStatus: "ok",
+      designSignals: DESIGN_SIGNALS,
+    };
+    const section = buildReviewWriteInput(context)
+      .split("## 관측된 코드 신호")[1]!
+      .split("## 저장소 파일 목록")[0]!;
+    expect(section).toMatchInlineSnapshot(`
+      " (AST로 센 사실, 판정·점수와 무관)
+
+      <<<UNTRUSTED_DATA label="design_signals" id="93cc0865177b">>>
+      - 소스 파일: 2개 (테스트 파일 1개 별도)
+      - 가장 긴 파일: src/index.ts · 150줄
+      - 가장 긴 함수: app.post 콜백 · 51줄
+        위치: src/index.ts:56-106
+      - 명시적 any: 12곳 (as any 0곳)
+        위치: src/index.ts:8, src/index.ts:16, src/index.ts:17, src/index.ts:18, src/index.ts:48, src/index.ts:62, src/index.ts:79, src/index.ts:91 외 4곳
+      - tsconfig strict: 꺼짐
+      - 같은 모양의 연속 문장 블록: 1건 (식별자 이름·리터럴 값만 다른 3문장 이상)
+        - 3문장: src/index.ts:48-52 ↔ src/index.ts:117-121
+      - 바쁜 대기: 1곳 (플래그 조건 반복문 안의 await)
+        위치: src/index.ts:23
+      - console.log: 0곳 (테스트 제외)
+      - 제출 테스트의 약한 단언: expect 단언 6개 중 6개 (100%, toBeTruthy·toBeDefined·상태 코드 범위 비교)
+        위치: test/api.test.ts:16 외 5곳
+      <<<END_UNTRUSTED_DATA id="93cc0865177b">>>
+
+      "
+    `);
+    const missing = buildReviewWriteInput({ ...context, designSignals: null });
+    expect(missing).toContain("(코드 신호 없음: 신호를 추출하기 전의 평가)");
+    const failed = buildReviewWriteInput({
+      ...context,
+      designSignals: {
+        status: "unavailable",
+        analyzerVersion: "1",
+        reason: "분석 시간 초과 (1ms)",
+      },
+    });
+    expect(failed).toContain("(코드 신호 없음: 추출 실패 · 분석 시간 초과 (1ms))");
   });
 });
 
@@ -497,6 +602,7 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
     ref: "c" | "d",
     limits: LlmBudgetLimits = LIMITS,
     respond: (messages: ChatMessage[]) => FakeReply = fakeReview,
+    configPatch: Partial<PipelineDeps["config"]> = {},
   ): Promise<Evaluated> {
     const workRoot = await mkdtemp(path.join(os.tmpdir(), "ohmyti-review-write-"));
     workRoots.push(workRoot);
@@ -523,6 +629,7 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
         workRoot,
         // 변형 실험은 T-403 테스트가 검증한다. 이 테스트는 REVIEW_WRITE 전후만 본다
         mutation: { enabled: false },
+        ...configPatch,
       },
       logger: createLogger({ destination: { write: () => {} }, level: "silent" }),
       llmForEvaluation: (evaluationId) =>
@@ -986,5 +1093,78 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
     expect(r07.minimalRepro).toBeNull();
     const rows = await listCriterionResults(tdb.db, evaluationId);
     expect(rows.find((r) => r.criterionId === "R-07")!.interpretation).toMatch(/^R-07: /);
+  }, 240_000);
+  // ─── 설계 평가용 코드 신호 (T-605) ──────────────────────────────────────────
+
+  /**
+   * 판정·점수·단계 상태. ID·LLM 근거와 관측 문장(기동 시간이 들어 있어 실행마다 다르다)을 빼고 비교한다 (판정 digest와 같은 대상)
+   */
+  async function judgmentShape(evaluationId: string) {
+    const kinds = new Map((await listEvidences(tdb.db, evaluationId)).map((e) => [e.id, e.kind]));
+    const rows = await listCriterionResults(tdb.db, evaluationId);
+    const evaluation = (await getEvaluation(tdb.db, evaluationId))!;
+    return {
+      score: await evaluationScore(evaluationId),
+      stages: evaluation.stageLog.map((s) => ({ stage: s.stage, state: s.state })),
+      rows: rows.map((r) => ({
+        criterionId: r.criterionId,
+        verdict: r.verdict,
+        earnedPoints: r.earnedPoints,
+        issueId: r.issueId,
+        reviewState: r.reviewState,
+        satisfiedSubCriterionIds: r.satisfiedSubCriterionIds,
+        evidenceCount: r.evidenceIds.filter((id) => kinds.get(id) !== "LLM_INTERPRETATION").length,
+      })),
+    };
+  }
+
+  it("C: 설계 신호를 아티팩트로 저장하고 fake LLM에 보낸 프롬프트에 신호 절이 있다. 근거 행은 만들지 않는다", async () => {
+    const { evaluationId, store, fake } = await evaluated("c");
+    const object = await store.get(artifactKeys.designSignals(evaluationId));
+    expect(object).not.toBeNull();
+    const signals = DesignSignalsSchema.parse(
+      JSON.parse(Buffer.from(object!.body).toString("utf8")),
+    );
+    expect(signals).toMatchObject({
+      status: "ok",
+      tsconfig: { path: "tsconfig.json", strict: true },
+      busyWaits: { count: 0 },
+      duplicateBlocks: { count: 0 },
+      explicitAny: { count: 0 },
+    });
+    const stage = (await getEvaluation(tdb.db, evaluationId))!.stageLog.find(
+      (s) => s.stage === "REQUIREMENT_VERIFY",
+    )!;
+    expect((stage.detail as { results: { designSignals: unknown } }).results.designSignals).toEqual(
+      {
+        artifactKey: artifactKeys.designSignals(evaluationId),
+        status: "ok",
+      },
+    );
+    const sent = fake.sent.filter((c) => c.purpose === "EVIDENCE_REVIEW");
+    expect(sent.length).toBeGreaterThan(0);
+    const user = sent[0]!.messages.find((m) => m.role === "user")!.content;
+    expect(user).toContain("## 관측된 코드 신호 (AST로 센 사실, 판정·점수와 무관)");
+    expect(user).toMatch(/<<<UNTRUSTED_DATA label="design_signals"[^\n]*>>>\n- 소스 파일: 13개/);
+    expect(user).toContain("- tsconfig strict: 켜짐");
+    expect(user).toContain("- 바쁜 대기: 0곳");
+    const system = sent[0]!.messages.find((m) => m.role === "system")!.content;
+    expect(system).toContain("9. '관측된 코드 신호'는 AST로 센 사실");
+    // 신호는 근거 행이 아니다: 정적 관계·실행·LLM·사람 검토 근거 외의 종류가 없다
+    const evidences = await listEvidences(tdb.db, evaluationId);
+    expect(evidences.every((e) => !JSON.stringify(e).includes("design-signals"))).toBe(true);
+  }, 240_000);
+
+  it("신호를 끈 평가와 판정·점수·근거 수·단계 상태가 같다 (신호는 판정 digest 대상이 아니다)", async () => {
+    const withSignals = await evaluated("c");
+    const without = await evaluate("c", LIMITS, fakeReview, { designSignalsEnabled: false });
+    expect(await without.store.get(artifactKeys.designSignals(without.evaluationId))).toBeNull();
+    const user = without.fake.sent
+      .filter((c) => c.purpose === "EVIDENCE_REVIEW")[0]!
+      .messages.find((m) => m.role === "user")!.content;
+    expect(user).toContain("(코드 신호 없음: 신호를 추출하기 전의 평가)");
+    expect(await judgmentShape(without.evaluationId)).toEqual(
+      await judgmentShape(withSignals.evaluationId),
+    );
   }, 240_000);
 });

@@ -17,6 +17,7 @@ import {
   MutationExperimentSchema,
   ReviewEventSchema,
 } from "./entities";
+import { DesignSignalsSchema } from "./design-signals";
 import { FunctionGraphAnalysisSchema } from "./function-graph";
 import { RUBRIC_TOTAL_POINTS, RubricSchema } from "./rubric";
 
@@ -139,6 +140,14 @@ export const FunctionGraphReportSchema = z.strictObject({
 });
 export type FunctionGraphReport = z.infer<typeof FunctionGraphReportSchema>;
 
+/** `GET /api/evaluations/[id]/design-signals`: 설계 평가용 코드 신호 (T-605). 워커가 저장한 아티팩트 그대로 */
+export const DesignSignalsReportSchema = z.strictObject({
+  evaluationId: IdSchema,
+  artifactKey: z.string().min(1),
+  signals: DesignSignalsSchema,
+});
+export type DesignSignalsReport = z.infer<typeof DesignSignalsReportSchema>;
+
 /** `GET /api/submissions/[id]`: 제출 상태와 최신 평가 */
 export const SubmissionSummarySchema = z.strictObject({
   id: IdSchema,
@@ -212,6 +221,10 @@ export const RunRecordReportResponseSchema = z.union([
 ]);
 export const FunctionGraphReportResponseSchema = z.union([
   apiOkSchema(FunctionGraphReportSchema),
+  ApiErrorSchema,
+]);
+export const DesignSignalsReportResponseSchema = z.union([
+  apiOkSchema(DesignSignalsReportSchema),
   ApiErrorSchema,
 ]);
 export const SubmissionSummaryResponseSchema = z.union([

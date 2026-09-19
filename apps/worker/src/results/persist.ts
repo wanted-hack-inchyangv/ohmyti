@@ -48,7 +48,10 @@ export interface PersistRequirementResultsInput {
   readme: ReadmeCheck;
   /** 루트 package.json (T-405 `staticChecks`) */
   packageManifest?: PackageManifest | undefined;
-  /** 관련 함수 그래프 분석 결과 (T-304). 있으면 아티팩트로 저장하고 정적 관계 근거를 만든다 */
+  /**
+   * 관련 함수 그래프 분석 결과 (T-304). 있으면 아티팩트로 저장하고 정적 관계 근거를 만든다. 함께 온 설계 신호(T-605)는
+   * 아티팩트로만 저장한다. 근거 행·판정·점수에는 쓰지 않는다 (G-01, 판정 digest 불변)
+   */
   functionGraph?: FunctionGraphRunResult | undefined;
 }
 
@@ -77,6 +80,11 @@ export interface RequirementResultsSummary {
     | { artifactKey: string; status: "ok"; routes: number; cases: number; staticRelations: number }
     | { artifactKey: string; status: "unavailable"; reason: string }
     | undefined;
+  /** 설계 평가용 코드 신호 요약 (T-605). 추출하지 않았으면 없다 */
+  designSignals?:
+    | { artifactKey: string; status: "ok" }
+    | { artifactKey: string; status: "unavailable"; reason: string }
+    | undefined;
   [key: string]: unknown;
 }
 
@@ -102,6 +110,13 @@ export async function persistRequirementResults(
     // 분석 결과는 상태와 무관하게 저장한다 ("분석 불가"도 화면이 사유와 함께 보여 준다)
     await deps.store.put(graphKey, JSON.stringify(input.functionGraph.analysis, null, 2), {
       contentType: ARTIFACT_CONTENT_TYPES.functionGraph,
+    });
+  }
+  const signalsKey = artifactKeys.designSignals(input.evaluation.id);
+  const designSignals = input.functionGraph?.designSignals;
+  if (designSignals) {
+    await deps.store.put(signalsKey, JSON.stringify(designSignals, null, 2), {
+      contentType: ARTIFACT_CONTENT_TYPES.designSignals,
     });
   }
   for (const artifact of plan.artifacts) {
@@ -135,6 +150,12 @@ export async function persistRequirementResults(
             staticRelations: staticRelations.length,
           }
         : { artifactKey: graphKey, status: "unavailable", reason: analysis.reason };
+  }
+  if (designSignals) {
+    summary.designSignals =
+      designSignals.status === "ok"
+        ? { artifactKey: signalsKey, status: "ok" }
+        : { artifactKey: signalsKey, status: "unavailable", reason: designSignals.reason };
   }
   deps.logger?.info(
     {

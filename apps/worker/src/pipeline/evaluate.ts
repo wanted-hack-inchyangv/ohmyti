@@ -129,6 +129,8 @@ export interface PipelineConfig {
   analysisTimeoutMs?: number | undefined;
   /** TEST_EFFECTIVENESS (T-403). 생략하면 켜져 있고 벽시계 상한은 기본 5분 */
   mutation?: MutationStageConfig | undefined;
+  /** 설계 평가용 코드 신호 추출 (T-605). 생략하면 켜져 있다. 판정·점수와 무관함을 대조하는 테스트가 끈다 */
+  designSignalsEnabled?: boolean | undefined;
 }
 
 export interface MutationStageConfig {
@@ -512,18 +514,26 @@ export async function runEvaluationPipeline(
           const packageManifest = rubric.criteria.some((c) => c.staticChecks)
             ? await readPackageManifest(files)
             : undefined;
-          // 관련 함수 그래프 (T-304). 분석 실패는 "분석 불가" 결과로 저장되며 단계를 실패시키지 않는다
+          // 관련 함수 그래프 (T-304)와 설계 신호 (T-605, 같은 자식 프로세스). 분석 실패는 "분석 불가" 결과로 저장되며
+          // 단계를 실패시키지 않는다
           const functionGraph = await runFunctionGraphAnalysis({
             files,
             harness: resultsSource.harness,
             templateRoot: config.templateRoot,
             templateName: contract.templateName,
             isolation: { timeoutMs: config.analysisTimeoutMs },
+            designSignals: config.designSignalsEnabled !== false,
           });
           if (functionGraph.analysis.status === "unavailable") {
             logger.warn(
               { reason: functionGraph.analysis.reason },
               "관련 함수 그래프를 분석하지 못했습니다",
+            );
+          }
+          if (functionGraph.designSignals?.status === "unavailable") {
+            logger.warn(
+              { reason: functionGraph.designSignals.reason },
+              "설계 신호를 추출하지 못했습니다",
             );
           }
           return persistRequirementResults(

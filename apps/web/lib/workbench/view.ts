@@ -19,7 +19,11 @@ import {
 } from "@ohmyti/core";
 import { sampleRunLabel } from "@/lib/demo/format";
 import { buildCodeEvidenceView, type CodeEvidenceView } from "./code-evidence";
-import { buildEvidencePanelView, type EvidencePanelView } from "./evidence-panel";
+import {
+  buildEvidencePanelView,
+  type DesignSignalsInput,
+  type EvidencePanelView,
+} from "./evidence-panel";
 import { buildGraphView, type FunctionGraphInput, type GraphView } from "./graph";
 import {
   buildMutationPanelView,
@@ -263,6 +267,7 @@ export function buildWorkbenchView(
   functionGraph: FunctionGraphInput | null = null,
   rerunStatus: RerunStatusInput | null = null,
   mutationDetail: MutationDetailInput | null = null,
+  designSignals: DesignSignalsInput | null = null,
 ): WorkbenchView {
   const resultById = new Map(report.criterionResults.map((r) => [r.criterionId, r]));
   const criteria: WorkbenchCriterionView[] = report.rubric.criteria.map((criterion) => {
@@ -378,7 +383,7 @@ export function buildWorkbenchView(
   );
   const codeEvidence = buildCodeEvidenceView(report, urlState, href);
   const mutation = buildMutationPanelView(report, urlState, href, mutationDetail);
-  const evidencePanel = buildEvidencePanelView(report, urlState, href);
+  const evidencePanel = buildEvidencePanelView(report, urlState, href, designSignals);
   return {
     header: buildWorkbenchHeader(report),
     urlState,

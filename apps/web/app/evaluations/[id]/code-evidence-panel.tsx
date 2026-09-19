@@ -78,7 +78,8 @@ export function CodeEvidencePanel({ view }: { view: CodeEvidenceView }) {
       {view.standalone ? (
         <section className="flex min-w-0 flex-col gap-2" data-testid="code-evidence-standalone">
           <p className="text-[13px] text-neutral-500">
-            그래프에서 고른 위치입니다. 이 기준의 근거가 아니어서 저장된 코드 원문이 없습니다.
+            그래프·코드 신호에서 고른 위치입니다. 이 기준의 근거 행이 아니어서 저장된 코드 원문이
+            없습니다. GitHub 링크로 원문을 확인하세요.
           </p>
           <CodeEvidenceItem item={view.standalone} />
         </section>

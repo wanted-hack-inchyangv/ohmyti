@@ -1,15 +1,19 @@
 /**
- * 관련 함수 그래프 분석을 자식 프로세스에서 실행한다 (TICKET.md T-304). 진입점은 `child.ts`.
+ * 관련 함수 그래프 분석(TICKET.md T-304)과 설계 신호 추출(T-605)을 자식 프로세스에서 실행한다. 진입점은 `child.ts`.
  *
  * - 개발·테스트(이 파일이 `.ts`로 실행될 때)는 `child.ts`를 `--import tsx`로 띄운다 (tsx는 이 패키지의 devDependency).
  * - 워커 번들(`dist/index.js`)에서는 옆의 `analysis-child.js`(esbuild가 따로 묶은 파일)를 띄운다.
  * - 제한 시간·종료 코드·IPC 오류는 모두 `status: "unavailable"` 결과로 바꾼다. 던지지 않는다.
  */
-import { FUNCTION_GRAPH_ANALYZER_VERSION } from "@ohmyti/core";
+import {
+  DESIGN_SIGNALS_ANALYZER_VERSION,
+  FUNCTION_GRAPH_ANALYZER_VERSION,
+  type DesignSignals,
+} from "@ohmyti/core";
 import { fork, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ChildResponse, IsolatedAnalysisInput } from "./child";
+import type { ChildRequest, ChildResponse, IsolatedAnalysisInput } from "./child";
 import type { AnalyzeFunctionGraphInput, AnalyzeFunctionGraphResult } from "./function-graph";
 import { isSourcePath } from "./project";
 
@@ -57,28 +61,29 @@ export function childEntry(): { modulePath: string; execArgv: string[]; cwd: str
 
 async function readAllFiles(
   files: AnalyzeFunctionGraphInput["files"],
+  withTsconfig: boolean,
 ): Promise<Array<[string, string]>> {
   const entries: Array<[string, string]> = [];
-  for (const relativePath of (await files.listFiles()).filter(isSourcePath).sort()) {
+  const wanted = (p: string) => isSourcePath(p) || (withTsconfig && p === "tsconfig.json");
+  for (const relativePath of (await files.listFiles()).filter(wanted).sort()) {
     const text = await files.readText(relativePath);
     if (text !== null) entries.push([relativePath, text]);
   }
   return entries;
 }
 
-export async function analyzeFunctionGraphIsolated(
-  input: AnalyzeFunctionGraphInput,
-  options: IsolatedOptions = {},
-): Promise<AnalyzeFunctionGraphResult> {
+/**
+ * 요청 하나를 자식 프로세스에 보내고 응답 하나를 받는다. 제한 시간·종료 코드·IPC 오류·예외 응답은 모두 `fallback(사유)`로 바꾼다.
+ * 던지지 않는다.
+ */
+function runInChild<T>(
+  request: ChildRequest,
+  pick: (response: ChildResponse) => T | null,
+  fallback: (reason: string) => T,
+  options: IsolatedOptions,
+): Promise<T> {
   const timeoutMs = options.timeoutMs ?? ISOLATED_DEFAULTS.timeoutMs;
   const maxOldSpaceMb = options.maxOldSpaceMb ?? ISOLATED_DEFAULTS.maxOldSpaceMb;
-  const payload: IsolatedAnalysisInput = {
-    files: await readAllFiles(input.files),
-    cases: input.cases,
-    nodeModulesDir: input.nodeModulesDir,
-    limits: input.limits,
-    maxSubgraphNodes: input.maxSubgraphNodes,
-  };
   const entry = childEntry();
   let child: ChildProcess;
   try {
@@ -90,17 +95,19 @@ export async function analyzeFunctionGraphIsolated(
       stdio: ["ignore", "ignore", "pipe", "ipc"],
     });
   } catch (error) {
-    return unavailable(
-      `분석 프로세스를 띄우지 못함: ${error instanceof Error ? error.message : String(error)}`,
+    return Promise.resolve(
+      fallback(
+        `분석 프로세스를 띄우지 못함: ${error instanceof Error ? error.message : String(error)}`,
+      ),
     );
   }
   let stderr = "";
   child.stderr?.on("data", (chunk: Buffer) => {
     if (stderr.length < 4000) stderr += chunk.toString("utf8");
   });
-  return new Promise<AnalyzeFunctionGraphResult>((resolve) => {
+  return new Promise<T>((resolve) => {
     let settled = false;
-    const finish = (result: AnalyzeFunctionGraphResult) => {
+    const finish = (result: T) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -108,31 +115,77 @@ export async function analyzeFunctionGraphIsolated(
     };
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
-      finish(unavailable(`분석 시간 초과 (${timeoutMs}ms)`));
+      finish(fallback(`분석 시간 초과 (${timeoutMs}ms)`));
     }, timeoutMs);
     child.once("message", (message: ChildResponse) => {
-      if (message.type === "result") {
-        finish({
-          analysis: message.result.analysis,
-          handlerSnippets: new Map(message.result.handlerSnippets),
-        });
-      } else {
-        finish(unavailable(`분석 중 오류: ${message.message}`));
+      if (message.type === "error") {
+        finish(fallback(`분석 중 오류: ${message.message}`));
+        return;
       }
+      finish(pick(message) ?? fallback("분석 프로세스가 결과 형식이 아닌 응답을 보냄"));
     });
     child.once("error", (error) => {
-      finish(unavailable(`분석 프로세스 오류: ${error.message}`));
+      finish(fallback(`분석 프로세스 오류: ${error.message}`));
     });
     child.once("exit", (code, signal) => {
       const tail = stderr.trim().split("\n").slice(-3).join(" · ");
       finish(
-        unavailable(
+        fallback(
           `분석 프로세스가 결과 없이 종료됨 (code ${code ?? "null"}, signal ${signal ?? "null"})${tail ? `: ${tail}` : ""}`,
         ),
       );
     });
-    child.send({ type: "analyze", input: payload }, (error) => {
-      if (error) finish(unavailable(`분석 입력 전달 실패: ${error.message}`));
+    child.send(request, (error) => {
+      if (error) finish(fallback(`분석 입력 전달 실패: ${error.message}`));
     });
   });
+}
+
+export interface IsolatedAnalysisOutput extends AnalyzeFunctionGraphResult {
+  /** 입력의 `designSignals`가 true일 때만 있다. 자식 프로세스 실패는 같은 사유의 `unavailable`이다 */
+  designSignals?: DesignSignals | undefined;
+}
+
+/**
+ * 관련 함수 그래프를 자식 프로세스에서 분석한다. `designSignals: true`면 같은 자식 프로세스에서 설계 신호(T-605)도 추출한다
+ * (프로세스 기동 비용을 한 번만 낸다).
+ */
+export async function analyzeFunctionGraphIsolated(
+  input: AnalyzeFunctionGraphInput & { designSignals?: boolean | undefined },
+  options: IsolatedOptions = {},
+): Promise<IsolatedAnalysisOutput> {
+  const withSignals = input.designSignals === true;
+  const payload: IsolatedAnalysisInput = {
+    files: await readAllFiles(input.files, withSignals),
+    cases: input.cases,
+    nodeModulesDir: input.nodeModulesDir,
+    limits: input.limits,
+    maxSubgraphNodes: input.maxSubgraphNodes,
+    designSignals: withSignals,
+  };
+  const fallback = (reason: string): IsolatedAnalysisOutput => ({
+    ...unavailable(reason),
+    ...(withSignals
+      ? {
+          designSignals: {
+            status: "unavailable",
+            analyzerVersion: DESIGN_SIGNALS_ANALYZER_VERSION,
+            reason,
+          },
+        }
+      : {}),
+  });
+  return runInChild(
+    { type: "analyze", input: payload },
+    (response) =>
+      response.type === "result"
+        ? {
+            analysis: response.result.analysis,
+            handlerSnippets: new Map(response.result.handlerSnippets),
+            ...(withSignals ? { designSignals: response.result.designSignals } : {}),
+          }
+        : null,
+    fallback,
+    options,
+  );
 }
