@@ -13,6 +13,7 @@ import {
   EvaluationReportSchema,
   DesignSignalsReportSchema,
   FunctionGraphReportSchema,
+  InterviewKitReportSchema,
   MutationDiffReportSchema,
   RunRecordReportSchema,
   SubmissionSummarySchema,
@@ -22,6 +23,7 @@ import {
   type EvaluationReport,
   type DesignSignalsReport,
   type FunctionGraphReport,
+  type InterviewKitReport,
   type MutationDiffReport,
   type RunRecordReport,
   type StoredScore,
@@ -346,6 +348,47 @@ export async function readDesignSignals(
       ok: false,
       code: "ARTIFACT_NOT_FOUND",
       message: `코드 신호의 형태가 맞지 않습니다: ${parsed.error.issues[0]?.message ?? "알 수 없음"}`,
+    };
+  }
+  return { ok: true, data: parsed.data };
+}
+
+/**
+ * 인터뷰 키트 (T-704). 워커의 INTERVIEW_KIT 단계(T-702)가 저장한 `evaluations/<id>/interview-kit.json`을 스키마로 확인해
+ * 그대로 돌려준다. 질문·우선순위·진행안을 다시 계산하지 않는다. 키트를 만들기 전의 평가이거나 형태가 맞지 않으면 `ARTIFACT_NOT_FOUND`다
+ */
+export async function readInterviewKit(
+  deps: ReportDeps,
+  evaluationId: string,
+): Promise<ReportResult<InterviewKitReport>> {
+  if (!isUuid(evaluationId)) return invalidId("평가 ID");
+  const row = await getEvaluation(deps.db, evaluationId);
+  if (!row) {
+    return {
+      ok: false,
+      code: "EVALUATION_NOT_FOUND",
+      message: `평가 ${evaluationId}를 찾을 수 없습니다`,
+    };
+  }
+  const artifactKey = artifactKeys.interviewKit(evaluationId);
+  const artifact = await readJsonArtifact(deps.store, artifactKey);
+  if (!artifact.ok) {
+    return {
+      ok: false,
+      code: "ARTIFACT_NOT_FOUND",
+      message: `평가 ${evaluationId}의 인터뷰 키트가 없습니다 (키트 단계가 끝나기 전이거나 키트를 만들기 전의 평가)`,
+    };
+  }
+  const parsed = InterviewKitReportSchema.safeParse({
+    evaluationId,
+    artifactKey,
+    kit: artifact.value,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      code: "ARTIFACT_NOT_FOUND",
+      message: `인터뷰 키트의 형태가 맞지 않습니다: ${parsed.error.issues[0]?.message ?? "알 수 없음"}`,
     };
   }
   return { ok: true, data: parsed.data };

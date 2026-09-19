@@ -1,6 +1,7 @@
 import { Badge, EmptyState, LinkButton } from "@/components/ui";
 import type { ApprovalBadgeView } from "@/lib/demo/service";
 import type { ContextTabsView } from "@/lib/workbench/context-tabs";
+import type { InterviewKitView } from "@/lib/workbench/interview-kit";
 import { WORKBENCH_TABS, WORKBENCH_TAB_LABEL } from "@/lib/workbench/state";
 import type { WorkbenchView } from "@/lib/workbench/view";
 import { ApprovalBadge } from "../../demo/approval-badge";
@@ -12,7 +13,7 @@ import { ReplayPanel } from "./replay-panel";
 
 /**
  * 채점 워크벤치 뼈대 (PRD 6장 ③, TICKET.md T-301).
- * 헤더 · 25/50/25 세 열 · 하단 탭 4개. 헤더 값은 리포트(T-207 API 응답)에서 그대로 온다.
+ * 헤더 · 25/50/25 세 열 · 하단 탭 4개. 세 번째 탭은 인터뷰 키트(T-704)다. 헤더 값은 리포트(T-207 API 응답)에서 그대로 온다.
  * 패널 본문은 T-302(왼쪽, `criteria-panel.tsx`)·T-303(중앙, `replay-panel.tsx`)·T-305(중앙 하단)·T-306(오른쪽, `evidence-panel.tsx`)·T-504(하단 탭, `context-tabs.tsx`)가 채운다.
  * 하단 탭 본문(`contextTabs`)은 탭을 열었을 때만 페이지가 맥락을 읽어 넘긴다.
  */
@@ -30,10 +31,13 @@ const SUBMISSION_STATUS_LABEL: Record<WorkbenchView["header"]["submissionStatus"
 export function WorkbenchShell({
   view,
   contextTabs = null,
+  interviewKit = null,
   approval = null,
 }: {
   view: WorkbenchView;
   contextTabs?: ContextTabsView | null;
+  /** 인터뷰 키트 표시 모델 (T-704). 인터뷰 키트 탭을 열었을 때만 페이지가 넘긴다 */
+  interviewKit?: InterviewKitView | null;
   /** 기준 버전의 `채점기 사전 검증 완료` 배지 (T-505). 읽지 못했으면 null */
   approval?: ApprovalBadgeView | null;
 }) {
@@ -55,7 +59,7 @@ export function WorkbenchShell({
         <ReplayPanel view={view} />
         <EvidencePanel view={view.evidencePanel} />
       </div>
-      <BottomTabs view={view} contextTabs={contextTabs} />
+      <BottomTabs view={view} contextTabs={contextTabs} interviewKit={interviewKit} />
     </main>
   );
 }
@@ -179,9 +183,11 @@ function WorkbenchHeader({
 function BottomTabs({
   view,
   contextTabs,
+  interviewKit,
 }: {
   view: WorkbenchView;
   contextTabs: ContextTabsView | null;
+  interviewKit: InterviewKitView | null;
 }) {
   return (
     <footer className="px-4 pb-12 lg:px-6" data-panel="tabs">
@@ -208,7 +214,7 @@ function BottomTabs({
         {view.tab ? (
           <div className="p-4 sm:p-6" role="tabpanel" data-testid={`tab-panel-${view.tab}`}>
             {contextTabs && contextTabs.tab === view.tab ? (
-              <ContextTabPanel view={contextTabs} />
+              <ContextTabPanel view={contextTabs} interviewKit={interviewKit} />
             ) : (
               <EmptyState
                 title={WORKBENCH_TAB_LABEL[view.tab]}
@@ -218,7 +224,7 @@ function BottomTabs({
           </div>
         ) : (
           <p className="px-4 py-4 text-sm text-neutral-500 sm:px-6">
-            탭을 누르면 이력서 주장·GitHub 근거·후속 질문·미평가 영역을 엽니다.
+            탭을 누르면 이력서 주장·GitHub 근거·인터뷰 키트·미평가 영역을 엽니다.
           </p>
         )}
       </div>

@@ -14,7 +14,8 @@ export type WorkbenchTab = (typeof WORKBENCH_TABS)[number];
 export const WORKBENCH_TAB_LABEL: Record<WorkbenchTab, string> = {
   resume: "이력서 연결",
   github: "GitHub 근거",
-  questions: "후속 질문",
+  // T-704에서 인터뷰 키트로 바뀌었다. 쿼리 키(`?tab=questions`)는 이전 딥링크가 그대로 열리도록 두었다
+  questions: "인터뷰 키트",
   unevaluated: "미평가 영역",
 };
 

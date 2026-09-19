@@ -67,3 +67,40 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
     padding-inline: 1.5rem;
   }
 }
+
+/*
+ * 인쇄용 보기 (T-704, `/evaluations/<id>/interview-kit`). A4 세로에 14mm 여백을 쓰고, 질문 카드와 진행안 구간이
+ * 페이지 경계에서 잘리지 않게 한다. 사이트 머리글과 인쇄 안내는 인쇄물에서 뺀다.
+ */
+@page {
+  size: A4 portrait;
+  margin: 14mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  [data-testid="site-header"],
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  .kit-card,
+  .kit-plan,
+  .kit-anchor {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kit-card {
+    border-color: #dbdcdf;
+    box-shadow: none;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}

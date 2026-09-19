@@ -9,10 +9,13 @@ import {
   type TabEmptyView,
   type UnevaluatedTabView,
 } from "@/lib/workbench/context-tabs";
+import type { InterviewKitView } from "@/lib/workbench/interview-kit";
 import { CopyButton } from "./copy-button";
+import { InterviewKitTab } from "./interview-kit";
 
 /**
- * 워크벤치 하단 탭 본문 (TICKET.md T-504). 이력서 연결 · GitHub 근거 · 후속 질문 · 미평가 영역.
+ * 워크벤치 하단 탭 본문 (TICKET.md T-504). 이력서 연결 · GitHub 근거 · 인터뷰 키트 · 미평가 영역.
+ * 세 번째 탭은 T-704에서 인터뷰 키트로 바뀌었고, 키트가 없는 이전 평가만 이전 후속 질문 목록을 보인다.
  * 상태 칩은 세 종류(`근거 있음`·`확인 필요`·`자료 없음`)뿐이며 모두 회색 계열이다. 점수·합격 성격의 표시는 없다.
  */
 
@@ -37,14 +40,23 @@ function TabEmpty({ empty, testId }: { empty: TabEmptyView; testId: string }) {
   return <EmptyState title={empty.title} description={empty.description} testId={testId} />;
 }
 
-export function ContextTabPanel({ view }: { view: ContextTabsView }) {
+export function ContextTabPanel({
+  view,
+  interviewKit = null,
+}: {
+  view: ContextTabsView;
+  /** 인터뷰 키트 표시 모델 (T-704). 키트를 읽지 못했으면 이전 후속 질문 목록을 대신 보인다 */
+  interviewKit?: InterviewKitView | null;
+}) {
   switch (view.tab) {
     case "resume":
       return <ResumeTab view={view.resume} />;
     case "github":
       return <GitHubTab view={view.github} />;
     case "questions":
-      return <QuestionsTab view={view.questions} />;
+      return (
+        <InterviewKitTab kit={interviewKit} fallback={<QuestionsTab view={view.questions} />} />
+      );
     case "unevaluated":
       return <UnevaluatedTab view={view.unevaluated} loadError={view.loadError} />;
   }

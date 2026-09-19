@@ -18,6 +18,7 @@ import {
   MutationExperimentSchema,
   ReviewEventSchema,
 } from "./entities";
+import { InterviewKitSchema } from "./interview";
 import { DesignSignalsSchema } from "./design-signals";
 import { FunctionGraphAnalysisSchema } from "./function-graph";
 import { GitHubSourcesSchema } from "./github-sources";
@@ -150,6 +151,17 @@ export const DesignSignalsReportSchema = z.strictObject({
 });
 export type DesignSignalsReport = z.infer<typeof DesignSignalsReportSchema>;
 
+/**
+ * `GET /api/evaluations/[id]/interview-kit`: 인터뷰 키트 (T-704). 워커의 INTERVIEW_KIT 단계(T-702)가 저장한 아티팩트 그대로다.
+ * 키트가 없는 이전 평가는 `ARTIFACT_NOT_FOUND`이며, 화면은 이때 이전 후속 질문 목록을 보인다
+ */
+export const InterviewKitReportSchema = z.strictObject({
+  evaluationId: IdSchema,
+  artifactKey: z.string().min(1),
+  kit: InterviewKitSchema,
+});
+export type InterviewKitReport = z.infer<typeof InterviewKitReportSchema>;
+
 /** `GET /api/submissions/[id]`: 제출 상태와 최신 평가 */
 /**
  * 지원자 맥락 (T-606): 워크벤치 하단 탭(T-504)이 보이는 맥락 연결과 GitHub 보충 조회 결과. 게이트(`gate:personas`)가 읽는다.
@@ -257,6 +269,10 @@ export const EvaluationContextReportResponseSchema = z.union([
 ]);
 export const DesignSignalsReportResponseSchema = z.union([
   apiOkSchema(DesignSignalsReportSchema),
+  ApiErrorSchema,
+]);
+export const InterviewKitReportResponseSchema = z.union([
+  apiOkSchema(InterviewKitReportSchema),
   ApiErrorSchema,
 ]);
 export const SubmissionSummaryResponseSchema = z.union([

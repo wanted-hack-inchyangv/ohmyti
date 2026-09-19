@@ -8,11 +8,14 @@ import {
   aggregateScore,
   EvaluationReportSchema,
   formatStoredScoreDisplay,
+  INTERVIEW_KIT_SCHEMA_VERSION,
+  InterviewKitSchema,
   STAGE_NOT_IMPLEMENTED_REASON,
   type CriterionResult,
   type EvaluationReport,
   type EvaluationStageRecord,
   type Evidence,
+  type InterviewKit,
   type ReviewEvent,
   type Rubric,
   type StoredScore,
@@ -257,4 +260,132 @@ export function reportFixture(options: ReportFixtureOptions = {}): EvaluationRep
     mutationExperiments: options.mutationExperiments ?? [],
   };
   return EvaluationReportSchema.parse(report);
+}
+
+/** 인터뷰 키트 픽스처의 맥락 연결 ID (`RESUME_BRIDGE` 질문의 근거) */
+export const FIXTURE_CONTEXT_LINK_ID = "77777777-7777-4777-8777-777777777777";
+
+export interface InterviewKitFixtureOptions {
+  /** 생성 요약을 덮어쓴다 (LLM 미실행·기본 질문 수 검사용) */
+  generation?: Partial<InterviewKit["generation"]>;
+  /** 질문을 통째로 바꾼다 */
+  questions?: InterviewKit["questions"];
+  /** 진행안을 통째로 바꾼다 */
+  plans?: InterviewKit["plans"];
+}
+
+/**
+ * 인터뷰 키트 픽스처 (T-704). 워커의 INTERVIEW_KIT 단계(T-702)가 저장하는 형태 그대로이며
+ * 결함 샘플 C처럼 R-05 실패 디브리핑 · 테스트 설계 · 이력서 연결 세 질문을 담는다.
+ */
+export function interviewKitFixture(options: InterviewKitFixtureOptions = {}): InterviewKit {
+  const questions: InterviewKit["questions"] = options.questions ?? [
+    {
+      id: "FAILURE_DEBRIEF:R-05",
+      kind: "FAILURE_DEBRIEF",
+      competency: "DEBUGGING",
+      priority: "MUST",
+      minutes: 8,
+      question:
+        "R-05 재생 기록을 함께 보겠습니다. 같은 멱등 키로 재전송했을 때 재고가 두 번 줄어든 지점을 짚어 주시겠어요?",
+      intent: "관측된 실패에서 근거를 따라 원인 코드까지 범위를 좁히는지 확인합니다.",
+      probes: [
+        "재전송 요청이 처음 요청과 같은 키인지는 어디에서 판단하나요?",
+        "저장과 차감의 순서를 어떤 기준으로 정하셨나요?",
+      ],
+      positiveSignals: [
+        "재생 기록의 요청 순서를 짚어 가며 원인 구간을 좁힌다.",
+        "재현 조건을 스스로 다시 만들어 설명한다.",
+      ],
+      concernSignals: [
+        "기록을 보지 않고 일반론으로만 답한다.",
+        "원인을 환경 탓으로 돌리고 코드 경로를 말하지 못한다.",
+      ],
+      refs: [
+        { kind: "CRITERION", criterionId: "R-05" },
+        { kind: "EXECUTION_RECORD", runId: FIXTURE_RUN_ID, criterionId: "R-05" },
+        { kind: "SOURCE", location: { path: "src/http/routes.ts", startLine: 25, endLine: 28 } },
+      ],
+      source: "LLM",
+    },
+    {
+      id: "TEST_DESIGN:G1",
+      kind: "TEST_DESIGN",
+      competency: "TESTING",
+      priority: "SHOULD",
+      minutes: 6,
+      question: "경계 입력을 다루는 테스트를 지금 하나 더 쓴다면 어떤 것을 먼저 쓰시겠어요?",
+      intent: "결함을 실제로 잡는 테스트를 설계하는 기준이 있는지 확인합니다.",
+      probes: [
+        "그 테스트가 실패하려면 구현이 어떻게 달라져야 하나요?",
+        "지금 테스트에서 빠졌다고 보는 구간은 어디인가요?",
+      ],
+      positiveSignals: [
+        "잡으려는 결함을 먼저 말하고 테스트를 설계한다.",
+        "기존 테스트의 빈틈을 스스로 짚는다.",
+      ],
+      concernSignals: [
+        "커버리지 수치로만 충분하다고 답한다.",
+        "테스트가 무엇을 막는지 설명하지 못한다.",
+      ],
+      refs: [{ kind: "CRITERION", criterionId: "G1" }],
+      source: "TEMPLATE",
+    },
+    {
+      id: "RESUME_BRIDGE:1",
+      kind: "RESUME_BRIDGE",
+      competency: "DATA_INTEGRITY",
+      priority: "SHOULD",
+      minutes: 5,
+      question: "이력서에 적으신 멱등 결제 엔드포인트에서는 재전송을 어떤 기준으로 구분하셨나요?",
+      intent: "이력서 경험의 조건과 이번 과제의 조건 차이를 확인합니다.",
+      probes: ["그때의 트래픽 조건은 어땠나요?", "같은 응답인지는 어떻게 확인하셨나요?"],
+      positiveSignals: [
+        "두 구현의 조건 차이를 스스로 구분한다.",
+        "확인 방법을 구체적으로 설명한다.",
+      ],
+      concernSignals: ["경험과 과제를 같은 조건으로 뭉뚱그린다.", "확인 방법을 말하지 못한다."],
+      refs: [{ kind: "CONTEXT_LINK", contextLinkId: FIXTURE_CONTEXT_LINK_ID }],
+      source: "LLM",
+    },
+  ];
+  const plans: InterviewKit["plans"] = options.plans ?? [
+    {
+      durationMinutes: 45,
+      segments: [
+        { name: "도입", minutes: 5, questionIds: [] },
+        { name: "실패 디브리핑", minutes: 8, questionIds: ["FAILURE_DEBRIEF:R-05"] },
+        { name: "테스트 설계", minutes: 6, questionIds: ["TEST_DESIGN:G1"] },
+        { name: "지원자 질문", minutes: 5, questionIds: [] },
+      ],
+    },
+    {
+      durationMinutes: 60,
+      segments: [
+        { name: "도입", minutes: 5, questionIds: [] },
+        { name: "실패 디브리핑", minutes: 8, questionIds: ["FAILURE_DEBRIEF:R-05"] },
+        { name: "테스트 설계", minutes: 6, questionIds: ["TEST_DESIGN:G1"] },
+        { name: "이력서 연결", minutes: 5, questionIds: ["RESUME_BRIDGE:1"] },
+        { name: "지원자 질문", minutes: 5, questionIds: [] },
+      ],
+    },
+  ];
+  return InterviewKitSchema.parse({
+    schemaVersion: INTERVIEW_KIT_SCHEMA_VERSION,
+    evaluationId: FIXTURE_EVALUATION_ID,
+    questions,
+    plans,
+    generation: {
+      slotCount: questions.length,
+      templateCount: questions.filter((q) => q.source === "TEMPLATE").length,
+      llm: "OK",
+      llmReason: null,
+      promptVersion: "interview-kit-1",
+      model: "deepseek-chat",
+      aiReviewId: "88888888-8888-4888-8888-888888888888",
+      inputDigest: FIXTURE_DIGEST,
+      dropped: [],
+      ...options.generation,
+    },
+  });
 }
