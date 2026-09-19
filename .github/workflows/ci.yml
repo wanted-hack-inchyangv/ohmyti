@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: install · typecheck · lint · test · build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ohmyti
+          POSTGRES_PASSWORD: ohmyti
+          POSTGRES_DB: ohmyti
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ohmyti"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      # 통합 테스트는 이 서버에 임시 데이터베이스(ohmyti_test_*)를 만든다 (CREATEDB 권한: 슈퍼유저)
+      DATABASE_URL: postgresql://ohmyti:ohmyti@localhost:5432/ohmyti
+      DATABASE_URL_TEST: postgresql://ohmyti:ohmyti@localhost:5432/postgres
+      ARTIFACT_STORE: fs
+      ARTIFACT_FS_ROOT: ./.artifacts
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        # 버전은 package.json의 packageManager 필드에서 읽는다
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Contract checks
+        run: |
+          pnpm env:check
+          pnpm deps:check
+          pnpm deps:boundary-check
+          pnpm format:check
+
+      - name: Template build (checks that template.json digest is up to date)
+        run: |
+          pnpm template:build
+          git diff --exit-code -- templates/
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Migrate (checks that migrations apply cleanly)
+        run: pnpm db:migrate
+
+      - name: Test
+        run: pnpm test
+
+      # 1단계 게이트(T-110): 템플릿 node_modules(위 Template build 단계)로 샘플 A/B/C/D를 3회 실행해 expected-matrix와 대조
+      - name: Phase 1 gate (samples × harness × submitted tests, 3 rounds)
+        run: pnpm gate:phase1
+
+      - name: Build
+        run: pnpm build
+
+  worker-image:
+    name: worker docker image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ohmyti
+          POSTGRES_PASSWORD: ohmyti
+          POSTGRES_DB: ohmyti
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ohmyti"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          tags: ohmyti-worker:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (migrate + /healthz)
+        run: |
+          set -euo pipefail
+          # 서비스 컨테이너는 러너의 localhost:5432에 매핑되어 있으므로 호스트 네트워크로 붙는다
+          DB_URL=postgresql://ohmyti:ohmyti@localhost:5432/ohmyti
+          docker run --rm --network host -e DATABASE_URL="$DB_URL" ohmyti-worker:ci node dist/migrate.js
+          docker run -d --name worker --network host \
+            -e DATABASE_URL="$DB_URL" -e ARTIFACT_STORE=fs -e ARTIFACT_FS_ROOT=/tmp/artifacts -e PORT=18080 \
+            ohmyti-worker:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:18080/healthz; then echo; break; fi
+            sleep 1
+            if [ "$i" = 30 ]; then echo "healthz did not become ready"; docker logs worker; exit 1; fi
+          done
+          docker logs worker
+          docker stop worker
+
+  e2e:
+    name: playwright e2e (web + worker + postgres)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ohmyti
+          POSTGRES_PASSWORD: ohmyti
+          POSTGRES_DB: ohmyti
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ohmyti"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://ohmyti:ohmyti@localhost:5432/ohmyti
+      # 3단계 게이트(T-308)의 전체 스택 시나리오는 워커가 공개 저장소(샘플 C)를 tarball API로 받는다. 속도 제한 완화용
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 워커의 LocalProcessRunner가 템플릿 node_modules를 읽기 전용으로 연결한다
+      - name: Template build
+        run: pnpm template:build
+
+      - name: Migrate
+        run: pnpm db:migrate
+
+      # chromium 프로젝트(워커 없음) → stack 프로젝트(워커를 띄워 샘플 C 제출·재실행·사람 수정, 단계별 스크린샷)
+      - name: E2E
+        run: pnpm e2e
+
+      - name: Upload screenshots · traces · worker log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-phase3
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14

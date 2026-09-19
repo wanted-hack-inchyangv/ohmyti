@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+
+# JetBrains IDEs (WebStorm)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# 내부 기획 문서 (저장소에 올리지 않음)
+PRD.md
+TICKET.md
+RUN_PROMPT.md
+run-tickets.sh
+.run-logs/
+
+# 로컬 환경
+.env
+.env.local
+.env.*.local
+
+# 빌드·의존성
+node_modules/
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# 테스트 산출물
+playwright-report/
+test-results/
+coverage/
+
+# 로컬 아티팩트 스토어
+.artifacts/
+.artifacts-e2e/
+.vercel

@@ -1,0 +1,29 @@
+{
+  "name": "@ohmyti/runner",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SandboxRunner (local-process, vercel-sandbox)와 승인 템플릿 계약",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --root ../.. --project @ohmyti/runner"
+  },
+  "dependencies": {
+    "@ohmyti/core": "workspace:*",
+    "@ohmyti/storage": "workspace:*",
+    "@vercel/sandbox": "3.3.0",
+    "semver": "7.8.5",
+    "tar": "7.5.22",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/semver": "7.8.0"
+  }
+}

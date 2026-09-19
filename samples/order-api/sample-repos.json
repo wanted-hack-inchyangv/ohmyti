@@ -1,0 +1,27 @@
+{
+  "note": "T-208 배포 환경 E2E용 공개 저장소. 샘플별 저장소 전체가 impl-* 디렉터리 내용(node_modules 제외)이다. 모노레포 하위 경로는 tarball이 저장소 전체를 받으므로 쓰지 않는다. sha는 게이트가 제출할 때 고정하는 커밋이다.",
+  "sourceCommit": "0bedcdc",
+  "samples": {
+    "A": {
+      "url": "https://github.com/inchyangv/ohmyti-sample-a",
+      "sha": "4bee62eb91e92166bc4d6a0618d4aeb86c99fa81"
+    },
+    "B": {
+      "url": "https://github.com/inchyangv/ohmyti-sample-b",
+      "sha": "134f855a37463d2723988f7515b3dd6c775844c6"
+    },
+    "C": {
+      "url": "https://github.com/inchyangv/ohmyti-sample-c",
+      "sha": "339a30853f030cc7ec6d55b5435f8c3013093338"
+    },
+    "D": {
+      "url": "https://github.com/inchyangv/ohmyti-sample-d",
+      "sha": "5a12adff0521d2d41a18912fd9b5a69a788eda74"
+    }
+  },
+  "unsupported": {
+    "url": "https://github.com/inchyangv/ohmyti-sample-python",
+    "sha": "cdfc7fe99f43c8c6491078752ef8a96c04db48d4",
+    "expectedReasonCode": "UNSUPPORTED_LANGUAGE"
+  }
+}

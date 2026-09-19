@@ -1,0 +1,4 @@
+-- T-403: 유효성 검증 판정을 실험 행에 두고, KILLED·SURVIVED는 검증 FAIL + 두 실행 기록, EQUIVALENT는 검증 PASS + 검증 기록만 허용한다
+ALTER TABLE "mutation_experiments" ADD COLUMN "validation_verdict" "verdict";--> statement-breakpoint
+ALTER TABLE "mutation_experiments" ADD CONSTRAINT "mutation_experiments_effective_requires_failing_validation" CHECK ("mutation_experiments"."outcome" NOT IN ('KILLED', 'SURVIVED') OR ("mutation_experiments"."validation_verdict" = 'FAIL' AND "mutation_experiments"."validation_record_id" IS NOT NULL AND "mutation_experiments"."test_record_id" IS NOT NULL));--> statement-breakpoint
+ALTER TABLE "mutation_experiments" ADD CONSTRAINT "mutation_experiments_equivalent_requires_passing_validation" CHECK ("mutation_experiments"."outcome" <> 'EQUIVALENT' OR ("mutation_experiments"."validation_verdict" = 'PASS' AND "mutation_experiments"."validation_record_id" IS NOT NULL AND "mutation_experiments"."test_record_id" IS NULL));

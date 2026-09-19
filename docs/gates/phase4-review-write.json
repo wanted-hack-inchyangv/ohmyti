@@ -1,0 +1,395 @@
+{
+  "kind": "review_write_run",
+  "sample": "c",
+  "provider": "deepseek",
+  "requestedModel": "deepseek-chat",
+  "promptVersion": "evidence-review@v1+72547811",
+  "startedAt": "2026-09-18T19:00:57.982Z",
+  "durationMs": 8853,
+  "submissionStatus": "COMPLETED",
+  "criteriaUnchanged": true,
+  "stage": {
+    "state": "DONE",
+    "reason": null
+  },
+  "calls": [
+    {
+      "version": 1,
+      "model": "deepseek-flash",
+      "inputDigest": "2918165d6ac73965b19163f21c2939c73392e6a6d434f01fab15a6d405cb1133",
+      "usage": {
+        "costUsd": 0.002975,
+        "inputTokens": 14192,
+        "outputTokens": 1441,
+        "cachedInputTokens": 128
+      },
+      "costUsd": 0.002975
+    }
+  ],
+  "summary": {
+    "llm": "OK",
+    "llmError": null,
+    "promptVersion": "evidence-review@v1+72547811",
+    "model": "deepseek-flash",
+    "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+    "aiReviewVersion": 1,
+    "targets": ["R-05", "R-06", "R-07"],
+    "interpretations": [
+      {
+        "criterionId": "R-05",
+        "confidence": "HIGH",
+        "evidenceIds": [
+          "ad17c0f8-43f2-40e3-8c86-550545db9662",
+          "9461859a-2ed0-4fb6-a1c7-caa1bc214f14"
+        ],
+        "minimalRepro": {
+          "summary": "POST /admin/reset 후 같은 Idempotency-Key(r05-k1)와 {productId:p1,quantity:1}로 POST /orders를 두 번 보내면 두 응답 id가 다르고 p1 stock이 2→1→0이 된다",
+          "stepIds": [
+            "R-05-idempotent-resend#0",
+            "R-05-idempotent-resend#2",
+            "R-05-idempotent-resend#4",
+            "R-05-idempotent-resend#5"
+          ]
+        }
+      },
+      {
+        "criterionId": "R-06",
+        "confidence": "HIGH",
+        "evidenceIds": [
+          "d592a0cd-9fe3-4161-9ee2-3209fecb5da8",
+          "bfda4bc6-5eb5-42f4-af1b-bf12b742443e"
+        ],
+        "minimalRepro": {
+          "summary": "POST /admin/reset 후 키 r06-k1로 {p1,1} 성공(201) 뒤 같은 키로 {p2,1}을 보내면 422 대신 201이 나오고 p2 재고가 5→4로 줄어든다",
+          "stepIds": [
+            "R-06-idempotency-conflict#0",
+            "R-06-idempotency-conflict#1",
+            "R-06-idempotency-conflict#2",
+            "R-06-idempotency-conflict#5"
+          ]
+        }
+      },
+      {
+        "criterionId": "R-07",
+        "confidence": "HIGH",
+        "evidenceIds": [
+          "4068a17f-475f-4644-93f9-5887a018a078",
+          "aef91c7e-e449-40a4-a401-c54fd4ece145"
+        ],
+        "minimalRepro": {
+          "summary": "POST /admin/reset 후 같은 키 r07-k1과 {p2,1}로 POST /orders 10건을 동시에 보내면 201이 5건만 나오고 id가 서로 다르며 p2 재고가 0이 된다",
+          "stepIds": [
+            "R-07-same-key-concurrent#0",
+            "R-07-same-key-concurrent#1",
+            "R-07-same-key-concurrent#6",
+            "R-07-same-key-concurrent#11"
+          ]
+        }
+      }
+    ],
+    "designSuggestions": [
+      {
+        "criterionId": "R-12",
+        "suggestedPoints": 6,
+        "maxPoints": 10,
+        "rationale": "(a) 계층 분리는 충족: routes.ts가 라우팅·헤더/본문 추출·응답 직렬화만 하고 도메인 규칙은 order-service.ts에 있으며, 서비스는 HTTP req/res에 의존하지 않고 원시 값만 받는다. (b) 멱등성 저장소 추상화는 미충족: createOrder에 멱등성 저장·조회 단계가 아예 없고 repository/interfaces.ts에도 IdempotencyStore가 없어, 저장소를 교체할 대상 자체가 존재하지 않는다. (c) 변경 용이성은 부분 충족: 오류 코드→상태 매핑이 errors.ts의 ERROR_STATUS 한 곳에 모여 있고 검증 규칙도 validation.ts에 집중되어 있으나, 멱등성 관련 규칙이 부재해 확장 지점이 비어 있다. (a) 4점 만점 중 4, (b) 3점 중 0, (c) 3점 중 2로 보수적으로 6점을 제안한다.",
+        "evidenceIds": [
+          "ab9fe11a-318e-4df6-8053-8c5a440df9c2",
+          "cb950fae-5be2-418b-8173-bf5cb88890b6",
+          "bbe2d8cb-773f-4b85-ba82-6226eafbf871",
+          "55db0ca5-389d-4b00-afd2-2408e9296d93",
+          "baba80fd-d592-4406-af7b-9069b3e479a9"
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "title": "멱등성 저장소 인터페이스 도입",
+        "detail": "IdempotencyStore 인터페이스와 인메모리 구현을 추가하고 createOrder가 이를 주입받아 키 조회·기록을 하도록 하면, 저장소 교체 시 도메인 로직을 고치지 않아도 된다.",
+        "outsideSpec": true
+      },
+      {
+        "title": "동시성 테스트 보강",
+        "detail": "같은 키 동시 요청과 다른 키 동시 요청 시나리오를 테스트로 고정하면 회귀를 조기에 잡을 수 있다.",
+        "outsideSpec": true
+      },
+      {
+        "title": "오류 응답 스키마 문서화",
+        "detail": "error.code 목록과 상태 코드 매핑을 README에 표로 정리하면 클라이언트 구현과 검증이 쉬워진다.",
+        "outsideSpec": true
+      },
+      {
+        "title": "재고 차감 원자성 강화",
+        "detail": "adjustStock이 음수 재고를 만들 수 있는 구조이므로 저장소 차원에서 하한 검사를 두면 방어적이다.",
+        "outsideSpec": true
+      }
+    ],
+    "dropped": []
+  },
+  "interpretations": [
+    {
+      "criterionId": "R-05",
+      "verdict": "FAIL",
+      "interpretation": "createOrder가 Idempotency-Key를 형식 검증만 하고 저장·조회하지 않아, 같은 키의 두 번째 요청이 새 주문으로 처리된다. 관측된 두 번째 201의 id가 첫 번째와 다르고 재고가 2회 차감된 것이 이에 부합한다. 멱등성 저장소/조회 단계 자체가 createOrder에 없고 저장소 인터페이스에도 IdempotencyStore가 없는 것으로 보인다."
+    },
+    {
+      "criterionId": "R-06",
+      "verdict": "FAIL",
+      "interpretation": "같은 키에 대한 기존 기록 조회와 본문 비교 로직이 없어, 다른 본문의 재요청이 충돌로 판정되지 않고 새 주문으로 처리된다. 관측에서 p2 주문이 201로 생성되고 p2 재고가 5→4로 줄었으며, p1 quantity 2 재요청은 멱등 충돌이 아니라 재고 부족(409 INSUFFICIENT_STOCK)으로 떨어진 것이 이를 뒷받침한다."
+    },
+    {
+      "criterionId": "R-07",
+      "verdict": "FAIL",
+      "interpretation": "멱등성 기록이 없어 동시에 들어온 같은 키 요청들이 각각 별개 주문으로 처리된다. writeLock(Mutex)이 임계 구역을 직렬화하지만 키 기반 중복 제거가 없으므로 5건이 201로 생성되고 재고가 5→0으로 소진된 것으로 보인다."
+    }
+  ],
+  "llmEvidences": [
+    {
+      "source": {
+        "path": "src/domain/order-service.ts",
+        "endLine": 74,
+        "startLine": 48
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-07",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  async createOrder(rawIdempotencyKey: string | undefined, rawBody: unknown): Promise<Order> {\n    validateIdempotencyKey(rawIdempotencyKey);\n    const input = validateCreateOrderBody(rawBody);\n\n    return this.writeLock.run(async () => {\n      const product = await this.products.findById(input.productId);\n      if (!product) throw new AppError(\"NOT_FOUND\", `product ${input.productId} not found`);\n\n      // M-01은 이 재고 검사를 제거하거나 조건을 반전한다.\n      if (input.quantity > product.stock) {\n        throw new AppError(\n          \"INSUFFICIENT_STOCK\",\n          `requested ${input.quantity} but only ${product.stock} in stock`,\n        );\n      }\n\n      const order: Order = {\n        id: this.newId(),\n        productId: input.productId,\n        quantity: input.quantity,\n        status: \"CREATED\",\n      };\n      await this.products.adjustStock(product.id, -input.quantity);\n      await this.orders.insert(order);\n      return order;\n    });\n  }"
+    },
+    {
+      "source": {
+        "path": "src/domain/errors.ts",
+        "endLine": 24,
+        "startLine": 19
+      },
+      "detail": {
+        "role": "DESIGN_SUGGESTION",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "criterionId": "R-12",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  constructor(code: ErrorCode, message: string) {\n    super(message);\n    this.name = \"AppError\";\n    this.code = code;\n    this.status = ERROR_STATUS[code];\n  }"
+    },
+    {
+      "source": {
+        "path": "src/domain/validation.ts",
+        "endLine": 27,
+        "startLine": 16
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-05",
+        "aiReviewVersion": 1
+      },
+      "snippet": "export function validateIdempotencyKey(raw: string | undefined): string {\n  if (typeof raw !== \"string\" || raw.length === 0) {\n    throw new AppError(\"VALIDATION_ERROR\", \"Idempotency-Key header is required\");\n  }\n  if (raw.length > IDEMPOTENCY_KEY_MAX_LENGTH) {\n    throw new AppError(\n      \"VALIDATION_ERROR\",\n      `Idempotency-Key must be at most ${IDEMPOTENCY_KEY_MAX_LENGTH} characters`,\n    );\n  }\n  return raw;\n}"
+    },
+    {
+      "source": null,
+      "detail": {
+        "role": "DESIGN_SUGGESTION",
+        "origin": "REVIEW_WRITE",
+        "maxPoints": 10,
+        "rationale": "(a) 계층 분리는 충족: routes.ts가 라우팅·헤더/본문 추출·응답 직렬화만 하고 도메인 규칙은 order-service.ts에 있으며, 서비스는 HTTP req/res에 의존하지 않고 원시 값만 받는다. (b) 멱등성 저장소 추상화는 미충족: createOrder에 멱등성 저장·조회 단계가 아예 없고 repository/interfaces.ts에도 IdempotencyStore가 없어, 저장소를 교체할 대상 자체가 존재하지 않는다. (c) 변경 용이성은 부분 충족: 오류 코드→상태 매핑이 errors.ts의 ERROR_STATUS 한 곳에 모여 있고 검증 규칙도 validation.ts에 집중되어 있으나, 멱등성 관련 규칙이 부재해 확장 지점이 비어 있다. (a) 4점 만점 중 4, (b) 3점 중 0, (c) 3점 중 2로 보수적으로 6점을 제안한다.",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "criterionId": "R-12",
+        "aiReviewVersion": 1,
+        "suggestedPoints": 6
+      },
+      "snippet": null
+    },
+    {
+      "source": {
+        "path": "src/domain/order-service.ts",
+        "endLine": 74,
+        "startLine": 48
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-05",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  async createOrder(rawIdempotencyKey: string | undefined, rawBody: unknown): Promise<Order> {\n    validateIdempotencyKey(rawIdempotencyKey);\n    const input = validateCreateOrderBody(rawBody);\n\n    return this.writeLock.run(async () => {\n      const product = await this.products.findById(input.productId);\n      if (!product) throw new AppError(\"NOT_FOUND\", `product ${input.productId} not found`);\n\n      // M-01은 이 재고 검사를 제거하거나 조건을 반전한다.\n      if (input.quantity > product.stock) {\n        throw new AppError(\n          \"INSUFFICIENT_STOCK\",\n          `requested ${input.quantity} but only ${product.stock} in stock`,\n        );\n      }\n\n      const order: Order = {\n        id: this.newId(),\n        productId: input.productId,\n        quantity: input.quantity,\n        status: \"CREATED\",\n      };\n      await this.products.adjustStock(product.id, -input.quantity);\n      await this.orders.insert(order);\n      return order;\n    });\n  }"
+    },
+    {
+      "source": {
+        "path": "src/domain/mutex.ts",
+        "endLine": 20,
+        "startLine": 8
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-07",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  async run<T>(fn: () => Promise<T>): Promise<T> {\n    const previous = this.tail;\n    let release!: () => void;\n    this.tail = new Promise<void>((resolve) => {\n      release = resolve;\n    });\n    await previous;\n    try {\n      return await fn();\n    } finally {\n      release();\n    }\n  }"
+    },
+    {
+      "source": {
+        "path": "src/domain/validation.ts",
+        "endLine": 44,
+        "startLine": 29
+      },
+      "detail": {
+        "role": "DESIGN_SUGGESTION",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "criterionId": "R-12",
+        "aiReviewVersion": 1
+      },
+      "snippet": "export function validateCreateOrderBody(body: unknown): CreateOrderInput {\n  if (typeof body !== \"object\" || body === null || Array.isArray(body)) {\n    throw new AppError(\"VALIDATION_ERROR\", \"request body must be a JSON object\");\n  }\n  const parsed = createOrderBodySchema.safeParse(body);\n  if (!parsed.success) {\n    const issue = parsed.error.issues[0];\n    throw new AppError(\"VALIDATION_ERROR\", issue?.message ?? \"invalid request body\");\n  }\n  const { productId, quantity } = parsed.data;\n  // 수량 하한. M-02(결함 주입 카탈로그)는 이 비교를 `< 0`으로 완화한다.\n  if (quantity <= 0) {\n    throw new AppError(\"VALIDATION_ERROR\", \"quantity must be at least 1\");\n  }\n  return { productId, quantity };\n}"
+    },
+    {
+      "source": {
+        "path": "src/domain/order-service.ts",
+        "endLine": 74,
+        "startLine": 48
+      },
+      "detail": {
+        "role": "DESIGN_SUGGESTION",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "criterionId": "R-12",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  async createOrder(rawIdempotencyKey: string | undefined, rawBody: unknown): Promise<Order> {\n    validateIdempotencyKey(rawIdempotencyKey);\n    const input = validateCreateOrderBody(rawBody);\n\n    return this.writeLock.run(async () => {\n      const product = await this.products.findById(input.productId);\n      if (!product) throw new AppError(\"NOT_FOUND\", `product ${input.productId} not found`);\n\n      // M-01은 이 재고 검사를 제거하거나 조건을 반전한다.\n      if (input.quantity > product.stock) {\n        throw new AppError(\n          \"INSUFFICIENT_STOCK\",\n          `requested ${input.quantity} but only ${product.stock} in stock`,\n        );\n      }\n\n      const order: Order = {\n        id: this.newId(),\n        productId: input.productId,\n        quantity: input.quantity,\n        status: \"CREATED\",\n      };\n      await this.products.adjustStock(product.id, -input.quantity);\n      await this.orders.insert(order);\n      return order;\n    });\n  }"
+    },
+    {
+      "source": {
+        "path": "src/domain/validation.ts",
+        "endLine": 27,
+        "startLine": 16
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-06",
+        "aiReviewVersion": 1
+      },
+      "snippet": "export function validateIdempotencyKey(raw: string | undefined): string {\n  if (typeof raw !== \"string\" || raw.length === 0) {\n    throw new AppError(\"VALIDATION_ERROR\", \"Idempotency-Key header is required\");\n  }\n  if (raw.length > IDEMPOTENCY_KEY_MAX_LENGTH) {\n    throw new AppError(\n      \"VALIDATION_ERROR\",\n      `Idempotency-Key must be at most ${IDEMPOTENCY_KEY_MAX_LENGTH} characters`,\n    );\n  }\n  return raw;\n}"
+    },
+    {
+      "source": {
+        "path": "src/http/routes.ts",
+        "endLine": 28,
+        "startLine": 25
+      },
+      "detail": {
+        "role": "DESIGN_SUGGESTION",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "criterionId": "R-12",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  router.post(\"/orders\", async (req, res) => {\n    const order = await service.createOrder(req.header(\"Idempotency-Key\"), req.body);\n    res.status(201).json(order);\n  });"
+    },
+    {
+      "source": {
+        "path": "src/domain/order-service.ts",
+        "endLine": 74,
+        "startLine": 48
+      },
+      "detail": {
+        "role": "FAILURE_CAUSE",
+        "origin": "REVIEW_WRITE",
+        "aiReviewId": "5582ca03-d6c3-47fb-a0eb-56c1ee0fabe3",
+        "confidence": "HIGH",
+        "criterionId": "R-06",
+        "aiReviewVersion": 1
+      },
+      "snippet": "  async createOrder(rawIdempotencyKey: string | undefined, rawBody: unknown): Promise<Order> {\n    validateIdempotencyKey(rawIdempotencyKey);\n    const input = validateCreateOrderBody(rawBody);\n\n    return this.writeLock.run(async () => {\n      const product = await this.products.findById(input.productId);\n      if (!product) throw new AppError(\"NOT_FOUND\", `product ${input.productId} not found`);\n\n      // M-01은 이 재고 검사를 제거하거나 조건을 반전한다.\n      if (input.quantity > product.stock) {\n        throw new AppError(\n          \"INSUFFICIENT_STOCK\",\n          `requested ${input.quantity} but only ${product.stock} in stock`,\n        );\n      }\n\n      const order: Order = {\n        id: this.newId(),\n        productId: input.productId,\n        quantity: input.quantity,\n        status: \"CREATED\",\n      };\n      await this.products.adjustStock(product.id, -input.quantity);\n      await this.orders.insert(order);\n      return order;\n    });\n  }"
+    }
+  ],
+  "criteria": [
+    {
+      "criterionId": "G1",
+      "earnedPoints": null,
+      "verdict": "INCONCLUSIVE"
+    },
+    {
+      "criterionId": "G2",
+      "earnedPoints": null,
+      "verdict": "INCONCLUSIVE"
+    },
+    {
+      "criterionId": "G3",
+      "earnedPoints": null,
+      "verdict": "INCONCLUSIVE"
+    },
+    {
+      "criterionId": "R-01",
+      "earnedPoints": 8,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-02",
+      "earnedPoints": 6,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-03",
+      "earnedPoints": 7,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-04",
+      "earnedPoints": 6,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-05",
+      "earnedPoints": 0,
+      "verdict": "FAIL"
+    },
+    {
+      "criterionId": "R-06",
+      "earnedPoints": 0,
+      "verdict": "FAIL"
+    },
+    {
+      "criterionId": "R-07",
+      "earnedPoints": 0,
+      "verdict": "FAIL"
+    },
+    {
+      "criterionId": "R-08",
+      "earnedPoints": 6,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-09",
+      "earnedPoints": 6,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-10",
+      "earnedPoints": 6,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-11",
+      "earnedPoints": 4,
+      "verdict": "PASS"
+    },
+    {
+      "criterionId": "R-12",
+      "earnedPoints": null,
+      "verdict": "INCONCLUSIVE"
+    }
+  ]
+}

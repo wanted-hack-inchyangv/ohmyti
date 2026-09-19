@@ -1,0 +1,1 @@
+ALTER TABLE "criterion_results" ADD COLUMN "satisfied_sub_criterion_ids" text[];

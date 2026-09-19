@@ -1,0 +1,60 @@
+import { describe, expect, it } from "vitest";
+import { getStock, newClient, postOrder } from "./helpers.js";
+
+const N = 10;
+
+// R-07 같은 키 동시 요청
+describe("같은 키·같은 본문 10건 동시", () => {
+  it("전부 201 같은 id, 재고 1회 차감 (B-11)", async () => {
+    const client = newClient();
+    const responses = await Promise.all(
+      Array.from({ length: N }, () =>
+        postOrder(client, "k-conc", { productId: "p2", quantity: 1 }),
+      ),
+    );
+    expect(responses.map((r) => r.status)).toEqual(Array(N).fill(201));
+    const ids = new Set(responses.map((r) => (r.body as { id: string }).id));
+    expect(ids.size).toBe(1);
+    expect(await getStock(client, "p2")).toBe(4);
+  });
+});
+
+// R-08 다른 키 동시 요청과 재고 하한
+describe("다른 키 10건 동시, p2(재고 5) quantity 1", () => {
+  it("201 정확히 5건, 409 INSUFFICIENT_STOCK 5건, 재고 0 (B-12)", async () => {
+    const client = newClient();
+    const responses = await Promise.all(
+      Array.from({ length: N }, (_, i) =>
+        postOrder(client, `k-par-${i}`, { productId: "p2", quantity: 1 }),
+      ),
+    );
+    const created = responses.filter((r) => r.status === 201);
+    const rejected = responses.filter((r) => r.status === 409);
+    expect(created).toHaveLength(5);
+    expect(rejected).toHaveLength(5);
+    for (const r of rejected)
+      expect(r.body).toMatchObject({ error: { code: "INSUFFICIENT_STOCK" } });
+
+    const ids = created.map((r) => (r.body as { id: string }).id);
+    expect(new Set(ids).size).toBe(5);
+    for (const id of ids) expect((await client.get(`/orders/${id}`)).status).toBe(200);
+
+    const stock = await getStock(client, "p2");
+    expect(stock).toBe(0);
+    expect(stock).toBeGreaterThanOrEqual(0);
+  });
+
+  it("재고보다 큰 수량이 섞인 동시 요청에서도 성공 수량 합이 재고를 넘지 않는다", async () => {
+    const client = newClient();
+    const quantities = [3, 3, 2, 2, 1, 1];
+    const responses = await Promise.all(
+      quantities.map((q, i) => postOrder(client, `k-mix-${i}`, { productId: "p2", quantity: q })),
+    );
+    const sold = responses
+      .filter((r) => r.status === 201)
+      .reduce((sum, r) => sum + (r.body as { quantity: number }).quantity, 0);
+    expect(sold).toBeLessThanOrEqual(5);
+    expect(await getStock(client, "p2")).toBe(5 - sold);
+    for (const r of responses) expect([201, 409]).toContain(r.status);
+  });
+});

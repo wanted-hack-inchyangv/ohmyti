@@ -1,0 +1,17 @@
+Jordan Lee - Backend Engineer (sample resume for the CodeGraph Reviewer demo; fictional person)
+
+Summary
+Backend engineer with 4 years of experience building TypeScript and Node.js APIs for e-commerce.
+
+Experience
+Acme Commerce - Backend Engineer (2023 - present)
+- Designed an idempotent order API using the Idempotency-Key header so that retried requests never create duplicate orders.
+- Implemented stock reservation and release for the checkout flow, preventing overselling under concurrent requests.
+- Wrote integration tests with Vitest and supertest for order creation, cancellation and stock recovery.
+
+Bright Retail - Software Engineer (2021 - 2023)
+- Built REST endpoints with Express and Hono, and documented how to run each service locally.
+- Reduced incident response time by adding structured logging with pino.
+
+Skills
+TypeScript, Node.js, Express, Hono, PostgreSQL, Vitest, Docker

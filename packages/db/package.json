@@ -1,0 +1,32 @@
+{
+  "name": "@ohmyti/db",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Drizzle 스키마, 마이그레이션, 큐 쿼리",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --root ../.. --project @ohmyti/db",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:reset": "tsx scripts/reset.ts"
+  },
+  "dependencies": {
+    "@ohmyti/core": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "dotenv": "18.0.0",
+    "drizzle-kit": "0.31.10",
+    "tsx": "4.23.13"
+  }
+}

@@ -1,0 +1,155 @@
+{
+  "gate": "phase2",
+  "ok": true,
+  "phase": 5,
+  "baseUrl": "https://ohmyti.vercel.app",
+  "startedAt": "2026-09-18T23:12:52.399Z",
+  "finishedAt": "2026-09-18T23:32:14.346Z",
+  "totalMs": 1161947,
+  "assignmentVersion": {
+    "id": "98a4487e-4afc-4f02-8921-7f0c5043bba0",
+    "label": "주문·재고 API · v2 · 승인됨",
+    "rubricVersion": "v2-be07fb44"
+  },
+  "runs": [
+    {
+      "sampleId": "A",
+      "round": 1,
+      "submissionId": "54628277-c794-419a-b34c-b1c65fabfe12",
+      "evaluationId": "46a50bd3-4060-4c24-926f-c1c96d6880f9",
+      "status": "COMPLETED",
+      "waitMs": 156147,
+      "scoreDisplay": {
+        "expected": "90~100/100 · 10점 검토 대기",
+        "actual": "90~100/100 · 10점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "b3e9ca7dcc8a7eca4fc7b9f5a082f3deeccf6f90892d718da8c8dce468f49504",
+      "error": null
+    },
+    {
+      "sampleId": "B",
+      "round": 1,
+      "submissionId": "cec1d2e0-e65b-4aea-b0cb-5773fea6897e",
+      "evaluationId": "b3d8cce3-c254-4a1b-8040-16cf1d5a2f45",
+      "status": "COMPLETED",
+      "waitMs": 308263,
+      "scoreDisplay": {
+        "expected": "90~100/100 · 10점 검토 대기",
+        "actual": "90~100/100 · 10점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "5fef057cec56977689157d1182762e7bbf445a9f380454342444fa695fe52cf4",
+      "error": null
+    },
+    {
+      "sampleId": "C",
+      "round": 1,
+      "submissionId": "730e2d65-b7f1-4213-ae12-9e2051e2436d",
+      "evaluationId": "52a94438-6567-4466-b236-afb5a5def283",
+      "status": "COMPLETED",
+      "waitMs": 431520,
+      "scoreDisplay": {
+        "expected": "54~69/100 · 15점 검토 대기",
+        "actual": "54~69/100 · 15점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "9ad4b24052e8d94bb7633e165d7a13da6d473af5e83ca9b7da03823fe64143c7",
+      "error": null
+    },
+    {
+      "sampleId": "D",
+      "round": 1,
+      "submissionId": "91731cc9-cc1c-4c0c-8c88-65d863e4dd7d",
+      "evaluationId": "1027e1da-19f8-42e3-8847-f5f9fdc978bd",
+      "status": "COMPLETED",
+      "waitMs": 554536,
+      "scoreDisplay": {
+        "expected": "54~69/100 · 15점 검토 대기",
+        "actual": "54~69/100 · 15점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "2e2f90b96b00bc6f5fe68f4f0547334713a4bdb9f173c27fc3be4a55ac89db7b",
+      "error": null
+    },
+    {
+      "sampleId": "A",
+      "round": 2,
+      "submissionId": "8720809d-913e-4562-a837-f0c63aa7f4f2",
+      "evaluationId": "ce721ec7-6256-4172-809e-7f2edeae2772",
+      "status": "COMPLETED",
+      "waitMs": 709551,
+      "scoreDisplay": {
+        "expected": "90~100/100 · 10점 검토 대기",
+        "actual": "90~100/100 · 10점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "b3e9ca7dcc8a7eca4fc7b9f5a082f3deeccf6f90892d718da8c8dce468f49504",
+      "error": null
+    },
+    {
+      "sampleId": "C",
+      "round": 2,
+      "submissionId": "36fd4cd3-fb87-4799-a36c-7596aac381ec",
+      "evaluationId": "f922a124-8065-4acc-9e0e-6dd7fb645c92",
+      "status": "COMPLETED",
+      "waitMs": 830492,
+      "scoreDisplay": {
+        "expected": "54~69/100 · 15점 검토 대기",
+        "actual": "54~69/100 · 15점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "9ad4b24052e8d94bb7633e165d7a13da6d473af5e83ca9b7da03823fe64143c7",
+      "error": null
+    },
+    {
+      "sampleId": "A",
+      "round": 3,
+      "submissionId": "05183547-f6b6-41d9-a72b-6c64da3afecc",
+      "evaluationId": "1565e12a-9858-4e92-97cc-f3e7b1182b2d",
+      "status": "COMPLETED",
+      "waitMs": 1012666,
+      "scoreDisplay": {
+        "expected": "90~100/100 · 10점 검토 대기",
+        "actual": "90~100/100 · 10점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "b3e9ca7dcc8a7eca4fc7b9f5a082f3deeccf6f90892d718da8c8dce468f49504",
+      "error": null
+    },
+    {
+      "sampleId": "C",
+      "round": 3,
+      "submissionId": "8061dbbe-6369-4feb-a04a-1db26b0a00d9",
+      "evaluationId": "fed3a35f-e18a-46f5-b8b1-d24b8f32d5d5",
+      "status": "COMPLETED",
+      "waitMs": 1144491,
+      "scoreDisplay": {
+        "expected": "54~69/100 · 15점 검토 대기",
+        "actual": "54~69/100 · 15점 검토 대기",
+        "ok": true
+      },
+      "mismatches": [],
+      "digest": "9ad4b24052e8d94bb7633e165d7a13da6d473af5e83ca9b7da03823fe64143c7",
+      "error": null
+    }
+  ],
+  "determinismProblems": [],
+  "unsupported": {
+    "repoUrl": "https://github.com/inchyangv/ohmyti-sample-python",
+    "submissionId": "f6ecff8b-5492-496f-8c7b-a9c2e2181ed0",
+    "status": "UNSUPPORTED",
+    "unsupportedReason": "MISSING_PACKAGE_JSON: 루트에 package.json이 없습니다; UNSUPPORTED_LANGUAGE: TypeScript·JavaScript 소스가 없고 requirements.txt이(가) 있습니다. 템플릿은 Node.js 프로젝트만 지원합니다",
+    "expectedReasonCode": "UNSUPPORTED_LANGUAGE",
+    "apiOk": true,
+    "htmlOk": true,
+    "problems": []
+  }
+}

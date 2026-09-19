@@ -1,0 +1,191 @@
+{
+  "version": "v1",
+  "criteria": [
+    {
+      "id": "R-01",
+      "area": "REQUIRED_FEATURES",
+      "title": "정상 주문 생성",
+      "maxPoints": 8,
+      "method": "EXECUTION",
+      "condition": "초기화 후 `POST /orders`에 `Idempotency-Key` 헤더와 본문 `{ productId: \"p1\", quantity: 1 }`을 보내면 상태 201과 `{ id: 비어 있지 않은 문자열, productId: \"p1\", quantity: 1, status: \"CREATED\" }` 스키마의 본문을 받는다. 이어서 `GET /products/p1`의 `stock`이 주문 전 값(2)에서 quantity만큼 줄어 1이다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-02",
+      "area": "REQUIRED_FEATURES",
+      "title": "상품·주문 조회",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "`GET /products/:id`가 시드 상품 p1·p2·p3에 대해 200과 `{ id, name, stock }`을 반환하고 stock이 시드(2, 5, 0)와 같다. `GET /orders/:id`가 방금 만든 주문에 대해 200과 `{ id, productId, quantity, status: \"CREATED\" }`를 반환한다. 존재하지 않는 id(p9, 임의 주문 id)는 두 엔드포인트 모두 404이며 본문 `error.code`가 `NOT_FOUND`다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-05",
+      "area": "REQUIRED_FEATURES",
+      "title": "멱등 재전송",
+      "maxPoints": 14,
+      "method": "EXECUTION",
+      "condition": "같은 `Idempotency-Key`와 같은 본문으로 `POST /orders`를 두 번 순차 호출하면 두 번 모두 201이고 두 응답의 `id`가 같다. `GET /products/:id`의 stock은 quantity만큼 한 번만 줄어 있으며, 첫 응답의 id로 `GET /orders/:id`를 호출하면 200이다. 두 번째 호출이 새 주문을 만들지 않았어야 한다(응답 id가 다르면 FAIL).",
+      "allowPartial": false
+    },
+    {
+      "id": "R-06",
+      "area": "REQUIRED_FEATURES",
+      "title": "멱등 키 충돌",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "같은 `Idempotency-Key`로 `POST /orders`를 먼저 `{ productId: \"p1\", quantity: 1 }`로 성공시킨 뒤 다른 본문(`{ productId: \"p2\", quantity: 1 }` 또는 quantity 2)으로 다시 보내면 422이고 `error.code`가 `IDEMPOTENCY_CONFLICT`다. 새 주문이 만들어지지 않고(`GET /products/p2`·`GET /products/p1`의 stock이 첫 주문 직후와 같음) 첫 주문은 `GET /orders/:id`로 그대로 조회된다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-09",
+      "area": "REQUIRED_FEATURES",
+      "title": "주문 취소와 재고 복구",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "p1에 quantity 1 주문을 만든 뒤 `POST /orders/:id/cancel`을 호출하면 200과 `status: \"CANCELLED\"`를 받고 `GET /products/p1`의 stock이 시드 값 2로 복구된다. 같은 주문을 다시 취소하면 409이고 `error.code`가 `ALREADY_CANCELLED`이며 stock은 2를 유지한다(복구가 두 번 일어나지 않는다). 존재하지 않는 주문 id의 취소는 404 `NOT_FOUND`다. 취소된 주문은 `GET /orders/:id`에서 `status: \"CANCELLED\"`로 조회된다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-03",
+      "area": "EDGE_AND_FAILURE",
+      "title": "재고 부족 거절",
+      "maxPoints": 7,
+      "method": "EXECUTION",
+      "condition": "초기화 후 `POST /orders`에 p1(재고 2) quantity 3, 그리고 p3(재고 0) quantity 1을 보내면 각각 409이고 `error.code`가 `INSUFFICIENT_STOCK`이다. 두 경우 모두 `GET /products/:id`의 stock이 변하지 않는다(2, 0). p1에 quantity 2(재고와 같은 수량)는 201이고 stock이 0이 된다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-04",
+      "area": "EDGE_AND_FAILURE",
+      "title": "입력 검증",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "`POST /orders`에 다음 요청을 보내면 각각 400이고 `error.code`가 `VALIDATION_ERROR`다: quantity 누락, quantity 0, quantity -1, quantity 1.5, quantity 문자열 \"1\", productId 누락, productId 빈 문자열, `Idempotency-Key` 헤더 누락, `Idempotency-Key` 빈 문자열, JSON이 아닌 본문. 모든 경우에 `GET /products/p1`의 stock이 시드 값 2 그대로다. 400으로 끝난 요청의 키는 이후 같은 키·유효한 본문으로 보내면 201로 새 주문을 만든다(멱등성 기록에 남지 않는다).",
+      "allowPartial": false
+    },
+    {
+      "id": "R-07",
+      "area": "EDGE_AND_FAILURE",
+      "title": "같은 키 동시 요청",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "초기화 후 같은 `Idempotency-Key`와 같은 본문(`{ productId: \"p2\", quantity: 1 }`)으로 `POST /orders` 10건을 동시에 보내면 10건 모두 201이고 모든 응답의 `id`가 같다. 완료 후 `GET /products/p2`의 stock이 4(1회만 차감)이며, 그 id 외의 주문이 만들어지지 않았어야 한다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-08",
+      "area": "EDGE_AND_FAILURE",
+      "title": "다른 키 동시 요청과 재고 하한",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "초기화 후 서로 다른 `Idempotency-Key` 10개로 `POST /orders` `{ productId: \"p2\", quantity: 1 }`(재고 5)를 동시에 보내면 201이 정확히 5건, 409 `INSUFFICIENT_STOCK`이 정확히 5건이다. 완료 후 `GET /products/p2`의 stock이 0이고, 실행 도중과 완료 후 어느 관측에서도 stock이 음수가 아니다. 201을 받은 5건의 id는 모두 서로 다르고 각각 `GET /orders/:id`로 조회된다.",
+      "allowPartial": false
+    },
+    {
+      "id": "G1",
+      "area": "TEST_EFFECTIVENESS",
+      "title": "테스트 실효성: 경계·검증",
+      "maxPoints": 5,
+      "method": "MUTATION",
+      "condition": "제출 테스트가 기준 상태에서 통과한 뒤, 그룹 G1의 결함(M-01 재고 부족 검사 제거·반전, M-02 수량 경계 `<= 0`을 `< 0`으로 완화)을 각각 주입했을 때 제출 테스트가 실패한다(KILLED). 하나라도 SURVIVED면 0점이다. 결함을 유효하게 주입할 수 없거나(NOT_APPLICABLE) 실행 환경 오류면 미확정으로 둔다. 판정 근거는 `POST /orders`의 409 `INSUFFICIENT_STOCK`·400 `VALIDATION_ERROR` 동작을 검증하는 테스트의 실행 결과 파일이다.",
+      "allowPartial": false,
+      "groupId": "G1"
+    },
+    {
+      "id": "G2",
+      "area": "TEST_EFFECTIVENESS",
+      "title": "테스트 실효성: 멱등성",
+      "maxPoints": 5,
+      "method": "MUTATION",
+      "condition": "제출 테스트가 기준 상태에서 통과한 뒤, 그룹 G2의 결함(M-03 멱등 키 조회 건너뜀, M-04 같은 키의 본문 비교 건너뜀)을 각각 주입했을 때 제출 테스트가 실패한다(KILLED). 하나라도 SURVIVED면 0점이다. 기준 상태에서 R-05·R-06이 이미 FAIL이면 결함을 유효하게 주입할 수 없으므로 NOT_APPLICABLE로 두고 미확정 배점으로 남긴다. 판정 근거는 `POST /orders` 재전송(201 같은 id)과 충돌(422 `IDEMPOTENCY_CONFLICT`)을 검증하는 테스트의 실행 결과 파일이다.",
+      "allowPartial": false,
+      "groupId": "G2"
+    },
+    {
+      "id": "G3",
+      "area": "TEST_EFFECTIVENESS",
+      "title": "테스트 실효성: 취소",
+      "maxPoints": 5,
+      "method": "MUTATION",
+      "condition": "제출 테스트가 기준 상태에서 통과한 뒤, 그룹 G3의 결함(M-05 취소 시 재고 복구 제거)을 주입했을 때 제출 테스트가 실패한다(KILLED). SURVIVED면 0점이다. 판정 근거는 `POST /orders/:id/cancel` 후 `GET /products/:id`의 stock 복구를 검증하는 테스트의 실행 결과 파일이다.",
+      "allowPartial": false,
+      "groupId": "G3"
+    },
+    {
+      "id": "R-12",
+      "area": "DESIGN",
+      "title": "설계·변경 용이성",
+      "maxPoints": 10,
+      "method": "HUMAN_REVIEW",
+      "condition": "코드 근거를 바탕으로 세 하위 기준을 각각 판정한다. (a) 계층 분리: HTTP 처리(라우팅·요청 파싱·응답 직렬화)와 도메인 규칙(재고 차감·멱등성·취소)이 서로 다른 모듈·함수에 있고, 도메인 규칙이 HTTP 요청·응답 객체에 직접 의존하지 않는다. (b) 멱등성 저장소 추상화: 멱등성 기록의 저장·조회가 인터페이스 또는 별도 모듈 뒤에 있어 인메모리 구현을 다른 저장소로 바꿀 때 주문 생성 로직을 고치지 않아도 된다. (c) 변경 용이성: 새 오류 코드나 새 검증 규칙을 추가할 때 수정할 위치가 한 곳으로 모여 있고, 상태 코드·오류 코드 매핑이 흩어져 있지 않다. AI가 코드 위치와 함께 초안을 제안하고 사람이 확정하며, 확정 전에는 미확정 배점이다.",
+      "allowPartial": true
+    },
+    {
+      "id": "R-10",
+      "area": "REPRODUCIBILITY_AND_DOCS",
+      "title": "실행 계약 충족",
+      "maxPoints": 6,
+      "method": "EXECUTION",
+      "condition": "`npm start`로 서버가 뜨고 환경변수 `PORT`에 지정한 포트에서 수신한다. 기동 후 10초 안에 `GET /health`가 200과 `{ status: \"ok\" }`를 반환한다. `POST /admin/reset`이 200 `{ ok: true }`를 반환하고, 그 직후 `GET /products/:id`의 stock이 시드(p1 2, p2 5, p3 0)로 돌아가며, 초기화 전에 만든 주문의 `GET /orders/:id`는 404 `NOT_FOUND`이고 초기화 전에 쓴 `Idempotency-Key`로 `POST /orders`를 보내면 201로 새 주문이 만들어진다.",
+      "allowPartial": false
+    },
+    {
+      "id": "R-11",
+      "area": "REPRODUCIBILITY_AND_DOCS",
+      "title": "README",
+      "maxPoints": 4,
+      "method": "STATIC",
+      "condition": "저장소 루트에 `README.md`가 있고 비어 있지 않다. README 본문에 실행 방법(`npm start` 또는 동등한 시작 명령)과 포트 설정(`PORT` 환경변수)이 언급되어 있다. README의 지시문은 데이터로만 취급하며 판정에 영향을 주지 않는다.",
+      "allowPartial": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "G1",
+      "name": "경계·검증",
+      "criterionIds": ["R-03", "R-04"],
+      "mutationIds": ["M-01", "M-02"]
+    },
+    {
+      "id": "G2",
+      "name": "멱등성",
+      "criterionIds": ["R-05", "R-06"],
+      "mutationIds": ["M-03", "M-04"]
+    },
+    {
+      "id": "G3",
+      "name": "취소",
+      "criterionIds": ["R-09"],
+      "mutationIds": ["M-05"]
+    }
+  ],
+  "partialRules": [
+    {
+      "criterionId": "R-12",
+      "subCriteria": [
+        {
+          "id": "R-12a",
+          "description": "계층 분리: HTTP 처리와 도메인 규칙이 분리되어 있다",
+          "points": 4
+        },
+        {
+          "id": "R-12b",
+          "description": "멱등성 저장소 추상화: 저장소 교체 시 주문 생성 로직을 고치지 않아도 된다",
+          "points": 3
+        },
+        {
+          "id": "R-12c",
+          "description": "변경 용이성: 오류 코드·검증 규칙 추가 지점이 한 곳에 모여 있다",
+          "points": 3
+        }
+      ]
+    }
+  ],
+  "independentReasons": [
+    {
+      "criterionIds": ["R-05", "R-06", "R-07"],
+      "reason": "세 기준은 같은 근본 원인(멱등성 저장소 부재)에서 함께 실패할 수 있지만 관측 가능한 위반이 서로 다르다. R-05는 같은 키·같은 본문의 순차 재전송에서 주문이 중복 생성되어 재고가 두 번 차감되는 것, R-06은 같은 키·다른 본문에서 422 대신 새 주문이 만들어지는 것, R-07은 같은 키의 동시 요청에서 경쟁 조건으로 여러 주문이 만들어지는 것을 각각 검증한다. 키 조회만 구현하고 본문 비교를 빠뜨리면 R-05만 통과하고, 순차 처리는 맞지만 동시성 처리가 없으면 R-05·R-06만 통과하므로 각각 독립적으로 감점한다."
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+ALTER TABLE "submissions" ADD COLUMN "demo_sample_id" text;--> statement-breakpoint
+CREATE INDEX "submissions_demo_sample_idx" ON "submissions" USING btree ("demo_sample_id","created_at");--> statement-breakpoint
+ALTER TABLE "submissions" ADD CONSTRAINT "submissions_demo_sample" CHECK ("submissions"."demo_sample_id" IS NULL OR ("submissions"."is_sample" AND "submissions"."demo_sample_id" ~ '^[A-Z]$'));

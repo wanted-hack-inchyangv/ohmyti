@@ -1,0 +1,22 @@
+{
+  "name": "@ohmyti/template-order-api-ts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "승인 실행 템플릿: 제출물이 사용할 수 있는 고정 의존성 집합. 워커 이미지의 /opt/templates/order-api-ts에 사전 설치된다",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.1",
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.3",
+    "@types/supertest": "7.2.1",
+    "express": "5.2.1",
+    "hono": "4.13.8",
+    "supertest": "7.2.2",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11",
+    "zod": "4.6.5"
+  }
+}

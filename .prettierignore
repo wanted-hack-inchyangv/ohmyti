@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+.turbo
+pnpm-lock.yaml
+playwright-report
+test-results
+.run-logs
+PRD.md
+TICKET.md
+RUN_PROMPT.md
+packages/db/drizzle
+package-lock.json

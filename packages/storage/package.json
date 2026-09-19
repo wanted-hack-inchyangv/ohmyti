@@ -1,0 +1,21 @@
+{
+  "name": "@ohmyti/storage",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ArtifactStore (fs, vercel-blob)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --root ../.. --project @ohmyti/storage"
+  },
+  "dependencies": {
+    "@vercel/blob": "2.8.0"
+  }
+}

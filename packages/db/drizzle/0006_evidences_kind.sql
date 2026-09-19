@@ -1,0 +1,1 @@
+ALTER TABLE "evidences" ADD COLUMN "kind" text;

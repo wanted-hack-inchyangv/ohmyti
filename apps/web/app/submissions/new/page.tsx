@@ -1,0 +1,71 @@
+import type { Metadata } from "next";
+import { Notice, PageContainer, PageHeader } from "@/components/ui";
+import { getDb } from "@/lib/db";
+import {
+  listApprovedVersionOptions,
+  STAGE_LABEL,
+  type ApprovedVersionOption,
+} from "@/lib/submissions/service";
+import { SubmissionForm } from "./submission-form";
+
+export const metadata: Metadata = { title: "제출 · CodeGraph Reviewer" };
+export const dynamic = "force-dynamic";
+
+const DESCRIPTION =
+  "공개 GitHub 저장소를 승인된 과제 기준으로 채점합니다. 이력서와 GitHub 프로필은 선택이며, 없어도 과제 채점은 진행됩니다.";
+
+/** PRD 6장 ② 입력 폼. 과제 선택지는 승인된 버전뿐이다 (T-201) */
+export default async function NewSubmissionPage() {
+  let options: ApprovedVersionOption[];
+  try {
+    options = await listApprovedVersionOptions({ db: getDb().db });
+  } catch {
+    // 연결 문자열 등 비밀값이 섞일 수 있으므로 오류 본문은 화면에 내지 않는다
+    return (
+      <PageContainer width="narrow">
+        <PageHeader eyebrow="채점 요청" title="제출" />
+        <Notice tone="error">
+          과제 목록을 읽지 못했습니다. 데이터베이스 연결을 확인하세요 (<code>/api/health</code>).
+        </Notice>
+      </PageContainer>
+    );
+  }
+  return (
+    <PageContainer width="narrow">
+      <PageHeader eyebrow="채점 요청" title="제출" description={DESCRIPTION} />
+      <SubmissionForm options={options} />
+      <StagePreview />
+    </PageContainer>
+  );
+}
+
+/** 제출 뒤 진행되는 실제 6단계 이름. 진행 상태가 아니라 순서 안내다 */
+function StagePreview() {
+  const labels = Object.values(STAGE_LABEL);
+  return (
+    <section className="flex flex-col gap-4 rounded-xl bg-neutral-50 p-5 sm:p-7">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-base font-bold tracking-tight">제출하면 이 순서로 진행됩니다</h2>
+        <p className="text-sm leading-relaxed text-neutral-500">
+          제출 상태 화면에서 단계마다 워커가 남긴 기록을 확인할 수 있습니다.
+        </p>
+      </div>
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {labels.map((label, index) => (
+          <li
+            key={label}
+            className="flex items-center gap-3 rounded-lg bg-surface px-3.5 py-3 ring-1 ring-neutral-200"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-600"
+            >
+              {index + 1}
+            </span>
+            <span className="text-sm font-semibold text-neutral-800">{label}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}

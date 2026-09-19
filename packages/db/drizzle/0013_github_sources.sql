@@ -1,0 +1,1 @@
+ALTER TABLE "submission_context" RENAME COLUMN "github_profile" TO "github_sources";

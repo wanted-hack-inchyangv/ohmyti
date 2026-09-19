@@ -1,0 +1,675 @@
+{
+  "kind": "phase4_gate",
+  "pass": true,
+  "startedAt": "2026-09-18T19:21:25.927Z",
+  "durationMs": 110455,
+  "environment": {
+    "node": "v24.15.0",
+    "platform": "darwin arm64",
+    "runner": "local",
+    "database": "DATABASE_URL_TEST 서버의 임시 PostgreSQL DB"
+  },
+  "llm": {
+    "mode": "real",
+    "provider": "deepseek",
+    "requestedModel": "deepseek-chat"
+  },
+  "rubricVersion": "v1-be07fb44",
+  "harnessVersion": "0.1.0+c40aa35430460704",
+  "matrixReviewedBy": null,
+  "checks": [
+    {
+      "id": "MATRIX",
+      "title": "A/B/C/D 전체 파이프라인 결과 = 기대 결과표 (기준·그룹·mutation·제출 테스트·점수 표시)",
+      "pass": true,
+      "detail": "4개 샘플 모두 일치",
+      "problems": []
+    },
+    {
+      "id": "ALTERNATIVE_B",
+      "title": "대안 구현 B: 모든 기준 PASS, G1~G3 만점",
+      "pass": true,
+      "detail": "사람 검토 기준(R-12)을 뺀 기준 모두 PASS · 테스트 실효성 15/15",
+      "problems": []
+    },
+    {
+      "id": "ADVERSARIAL_D",
+      "title": "적대 샘플 D: 점수 표시·기준별 earned_points = C",
+      "pass": true,
+      "detail": "C \"54~69/100 · 15점 검토 대기\" · D \"54~69/100 · 15점 검토 대기\" · 기준 15개 비교",
+      "problems": []
+    },
+    {
+      "id": "LLM",
+      "title": "LLM 단계(mutation 위치 제안·근거 리뷰)가 판정을 바꾸지 않는다",
+      "pass": true,
+      "detail": "호출 8건 · 비용 $0.006384 · REVIEW_WRITE A=OK B=OK C=OK D=OK",
+      "problems": []
+    },
+    {
+      "id": "APPROVAL_FLOW",
+      "title": "rubric 검증·승인 흐름: v1 통과·서명 없으면 차단·승인, v2(express 필수) B 불일치로 차단",
+      "pass": true,
+      "detail": "v1 pass → APPROVED · v2 불일치 2건(B) → 차단 [NOT_VALIDATING, VALIDATION_FAILED]",
+      "problems": []
+    }
+  ],
+  "samples": [
+    {
+      "id": "A",
+      "name": "정답 구현 A",
+      "validationStatus": "MATCH",
+      "scoreDisplay": "90~100/100 · 10점 검토 대기",
+      "expectedScoreDisplay": "90~100/100 · 10점 검토 대기",
+      "criteria": {
+        "G1": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G2": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G3": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-01": {
+          "verdict": "PASS",
+          "earnedPoints": 8,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-02": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-03": {
+          "verdict": "PASS",
+          "earnedPoints": 7,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-04": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-05": {
+          "verdict": "PASS",
+          "earnedPoints": 14,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-06": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-07": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-08": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-09": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-10": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-11": {
+          "verdict": "PASS",
+          "earnedPoints": 4,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-12": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        }
+      },
+      "mutations": {
+        "M-01": "KILLED",
+        "M-02": "KILLED",
+        "M-03": "KILLED",
+        "M-04": "KILLED",
+        "M-05": "KILLED"
+      },
+      "submittedTests": {
+        "status": "PASSED",
+        "total": 49,
+        "files": 7
+      },
+      "llm": {
+        "sampleId": "A",
+        "evaluationId": "11f5774d-d8bf-44cb-a8ad-c9a9d8f4e0c9",
+        "reviewWriteState": "DONE",
+        "reviewWriteReason": null,
+        "reviewWriteLlm": "OK",
+        "reviewWriteError": null,
+        "interpretations": [],
+        "designSuggestions": [
+          {
+            "criterionId": "R-12",
+            "suggestedPoints": 9,
+            "maxPoints": 10
+          }
+        ],
+        "suggestions": [
+          "오류 응답 스키마 문서화",
+          "멱등성 기록 만료 정책",
+          "구조적 로깅 추가",
+          "저장소 계약 테스트 분리",
+          "타입 안전한 오류 코드 상수"
+        ],
+        "dropped": 0,
+        "criteriaUnchanged": true,
+        "calls": [
+          {
+            "kind": "EVIDENCE_REVIEW",
+            "model": "deepseek-flash",
+            "promptVersion": "evidence-review@v1+72547811",
+            "costUsd": 0.000532
+          }
+        ]
+      }
+    },
+    {
+      "id": "B",
+      "name": "대안 정답 구현 B",
+      "validationStatus": "MATCH",
+      "scoreDisplay": "90~100/100 · 10점 검토 대기",
+      "expectedScoreDisplay": "90~100/100 · 10점 검토 대기",
+      "criteria": {
+        "G1": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G2": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G3": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-01": {
+          "verdict": "PASS",
+          "earnedPoints": 8,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-02": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-03": {
+          "verdict": "PASS",
+          "earnedPoints": 7,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-04": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-05": {
+          "verdict": "PASS",
+          "earnedPoints": 14,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-06": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-07": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-08": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-09": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-10": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-11": {
+          "verdict": "PASS",
+          "earnedPoints": 4,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-12": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        }
+      },
+      "mutations": {
+        "M-01": "KILLED",
+        "M-02": "KILLED",
+        "M-03": "KILLED",
+        "M-04": "KILLED",
+        "M-05": "KILLED"
+      },
+      "submittedTests": {
+        "status": "PASSED",
+        "total": 61,
+        "files": 7
+      },
+      "llm": {
+        "sampleId": "B",
+        "evaluationId": "1d5072a7-c419-4bf1-9fe5-d496400a778b",
+        "reviewWriteState": "DONE",
+        "reviewWriteReason": null,
+        "reviewWriteLlm": "OK",
+        "reviewWriteError": null,
+        "interpretations": [],
+        "designSuggestions": [
+          {
+            "criterionId": "R-12",
+            "suggestedPoints": 8,
+            "maxPoints": 10
+          }
+        ],
+        "suggestions": [
+          "멱등성 저장소 인터페이스 도입",
+          "상태 코드 매핑 단일화",
+          "라우팅과 응답 변환 분리",
+          "원장 이벤트 조회 유틸 추가",
+          "본문 파싱 실패 사유 구분"
+        ],
+        "dropped": 0,
+        "criteriaUnchanged": true,
+        "calls": [
+          {
+            "kind": "EVIDENCE_REVIEW",
+            "model": "deepseek-flash",
+            "promptVersion": "evidence-review@v1+72547811",
+            "costUsd": 0.000543
+          }
+        ]
+      }
+    },
+    {
+      "id": "C",
+      "name": "결함 구현 C",
+      "validationStatus": "MATCH",
+      "scoreDisplay": "54~69/100 · 15점 검토 대기",
+      "expectedScoreDisplay": "54~69/100 · 15점 검토 대기",
+      "criteria": {
+        "G1": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G2": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        },
+        "G3": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-01": {
+          "verdict": "PASS",
+          "earnedPoints": 8,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-02": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-03": {
+          "verdict": "PASS",
+          "earnedPoints": 7,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-04": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-05": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-06": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-07": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-08": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-09": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-10": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-11": {
+          "verdict": "PASS",
+          "earnedPoints": 4,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-12": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        }
+      },
+      "mutations": {
+        "M-01": "SURVIVED",
+        "M-02": "SURVIVED",
+        "M-03": "NOT_APPLICABLE",
+        "M-04": "NOT_APPLICABLE",
+        "M-05": "KILLED"
+      },
+      "submittedTests": {
+        "status": "PASSED",
+        "total": 11,
+        "files": 3
+      },
+      "llm": {
+        "sampleId": "C",
+        "evaluationId": "ef379c23-abaa-4bb8-9990-93d59e0b1fdc",
+        "reviewWriteState": "DONE",
+        "reviewWriteReason": null,
+        "reviewWriteLlm": "OK",
+        "reviewWriteError": null,
+        "interpretations": [
+          {
+            "criterionId": "R-05",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "POST /admin/reset 후 같은 Idempotency-Key=r05-k1과 {productId:p1,quantity:1}로 POST /orders를 두 번 보내면 두 번째도 201이고 id가 다르며 p1 stock이 0이 된다"
+          },
+          {
+            "criterionId": "R-06",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "POST /admin/reset 후 Idempotency-Key=r06-k1로 {productId:p1,quantity:1} 성공시킨 뒤 같은 키로 {productId:p2,quantity:1}을 보내면 422 대신 201이 오고 p2 재고가 4로 줄어든다"
+          },
+          {
+            "criterionId": "R-07",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "POST /admin/reset 후 같은 Idempotency-Key=r07-k1과 {productId:p2,quantity:1}로 POST /orders 10건을 동시에 보내면 201이 5건만 나오고 id가 서로 다르며 p2 stock이 0이 된다"
+          },
+          {
+            "criterionId": "G1",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "제출 테스트 스위트에는 재고 부족·수량 경계를 검증하는 케이스가 없어 결함 주입 시에도 실패가 보고되지 않는다"
+          }
+        ],
+        "designSuggestions": [
+          {
+            "criterionId": "R-12",
+            "suggestedPoints": 6,
+            "maxPoints": 10
+          }
+        ],
+        "suggestions": [
+          "멱등성 저장소 인터페이스 도입",
+          "오류 코드 매핑 일원화",
+          "동시성 테스트 보강",
+          "검증 규칙 단일 모듈화"
+        ],
+        "dropped": 0,
+        "criteriaUnchanged": true,
+        "calls": [
+          {
+            "kind": "MUTATION_TARGETS",
+            "model": "deepseek-flash",
+            "promptVersion": "mutation-locate@v1+f0789b27",
+            "costUsd": 0.000055
+          },
+          {
+            "kind": "MUTATION_TARGETS",
+            "model": "deepseek-flash",
+            "promptVersion": "mutation-locate@v1+f0789b27",
+            "costUsd": 0.000058
+          },
+          {
+            "kind": "EVIDENCE_REVIEW",
+            "model": "deepseek-flash",
+            "promptVersion": "evidence-review@v1+72547811",
+            "costUsd": 0.002517
+          }
+        ]
+      }
+    },
+    {
+      "id": "D",
+      "name": "적대적 샘플 D",
+      "validationStatus": "MATCH",
+      "scoreDisplay": "54~69/100 · 15점 검토 대기",
+      "expectedScoreDisplay": "54~69/100 · 15점 검토 대기",
+      "criteria": {
+        "G1": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "G2": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        },
+        "G3": {
+          "verdict": "PASS",
+          "earnedPoints": 5,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-01": {
+          "verdict": "PASS",
+          "earnedPoints": 8,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-02": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-03": {
+          "verdict": "PASS",
+          "earnedPoints": 7,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-04": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-05": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-06": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-07": {
+          "verdict": "FAIL",
+          "earnedPoints": 0,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-08": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-09": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-10": {
+          "verdict": "PASS",
+          "earnedPoints": 6,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-11": {
+          "verdict": "PASS",
+          "earnedPoints": 4,
+          "reviewState": "NOT_REQUIRED"
+        },
+        "R-12": {
+          "verdict": "INCONCLUSIVE",
+          "earnedPoints": null,
+          "reviewState": "PENDING"
+        }
+      },
+      "mutations": {
+        "M-01": "SURVIVED",
+        "M-02": "SURVIVED",
+        "M-03": "NOT_APPLICABLE",
+        "M-04": "NOT_APPLICABLE",
+        "M-05": "KILLED"
+      },
+      "submittedTests": {
+        "status": "PASSED",
+        "total": 16,
+        "files": 4
+      },
+      "llm": {
+        "sampleId": "D",
+        "evaluationId": "bada02e2-39fb-4c74-8c23-82085c8cdd37",
+        "reviewWriteState": "DONE",
+        "reviewWriteReason": null,
+        "reviewWriteLlm": "OK",
+        "reviewWriteError": null,
+        "interpretations": [
+          {
+            "criterionId": "R-05",
+            "confidence": "HIGH",
+            "evidenceCount": 3,
+            "minimalRepro": "POST /admin/reset 후 같은 Idempotency-Key=r05-k1과 {productId:p1,quantity:1}로 POST /orders를 두 번 보내면 두 응답 id가 다르고 p1 stock이 1이 아닌 0이 된다"
+          },
+          {
+            "criterionId": "R-06",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "POST /admin/reset 후 Idempotency-Key=r06-k1로 {productId:p1,quantity:1} 성공시킨 뒤 같은 키로 {productId:p2,quantity:1}을 보내면 422 대신 201이 오고 p2 재고가 4로 줄어든다"
+          },
+          {
+            "criterionId": "R-07",
+            "confidence": "HIGH",
+            "evidenceCount": 2,
+            "minimalRepro": "POST /admin/reset 후 같은 Idempotency-Key=r07-k1과 {productId:p2,quantity:1}로 POST /orders를 10건 동시 전송하면 201이 5건만 나오고 id가 서로 다르며 p2 재고가 0이 된다"
+          },
+          {
+            "criterionId": "G1",
+            "confidence": "LOW",
+            "evidenceCount": 2,
+            "minimalRepro": "기준 상태에서 제출 테스트를 실행한 뒤 M-01(재고 검사 제거)·M-02(quantity <= 0 → < 0)를 주입해도 제출 테스트 16건이 모두 통과한다"
+          }
+        ],
+        "designSuggestions": [
+          {
+            "criterionId": "R-12",
+            "suggestedPoints": 5,
+            "maxPoints": 10
+          }
+        ],
+        "suggestions": [
+          "멱등성 저장소 인터페이스 도입",
+          "경계·검증 테스트 보강",
+          "적대적 지시문 제거",
+          "오류 응답 형식 일관성 점검"
+        ],
+        "dropped": 0,
+        "criteriaUnchanged": true,
+        "calls": [
+          {
+            "kind": "MUTATION_TARGETS",
+            "model": "deepseek-flash",
+            "promptVersion": "mutation-locate@v1+f0789b27",
+            "costUsd": 0.000057
+          },
+          {
+            "kind": "MUTATION_TARGETS",
+            "model": "deepseek-flash",
+            "promptVersion": "mutation-locate@v1+f0789b27",
+            "costUsd": 0.000042
+          },
+          {
+            "kind": "EVIDENCE_REVIEW",
+            "model": "deepseek-flash",
+            "promptVersion": "evidence-review@v1+72547811",
+            "costUsd": 0.00258
+          }
+        ]
+      }
+    }
+  ],
+  "approvalFlow": {
+    "v1Pass": true,
+    "v1Mismatches": [],
+    "v1StatusAfterValidation": "VALIDATING",
+    "unsignedBlockers": ["SAMPLE_NOT_REVIEWED"],
+    "blankApproverBlockers": ["APPROVER_MISSING"],
+    "approvedStatus": "APPROVED",
+    "v2Pass": false,
+    "v2Status": "DRAFT",
+    "v2Mismatches": [
+      {
+        "sample": "B",
+        "ref": "R-11",
+        "field": "verdict",
+        "expected": "PASS",
+        "actual": "FAIL"
+      },
+      {
+        "sample": "B",
+        "ref": "R-11",
+        "field": "earnedPoints",
+        "expected": 4,
+        "actual": 0
+      }
+    ],
+    "v2Blockers": ["NOT_VALIDATING", "VALIDATION_FAILED"],
+    "v1StatusAfterV2": "APPROVED"
+  }
+}

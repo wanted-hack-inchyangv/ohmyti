@@ -1,0 +1,216 @@
+{
+  "kind": "rubric_draft_run",
+  "specPath": "../../samples/order-api/SPEC.md",
+  "provider": "deepseek",
+  "requestedModel": "deepseek-chat",
+  "promptVersion": "rubric-draft@v1+29f1b03a",
+  "startedAt": "2026-09-18T18:25:16.602Z",
+  "durationMs": 7584,
+  "call": {
+    "model": "deepseek-flash",
+    "inputDigest": "f6c6f0ffdb15c9d8a38f67bc94c035eb2c8fca47e9c3646f773cce9abe1b9d14",
+    "usage": {
+      "inputTokens": 6299,
+      "outputTokens": 2035,
+      "cachedInputTokens": 6144,
+      "costUsd": 0.001263
+    },
+    "costUsd": 0.001263
+  },
+  "result": {
+    "status": "OK",
+    "rubric": {
+      "version": "draft",
+      "criteria": [
+        {
+          "id": "R-01",
+          "area": "REQUIRED_FEATURES",
+          "title": "헬스 체크와 초기화",
+          "maxPoints": 8,
+          "method": "EXECUTION",
+          "condition": "GET /health가 200과 {\"status\":\"ok\"}를 반환하고, POST /admin/reset이 200과 {\"ok\":true}를 반환하며 이후 상품 재고가 시드(p1=2, p2=5, p3=0)로 돌아오고 이전 주문 조회가 404 NOT_FOUND가 된다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-02",
+          "area": "REQUIRED_FEATURES",
+          "title": "상품 조회",
+          "maxPoints": 6,
+          "method": "EXECUTION",
+          "condition": "GET /products/p1이 200과 id·name·stock 필드를 가진 객체를 반환하고 stock이 2이며, 없는 id p9는 404 NOT_FOUND를 반환한다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-03",
+          "area": "REQUIRED_FEATURES",
+          "title": "주문 생성과 재고 차감",
+          "maxPoints": 10,
+          "method": "EXECUTION",
+          "condition": "POST /orders에 유효한 Idempotency-Key와 {productId, quantity}를 보내면 201과 id·productId·quantity·status:\"CREATED\"를 반환하고 해당 상품 stock이 quantity만큼 줄어들며, GET /orders/:id로 같은 주문이 조회된다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-04",
+          "area": "REQUIRED_FEATURES",
+          "title": "주문 생성 입력 검증",
+          "maxPoints": 8,
+          "method": "EXECUTION",
+          "condition": "quantity가 0·-1·1.5·\"1\"이거나 누락이면, productId가 누락·빈 문자열·숫자이면, Idempotency-Key가 누락·빈 문자열이면, 본문이 JSON이 아니면 각각 400 VALIDATION_ERROR를 반환하고 재고와 주문이 변하지 않는다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-05",
+          "area": "REQUIRED_FEATURES",
+          "title": "멱등 재전송",
+          "maxPoints": 8,
+          "method": "EXECUTION",
+          "condition": "같은 Idempotency-Key와 같은 본문을 두 번 보내면 두 번 모두 201과 같은 id를 반환하고 재고는 한 번만 줄어들며 주문은 1건만 존재한다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-06",
+          "area": "REQUIRED_FEATURES",
+          "title": "멱등 충돌",
+          "maxPoints": 6,
+          "method": "EXECUTION",
+          "condition": "같은 Idempotency-Key로 다른 본문을 보내면 422 IDEMPOTENCY_CONFLICT를 반환하고 새 주문이 만들어지지 않으며 재고가 변하지 않는다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-07",
+          "area": "REQUIRED_FEATURES",
+          "title": "주문 취소와 재고 복구",
+          "maxPoints": 8,
+          "method": "EXECUTION",
+          "condition": "POST /orders/:id/cancel이 200과 status:\"CANCELLED\"를 반환하고 해당 상품 stock이 quantity만큼 되돌아오며, 이미 취소된 주문의 재취소는 409 ALREADY_CANCELLED이고 재고가 변하지 않는다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-08",
+          "area": "EDGE_AND_FAILURE",
+          "title": "재고 부족 거절",
+          "maxPoints": 8,
+          "method": "EXECUTION",
+          "condition": "quantity가 현재 stock보다 크면 409 INSUFFICIENT_STOCK을 반환하고 재고와 주문이 변하지 않으며, stock이 0인 p3은 어떤 수량이든 409를 반환한다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-09",
+          "area": "EDGE_AND_FAILURE",
+          "title": "없는 상품·주문 처리",
+          "maxPoints": 5,
+          "method": "EXECUTION",
+          "condition": "없는 상품으로 주문 생성 시 404 NOT_FOUND, 없는 주문 조회·취소 시 404 NOT_FOUND를 반환하고 재고가 변하지 않는다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-10",
+          "area": "EDGE_AND_FAILURE",
+          "title": "동시성 안전성",
+          "maxPoints": 12,
+          "method": "EXECUTION",
+          "condition": "같은 키·같은 본문 10건 동시 요청은 전부 201과 같은 id를 받고 재고가 1회만 줄며, 다른 키 10건 동시 요청은 성공 수량 합이 시작 재고를 넘지 않고 초과분은 409이며 stock이 음수가 되지 않는다",
+          "allowPartial": false
+        },
+        {
+          "id": "G1",
+          "area": "TEST_EFFECTIVENESS",
+          "title": "재고·수량 검증 테스트 실효성",
+          "maxPoints": 5,
+          "method": "MUTATION",
+          "condition": "재고 부족 검사 제거(M-01)와 수량 하한 완화(M-02) 변형을 제출 테스트가 실패로 잡아낸다",
+          "allowPartial": false,
+          "groupId": "G1"
+        },
+        {
+          "id": "G2",
+          "area": "TEST_EFFECTIVENESS",
+          "title": "멱등성 테스트 실효성",
+          "maxPoints": 5,
+          "method": "MUTATION",
+          "condition": "멱등 키 조회 건너뜀(M-03)과 같은 키 본문 비교 건너뜀(M-04) 변형을 제출 테스트가 실패로 잡아낸다",
+          "allowPartial": false,
+          "groupId": "G2"
+        },
+        {
+          "id": "G3",
+          "area": "TEST_EFFECTIVENESS",
+          "title": "취소 복구 테스트 실효성",
+          "maxPoints": 5,
+          "method": "MUTATION",
+          "condition": "취소 시 재고 복구 제거(M-05) 변형을 제출 테스트가 실패로 잡아낸다",
+          "allowPartial": false,
+          "groupId": "G3"
+        },
+        {
+          "id": "R-11",
+          "area": "DESIGN",
+          "title": "계층 분리와 변경 용이성",
+          "maxPoints": 10,
+          "method": "HUMAN_REVIEW",
+          "condition": "HTTP 요청 처리와 재고·주문·멱등성 상태 관리가 분리되어 있어 저장 방식이나 라우팅을 바꿔도 서로의 코드를 광범위하게 고치지 않아도 된다",
+          "allowPartial": false
+        },
+        {
+          "id": "R-12",
+          "area": "REPRODUCIBILITY_AND_DOCS",
+          "title": "실행 재현성과 문서",
+          "maxPoints": 10,
+          "method": "STATIC",
+          "condition": "저장소 루트에 scripts.start가 있는 package.json과 README.md가 있고, README가 실행 명령과 PORT 환경변수 설정을 언급하며, npm start로 빌드 없이 서버가 기동된다",
+          "allowPartial": false
+        }
+      ],
+      "groups": [
+        {
+          "id": "G1",
+          "name": "재고·수량 검증",
+          "criterionIds": ["R-04", "R-08"],
+          "mutationIds": ["M-01", "M-02"]
+        },
+        {
+          "id": "G2",
+          "name": "멱등성",
+          "criterionIds": ["R-05", "R-06"],
+          "mutationIds": ["M-03", "M-04"]
+        },
+        {
+          "id": "G3",
+          "name": "취소 재고 복구",
+          "criterionIds": ["R-07"],
+          "mutationIds": ["M-05"]
+        }
+      ],
+      "partialRules": [],
+      "independentReasons": [
+        {
+          "criterionIds": ["R-05", "R-10"],
+          "reason": "멱등 재전송이 순차 요청에서만 동작하고 동시 요청에서 중복 주문이 생기면 R-05와 R-10이 각각 위반된다"
+        },
+        {
+          "criterionIds": ["R-07", "R-08"],
+          "reason": "취소 복구 누락과 재고 부족 검사 누락은 서로 다른 관측(취소 후 stock, 초과 주문 거절)에서 드러난다"
+        },
+        {
+          "criterionIds": ["R-04", "R-06"],
+          "reason": "검증 규칙 위반이 400이 아니라 멱등성 충돌 422로 처리되면 두 기준이 각각 위반된다"
+        }
+      ]
+    },
+    "validationErrors": [
+      {
+        "code": "TOTAL_POINTS_MISMATCH",
+        "message": "배점 합계가 100이어야 합니다 (현재 114)"
+      }
+    ],
+    "notes": [
+      "명세 8절의 R-01~R-12 번호 체계와 본 초안의 id를 맞추기 위해 R-01~R-12를 그대로 사용했다",
+      "quantity가 stock과 같은 경우 성공하고 stock이 0이 되는 조건은 R-03과 R-08의 경계로 나누어 판정한다",
+      "동시성 규칙은 실행 환경의 타이밍에 따라 관측이 흔들릴 수 있어 반복 실행 결과로 판정해야 한다",
+      "HUMAN_REVIEW 기준 R-11은 사람이 확정하기 전까지 미확정 배점이다",
+      "명세에 없는 추가 필드 허용 여부는 성공 응답 스키마 판정에서 관대하게 본다는 가정을 두었다"
+    ],
+    "droppedMutationIds": [],
+    "model": "deepseek-flash"
+  }
+}

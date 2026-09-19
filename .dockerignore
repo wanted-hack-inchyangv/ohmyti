@@ -1,0 +1,26 @@
+# 워커 이미지 빌드 컨텍스트 (apps/worker/Dockerfile, 컨텍스트는 저장소 루트)
+.git
+.idea
+.turbo
+.run-logs
+.artifacts
+.vercel
+.railway
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+playwright-report
+test-results
+coverage
+.env
+.env.*
+!.env.example
+PRD.md
+TICKET.md
+RUN_PROMPT.md
+run-tickets.sh
+docs
+e2e
+.github

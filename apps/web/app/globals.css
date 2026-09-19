@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/*
+ * 디자인 토큰. 원티드(Montage) 톤을 따른다: Pretendard, 쿨 그레이, 파란 강조색, 8~12px 모서리.
+ * - surface: 화이트 배경, ink: 본문(#171719).
+ * - primary: 주요 동작·선택 상태·링크. 판정 상태를 뜻하지 않는다.
+ * - fail: 빨강. verdict FAIL(실제 실패) 요소에만 쓴다 (PRD 6장 ③).
+ * - pending: 주황. INCONCLUSIVE·PENDING(미확정) 요소에만 쓴다.
+ * 그 밖의 상태는 회색 계열(neutral)로 표현한다. 옅은 배경은 `bg-fail/10`처럼 투명도로 만든다.
+ * neutral 단계는 Tailwind 기본값 대신 원티드의 쿨 그레이로 덮어쓴다.
+ */
+@theme {
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-surface: #ffffff;
+  --color-ink: #171719;
+  --color-primary: #0066ff;
+  --color-primary-strong: #005eeb;
+  --color-fail: #ff4242;
+  --color-pending: #f26a00;
+
+  --color-neutral-50: #f7f7f8;
+  --color-neutral-100: #f4f4f5;
+  --color-neutral-200: #e8e9eb;
+  --color-neutral-300: #dbdcdf;
+  --color-neutral-400: #aeb0b6;
+  --color-neutral-500: #878a93;
+  --color-neutral-600: #70737c;
+  --color-neutral-700: #46474c;
+  --color-neutral-800: #2e2f33;
+  --color-neutral-900: #171719;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+body {
+  font-feature-settings: "ss05", "tnum";
+  letter-spacing: -0.01em;
+  /* 한국어는 어절 단위로 줄바꿈한다 (한 글자만 다음 줄로 넘어가지 않게) */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+code,
+kbd,
+pre,
+.font-mono {
+  letter-spacing: 0;
+}

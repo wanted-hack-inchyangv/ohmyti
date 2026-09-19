@@ -1,0 +1,23 @@
+{
+  "name": "order-api-ts",
+  "version": "1.0.0",
+  "nodeVersion": "22",
+  "installCommand": "npm ci --no-audit --no-fund",
+  "lockfile": "package-lock.json",
+  "allowedDependencies": {
+    "@hono/node-server": "2.1.1",
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.3",
+    "@types/supertest": "7.2.1",
+    "express": "5.2.1",
+    "hono": "4.13.8",
+    "supertest": "7.2.2",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11",
+    "zod": "4.6.5"
+  },
+  "runnerKind": "local",
+  "lockfileDigest": "799aa3602fdb538a19d304dacc11c59691c3a0f733166914469424f275a271b0",
+  "environmentDigest": "2044a2e63de05a7fa5be2f53d0693ecd2ea2b95df754926b0ee50473734c0b07"
+}

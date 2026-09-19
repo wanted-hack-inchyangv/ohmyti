@@ -1,0 +1,28 @@
+{
+  "name": "@ohmyti/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "도메인 타입, zod 스키마, 점수 집계, 상태 머신, 마스킹",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./fixtures": {
+      "types": "./src/fixtures.ts",
+      "default": "./src/fixtures.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --root ../.. --project @ohmyti/core"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.1"
+  }
+}

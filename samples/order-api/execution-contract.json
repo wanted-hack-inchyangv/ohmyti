@@ -1,0 +1,9 @@
+{
+  "startCommand": "npm start",
+  "portEnv": "PORT",
+  "healthPath": "/health",
+  "healthTimeoutMs": 10000,
+  "resetPath": "/admin/reset",
+  "templateName": "order-api-ts",
+  "nodeVersion": "22"
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "evaluations" ADD COLUMN "score_by_area" jsonb;

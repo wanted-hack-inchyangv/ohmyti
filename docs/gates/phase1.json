@@ -1,0 +1,851 @@
+{
+  "gate": "phase1",
+  "ticket": "T-110",
+  "ok": true,
+  "startedAt": "2026-09-18T13:06:15.367Z",
+  "finishedAt": "2026-09-18T13:06:30.248Z",
+  "totalMs": 14881,
+  "rounds": 3,
+  "nodeVersion": "v24.15.0",
+  "runnerKind": "local",
+  "environmentDigest": "2044a2e63de05a7fa5be2f53d0693ecd2ea2b95df754926b0ee50473734c0b07",
+  "harnessVersion": "0.1.0+c40aa35430460704",
+  "rubricVersion": "v1",
+  "matrixPath": "samples/order-api/expected-matrix.json",
+  "comparisons": [
+    {
+      "sampleId": "A",
+      "rows": [
+        {
+          "criterionId": "R-01",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 8 },
+          "actual": {
+            "criterionId": "R-01",
+            "verdict": "PASS",
+            "earnedPoints": 8,
+            "failureKind": "NONE",
+            "caseIds": ["R-01-normal-order"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-02",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-02",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-02-lookups"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-05",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 14 },
+          "actual": {
+            "criterionId": "R-05",
+            "verdict": "PASS",
+            "earnedPoints": 14,
+            "failureKind": "NONE",
+            "caseIds": ["R-05-idempotent-resend"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-06",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-06",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-06-idempotency-conflict"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-09",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-09",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-09-cancel"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-03",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 7 },
+          "actual": {
+            "criterionId": "R-03",
+            "verdict": "PASS",
+            "earnedPoints": 7,
+            "failureKind": "NONE",
+            "caseIds": ["R-03-insufficient-stock"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-04",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-04",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-04-validation"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-07",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-07",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-07-same-key-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-08",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-08",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-08-distinct-keys-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "G1",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G2",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G3",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-12",
+          "method": "HUMAN_REVIEW",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-10",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-10",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-10-health-and-reset"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-11",
+          "method": "STATIC",
+          "expected": { "verdict": "PASS", "earnedPoints": 4 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        }
+      ],
+      "tests": {
+        "expected": { "status": "PASSED", "total": 49, "files": 7 },
+        "actual": { "status": "PASSED", "total": 49, "files": 7 },
+        "ok": true
+      },
+      "mismatches": []
+    },
+    {
+      "sampleId": "B",
+      "rows": [
+        {
+          "criterionId": "R-01",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 8 },
+          "actual": {
+            "criterionId": "R-01",
+            "verdict": "PASS",
+            "earnedPoints": 8,
+            "failureKind": "NONE",
+            "caseIds": ["R-01-normal-order"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-02",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-02",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-02-lookups"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-05",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 14 },
+          "actual": {
+            "criterionId": "R-05",
+            "verdict": "PASS",
+            "earnedPoints": 14,
+            "failureKind": "NONE",
+            "caseIds": ["R-05-idempotent-resend"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-06",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-06",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-06-idempotency-conflict"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-09",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-09",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-09-cancel"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-03",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 7 },
+          "actual": {
+            "criterionId": "R-03",
+            "verdict": "PASS",
+            "earnedPoints": 7,
+            "failureKind": "NONE",
+            "caseIds": ["R-03-insufficient-stock"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-04",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-04",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-04-validation"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-07",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-07",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-07-same-key-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-08",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-08",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-08-distinct-keys-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "G1",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G2",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G3",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-12",
+          "method": "HUMAN_REVIEW",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-10",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-10",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-10-health-and-reset"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-11",
+          "method": "STATIC",
+          "expected": { "verdict": "PASS", "earnedPoints": 4 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        }
+      ],
+      "tests": {
+        "expected": { "status": "PASSED", "total": 61, "files": 7 },
+        "actual": { "status": "PASSED", "total": 61, "files": 7 },
+        "ok": true
+      },
+      "mismatches": []
+    },
+    {
+      "sampleId": "C",
+      "rows": [
+        {
+          "criterionId": "R-01",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 8 },
+          "actual": {
+            "criterionId": "R-01",
+            "verdict": "PASS",
+            "earnedPoints": 8,
+            "failureKind": "NONE",
+            "caseIds": ["R-01-normal-order"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-02",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-02",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-02-lookups"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-05",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-05",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-05-idempotent-resend"],
+            "reason": "R-05-idempotent-resend: p1After.stock, second.body.id == first.body.id"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-06",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-06",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-06-idempotency-conflict"],
+            "reason": "R-06-idempotency-conflict: otherProduct.status, otherProduct.body.error.code, otherQuantity.status, otherQuantity.body.error.code, p2After.stock"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-09",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-09",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-09-cancel"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-03",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 7 },
+          "actual": {
+            "criterionId": "R-03",
+            "verdict": "PASS",
+            "earnedPoints": 7,
+            "failureKind": "NONE",
+            "caseIds": ["R-03-insufficient-stock"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-04",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-04",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-04-validation"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-07",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-07",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-07-same-key-concurrent"],
+            "reason": "R-07-same-key-concurrent: p2After.stock, burst.count(status == 201), burst.allEqual(body.id)"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-08",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-08",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-08-distinct-keys-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "G1",
+          "method": "MUTATION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G2",
+          "method": "MUTATION",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G3",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-12",
+          "method": "HUMAN_REVIEW",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-10",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-10",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-10-health-and-reset"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-11",
+          "method": "STATIC",
+          "expected": { "verdict": "PASS", "earnedPoints": 4 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        }
+      ],
+      "tests": {
+        "expected": { "status": "PASSED", "total": 11, "files": 3 },
+        "actual": { "status": "PASSED", "total": 11, "files": 3 },
+        "ok": true
+      },
+      "mismatches": []
+    },
+    {
+      "sampleId": "D",
+      "rows": [
+        {
+          "criterionId": "R-01",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 8 },
+          "actual": {
+            "criterionId": "R-01",
+            "verdict": "PASS",
+            "earnedPoints": 8,
+            "failureKind": "NONE",
+            "caseIds": ["R-01-normal-order"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-02",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-02",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-02-lookups"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-05",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-05",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-05-idempotent-resend"],
+            "reason": "R-05-idempotent-resend: p1After.stock, second.body.id == first.body.id"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-06",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-06",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-06-idempotency-conflict"],
+            "reason": "R-06-idempotency-conflict: otherProduct.status, otherProduct.body.error.code, otherQuantity.status, otherQuantity.body.error.code, p2After.stock"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-09",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-09",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-09-cancel"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-03",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 7 },
+          "actual": {
+            "criterionId": "R-03",
+            "verdict": "PASS",
+            "earnedPoints": 7,
+            "failureKind": "NONE",
+            "caseIds": ["R-03-insufficient-stock"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-04",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-04",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-04-validation"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-07",
+          "method": "EXECUTION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": {
+            "criterionId": "R-07",
+            "verdict": "FAIL",
+            "earnedPoints": 0,
+            "failureKind": "ASSERTION",
+            "caseIds": ["R-07-same-key-concurrent"],
+            "reason": "R-07-same-key-concurrent: p2After.stock, burst.count(status == 201), burst.allEqual(body.id)"
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-08",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-08",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-08-distinct-keys-concurrent"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "G1",
+          "method": "MUTATION",
+          "expected": { "verdict": "FAIL", "earnedPoints": 0 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G2",
+          "method": "MUTATION",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "G3",
+          "method": "MUTATION",
+          "expected": { "verdict": "PASS", "earnedPoints": 5 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-12",
+          "method": "HUMAN_REVIEW",
+          "expected": { "verdict": "INCONCLUSIVE", "earnedPoints": null },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        },
+        {
+          "criterionId": "R-10",
+          "method": "EXECUTION",
+          "expected": { "verdict": "PASS", "earnedPoints": 6 },
+          "actual": {
+            "criterionId": "R-10",
+            "verdict": "PASS",
+            "earnedPoints": 6,
+            "failureKind": "NONE",
+            "caseIds": ["R-10-health-and-reset"]
+          },
+          "inScope": true,
+          "ok": true
+        },
+        {
+          "criterionId": "R-11",
+          "method": "STATIC",
+          "expected": { "verdict": "PASS", "earnedPoints": 4 },
+          "actual": null,
+          "inScope": false,
+          "ok": null
+        }
+      ],
+      "tests": {
+        "expected": { "status": "PASSED", "total": 16, "files": 4 },
+        "actual": { "status": "PASSED", "total": 16, "files": 4 },
+        "ok": true
+      },
+      "mismatches": []
+    }
+  ],
+  "digests": [
+    {
+      "sampleId": "A",
+      "round": 1,
+      "digest": "58cc264b292ad7a1167a079d9da38c41bfc5184149669eb2d7d5a1ba41ca094e"
+    },
+    {
+      "sampleId": "B",
+      "round": 1,
+      "digest": "171797ea7949a0001f90dd69917c1d26e090efe2ba2ae9c825d165bcae1ec112"
+    },
+    {
+      "sampleId": "C",
+      "round": 1,
+      "digest": "b4ba627e4528738d9b95edbcff81bacfae45036a2a2ad9580827992c320c13f0"
+    },
+    {
+      "sampleId": "D",
+      "round": 1,
+      "digest": "198ff8c0368ef1c6248e1fd89a647cf7c02d99530e72926afaf9b97aee3984eb"
+    },
+    {
+      "sampleId": "A",
+      "round": 2,
+      "digest": "58cc264b292ad7a1167a079d9da38c41bfc5184149669eb2d7d5a1ba41ca094e"
+    },
+    {
+      "sampleId": "B",
+      "round": 2,
+      "digest": "171797ea7949a0001f90dd69917c1d26e090efe2ba2ae9c825d165bcae1ec112"
+    },
+    {
+      "sampleId": "C",
+      "round": 2,
+      "digest": "b4ba627e4528738d9b95edbcff81bacfae45036a2a2ad9580827992c320c13f0"
+    },
+    {
+      "sampleId": "D",
+      "round": 2,
+      "digest": "198ff8c0368ef1c6248e1fd89a647cf7c02d99530e72926afaf9b97aee3984eb"
+    },
+    {
+      "sampleId": "A",
+      "round": 3,
+      "digest": "58cc264b292ad7a1167a079d9da38c41bfc5184149669eb2d7d5a1ba41ca094e"
+    },
+    {
+      "sampleId": "B",
+      "round": 3,
+      "digest": "171797ea7949a0001f90dd69917c1d26e090efe2ba2ae9c825d165bcae1ec112"
+    },
+    {
+      "sampleId": "C",
+      "round": 3,
+      "digest": "b4ba627e4528738d9b95edbcff81bacfae45036a2a2ad9580827992c320c13f0"
+    },
+    {
+      "sampleId": "D",
+      "round": 3,
+      "digest": "198ff8c0368ef1c6248e1fd89a647cf7c02d99530e72926afaf9b97aee3984eb"
+    }
+  ],
+  "determinismProblems": [],
+  "environmentErrors": []
+}

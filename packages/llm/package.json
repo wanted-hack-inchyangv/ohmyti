@@ -1,0 +1,24 @@
+{
+  "name": "@ohmyti/llm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "LLM 어댑터 (deepseek, fake)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --root ../.. --project @ohmyti/llm"
+  },
+  "dependencies": {
+    "@ohmyti/core": "workspace:*",
+    "@ohmyti/db": "workspace:*",
+    "openai": "7.18.0",
+    "zod": "4.6.5"
+  }
+}
