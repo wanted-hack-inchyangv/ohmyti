@@ -60,7 +60,8 @@ export function rehearsalSteps(c: string, r05Run: string | null): RehearsalStep[
       segment: "15~40초",
       name: "03-workbench-c",
       path: wb,
-      expectTexts: ["54~69/100 · 15점 검토 대기", "채점기 사전 검증 완료", "저장된 실행 · "],
+      // 점수와 검토 대기 배지는 헤더에서 따로 보인다 (재디자인 이후)
+      expectTexts: ["54~69/100", "15점 검토 대기", "채점기 사전 검증 완료", "저장된 실행 · "],
     },
     {
       segment: "15~40초",
