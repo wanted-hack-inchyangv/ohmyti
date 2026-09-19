@@ -10,7 +10,7 @@
  * 사용: `pnpm gate:phase2 --base-url https://ohmyti.vercel.app [--phase 5] [--repeat 3] [--repeat-samples A,C] [--samples A,B,C,D]
  *        [--skip-unsupported] [--out docs/gates/phase2.md] [--json docs/gates/phase2.json] [--timeout-ms 900000] [--poll-ms 5000]`
  * `--phase`는 배포된 단계에 맞는 기대값을 고른다(2 = T-208 시점, 4 = mutation·리뷰 단계 포함, 5 = 맥락 연결까지, 기본 5, T-507).
- * 환경변수: `APP_ACCESS_PASSWORD`(배포의 접근 비밀번호, `.env.local` 자동 로드) 또는 `--password`.
+ * 환경변수: `APP_ACCESS_PASSWORD`(배포의 접근 비밀번호, `.env.local` 자동 로드) 또는 `--password`. 공개 배포는 생략한다(T-606).
  * 종료 코드: 0 = 모든 제출이 COMPLETED이고 기대와 일치하며 반복 결과가 동일하고 미지원 검사가 통과. 1 = 그 밖.
  *
  * 워커 로그의 비밀값 마스킹 확인은 이 스크립트 밖에서 한다(`docs/deploy.md` 2단계 게이트 절). 기록 파일을 다시 만들면
@@ -151,7 +151,7 @@ export class GateClient {
   }
 }
 
-function unwrap<T>(
+export function unwrap<T>(
   result: { ok: true; data: T } | { ok: false; code: string; message: string },
   label: string,
 ): T {
@@ -575,7 +575,8 @@ export interface GateRunSummary {
 
 export interface GateOptions {
   baseUrl: string;
-  password: string;
+  /** 접근 보호가 켜진 배포의 비밀번호. 공개 배포(`APP_ACCESS_MODE=public`)면 null이고 로그인하지 않는다 */
+  password: string | null;
   phase: GatePhase;
   sampleIds: SampleId[];
   repeat: number;
@@ -592,7 +593,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForTerminal(
+export async function waitForTerminal(
   client: GateClient,
   submissionId: string,
   timeoutMs: number,
@@ -660,7 +661,7 @@ export async function runGate(
     JSON.parse(await readFile(options.reposPath, "utf8")),
   );
   const client = new GateClient(options.baseUrl);
-  await client.login(options.password);
+  if (options.password) await client.login(options.password);
   log(`로그인 성공: ${options.baseUrl}`);
 
   const versions = unwrap(
@@ -1088,11 +1089,9 @@ async function main(): Promise<void> {
   });
   const baseUrl = values["base-url"];
   if (!baseUrl) usage();
-  const password = values.password ?? process.env.APP_ACCESS_PASSWORD;
-  if (!password) {
-    console.error("접근 비밀번호가 필요합니다: --password 또는 APP_ACCESS_PASSWORD");
-    process.exit(1);
-  }
+  // 공개 배포는 비밀번호 없이 조회·제출한다. 보호가 켜진 배포에 비밀번호를 주지 않으면 첫 API 호출이 401로 끝난다
+  const password = values.password ?? process.env.APP_ACCESS_PASSWORD ?? null;
+  if (!password) console.log("접근 비밀번호가 없어 로그인하지 않습니다 (공개 배포로 간주)");
   const repeat = Number(values.repeat);
   const timeoutMs = Number(values["timeout-ms"]);
   const pollMs = Number(values["poll-ms"]);

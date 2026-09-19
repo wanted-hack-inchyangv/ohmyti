@@ -44,7 +44,7 @@
 
 - R-11(README, STATIC): README.md에 실행 방법과 PORT 언급이 있어 충족을 기대한다.
 - R-12(설계·변경 용이성, HUMAN_REVIEW): 사람 확인 대기다.
-- G1 ~ G3(테스트 실효성, MUTATION): 제출 테스트가 스모크 수준으로 얕게 설계되어 결함 주입에도 SURVIVED가 나올 가능성이 있을 것으로 예상한다. G2·G3의 대상 기준(R-05·R-06, R-09)은 이미 FAIL 상태이므로 변이 자체가 적용되지 않아 판정이 INCONCLUSIVE로 남을 가능성도 함께 기대한다.
+- G1 ~ G3(테스트 실효성, MUTATION): 제출 테스트가 스모크 수준으로 얕게 설계되어 결함 주입에도 SURVIVED가 나올 것으로 예상한다. G2·G3의 대상 기준(R-05·R-06, R-09)은 이미 FAIL 상태이므로 변이 자체가 적용되지 않아 판정이 INCONCLUSIVE로 남을 가능성도 함께 기대한다.
 
 ## 구현 특징과 결함
 
@@ -87,13 +87,14 @@
 
 ## 실제 제출 결과
 
-- 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`, 기준 구성은 로컬 `rubric.v1.json`과 동일), 제출 일시는 2026-09-19 12:38 ~ 12:46 UTC 구간에 속한다. 평가에 사용한 커밋은 이름을 변경하기 전의 HEAD `9f20a19da980ac142a18fa9de4f9cf77048f9744`이며, 현재 HEAD(`dbff20e9379a5f61aca6317451221a539e53dfbf`)와의 차이는 README 제목과 패키지 이름뿐이다. 제출 당시 저장소 URL은 예전 이름(`order-api-gaeun`)이었고, GitHub는 이 URL을 새 이름(`gaeun-order-api`)으로 리디렉션한다.
-- 워크벤치: https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe, 점수 37~57/100(20점 검토 대기).
-- 기준별 판정: R-01 ~ R-11이 모두 기대와 일치했다. G1은 FAIL이었다(M-01 SURVIVED: 하네스가 결함을 확인했지만 제출 테스트 4개 중 실패 0개로 모두 통과함). G2·G3는 INCONCLUSIVE였다(대상 기준인 R-05·R-06, R-09가 이미 FAIL 상태여서 변이를 유효하게 적용할 수 없음). R-12는 기대대로 사람의 검토 대기(INCONCLUSIVE)였다.
-- GitHub 근거로 선택된 저장소: `gaeun-bookmark-api`, `gaeun-todo-react`, 그리고 한서진의 과제 제출물(겹친 키워드: api, js, node, typescript, 주문)이다. 세 페르소나가 조직 프로필 하나를 공유하기 때문에 세 번째 자리에서 교차 선택이 발생했다(알려진 한계).
-- 이력서 주장별 실제 상태: 핵심 주장 3가지가 모두 기대와 일치했다. React/TypeScript 경험과 Express REST API 경험은 각각 `gaeun-todo-react`, `gaeun-bookmark-api`를 근거로 관련 근거 확인(EVIDENCE_FOUND)으로 판정되었고, 동시성 제어와 멱등성 설계 경험 주장은 추가 확인 필요(NEEDS_CHECK)로 판정되었다.
-- 생성된 후속 질문의 요지: "동시성 제어와 멱등성 설계 경험" 주장에 대해서는 기대대로 후속 질문이 생성되었다. R-05 기준과 연결되어, 팀 프로젝트에서 멱등성 키를 어떤 저장소에 얼마 동안 보관했고 같은 키에 다른 본문이 오는 경우를 어떻게 구분했는지, 이번 과제에서는 그 경우가 새 주문으로 처리된 것과 조건 차이가 무엇인지 묻는 내용이었다. 그 밖에 G1, R-11 기준과 연결된 질문(북마크 API의 테스트 경계값, README 정보 배치 기준)과 기준과 연결되지 않은 질문 4건(React 컴포넌트 분리 기준, jQuery 전환 방식, 크로스 브라우저 검증 절차, Express 계층 구조)이 생성되었다.
-- 이 평가에서는 LLM 리뷰 작성(REVIEW_WRITE) 단계가 출력 스키마 검증에 2회 실패해 미확정으로 처리되었다. 두 번의 시도 모두 `failures.5.minimalReproSummary.summary` 필드가 빈 문자열이어서(최소 1자 이상을 요구하는 스키마 검증에 위배) 출력이 거부되었다. 이로 인해 AI 리뷰 제안과 R-12 설계 초안이 생성되지 않았다. 점수에는 영향이 없었다(DESIGN 영역은 원래 사람 검토 대기 상태로 0/10 획득에 10점 보류로 남는다).
+- 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`), 2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤 `pnpm gate:personas`가 웹 제출 폼으로 제출했다. 평가 커밋은 입력값 표의 현재 HEAD `dbff20e9379a5f61aca6317451221a539e53dfbf`이다. 대조 기록은 `docs/gates/personas.md`에 있고 `samples/personas/expected-matrix.json`의 기대값과 불일치 0건이었다.
+- 워크벤치: https://ohmyti.vercel.app/evaluations/8d5c095b-d5a0-45c1-813a-d05785a9fec5, 점수 37~57/100(20점 검토 대기). 제출부터 평가 종료까지 1294초가 걸렸다.
+- 기준별 판정: R-04·R-05·R-06·R-07·R-09가 FAIL이고 나머지는 PASS로 기대와 일치했다. G1은 FAIL(M-01 SURVIVED: 하네스가 결함을 확인했지만 제출 테스트는 모두 통과함)이다. G2·G3는 대상 기준이 이미 FAIL이라 변이를 적용할 수 없어 INCONCLUSIVE다. R-12는 사람의 검토 대기(INCONCLUSIVE)다.
+- LLM 리뷰와 R-12 설계 초안: 이전 제출에서는 REVIEW_WRITE가 출력 스키마 검증에 2회 실패해(`failures.5.minimalReproSummary.summary` 빈 문자열) 미확정이었다. T-601 이후 이번 제출은 정상 완료(`llm: OK`)되었고 R-12 초안(3/10)이 생성되었다. 초안은 재고 검사·차감이 HTTP 핸들러 안에 있다는 점, 멱등성 저장·조회 코드가 없다는 점, 오류 응답이 핸들러마다 인라인으로 반복된다는 점을 근거로 들었다.
+- GitHub 근거로 선택된 저장소: `gaeun-todo-react`(커밋 9개), `gaeun-bookmark-api`(커밋 9개)이다. 이력서 링크로 선정되었고 제출 저장소는 제외되었다. 이전 제출에서 세 번째 자리에 끼어들었던 한서진의 과제 제출물은 이번에는 선택되지 않았다.
+- 이력서 주장별 실제 상태: React/TypeScript 경험과 Express REST API 학습 주장은 관련 근거 확인(EVIDENCE_FOUND), 동시성 제어와 멱등성 설계 경험 주장은 추가 확인 필요(NEEDS_CHECK)로 모두 기대와 일치했다.
+- 생성된 후속 질문의 요지: 동시성 제어와 멱등성 설계 경험 주장에는 기대대로 R-05와 연결된 질문이 생성되었다. 멱등성 키의 저장소와 키 구성, 같은 키에 다른 본문이 오는 경우의 구분 방법을 묻고, 이번 과제에서 그 경우가 새 주문으로 처리된 것과 조건 차이를 묻는 내용이다. 그 밖에 북마크 API의 입력 검증과 테스트 경계값(G1), README의 API 계약 문서화 수준(R-11), jQuery → React 전환 방식을 묻는 질문이 생성되었다.
+- 이전 제출(2026-09-19 12:38 UTC경, 이름 변경 전 커밋 `9f20a19`): https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe.
 
 ## 산출물
 

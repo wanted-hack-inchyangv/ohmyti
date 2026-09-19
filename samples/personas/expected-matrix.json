@@ -1,0 +1,184 @@
+{
+  "note": "페르소나 4종의 배포 환경 회귀 기대값 (T-606). `pnpm gate:personas`가 읽는다. 판정·변이 결과·점수 표시·근거 저장소·단계 상태·후속 질문 존재는 실패 조건이고, 주장 상태 라벨(claims)은 LLM 판단이라 불일치를 경고로만 기록한다. 판정 점수는 rubric 배점에서 정한다(PASS = 배점, FAIL = 0, INCONCLUSIVE = null).",
+  "organization": "wanted-hack-inchyangv",
+  "githubProfileUrl": "https://github.com/wanted-hack-inchyangv",
+  "rubricVersion": "v2-be07fb44",
+  "personas": {
+    "seojin": {
+      "level": "시니어",
+      "repoUrl": "https://github.com/wanted-hack-inchyangv/seojin-order-api",
+      "sha": "d35969b619823452e5edc9bf23ed75dc8f596219",
+      "formerRepoNames": ["order-api-seojin"],
+      "resume": "samples/personas/seojin/resume.pdf",
+      "portfolio": ["seojin-stock-reservation", "seojin-idempotency-kit"],
+      "criteria": {
+        "R-01": "PASS",
+        "R-02": "PASS",
+        "R-03": "PASS",
+        "R-04": "PASS",
+        "R-05": "PASS",
+        "R-06": "PASS",
+        "R-07": "PASS",
+        "R-08": "PASS",
+        "R-09": "PASS",
+        "R-10": "PASS",
+        "R-11": "PASS",
+        "G1": "PASS",
+        "G2": "PASS",
+        "G3": "PASS",
+        "R-12": "INCONCLUSIVE"
+      },
+      "mutations": {
+        "M-01": "KILLED",
+        "M-02": "NOT_APPLICABLE",
+        "M-03": "KILLED",
+        "M-04": "KILLED",
+        "M-05": "KILLED"
+      },
+      "mutationNotes": {
+        "M-02": "수량 하한이 zod 스키마 `min(1)`에 있어 비교식 변이 대상이 아니다(알려진 한계). 페르소나 자체 검증은 스키마를 직접 고쳐 KILLED였다. G1은 M-01 KILLED로 PASS다"
+      },
+      "scoreDisplay": "90~100/100 · 10점 검토 대기",
+      "followUpClaims": [],
+      "claims": [
+        { "anyOf": ["재고 선점", "초과 판매"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["멱등성 키", "멱등성", "중복 주문"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["Kafka", "카프카"], "status": "NO_DATA" }
+      ]
+    },
+    "taeyun": {
+      "level": "주니어",
+      "repoUrl": "https://github.com/wanted-hack-inchyangv/taeyun-order-api",
+      "sha": "4c595e36efb5489dd0234d834cfdb583048ccfc1",
+      "formerRepoNames": ["order-api-taeyun"],
+      "resume": "samples/personas/taeyun/resume.pdf",
+      "portfolio": ["taeyun-room-booking", "taeyun-til-cli"],
+      "criteria": {
+        "R-01": "PASS",
+        "R-02": "PASS",
+        "R-03": "PASS",
+        "R-04": "PASS",
+        "R-05": "PASS",
+        "R-06": "FAIL",
+        "R-07": "FAIL",
+        "R-08": "PASS",
+        "R-09": "PASS",
+        "R-10": "PASS",
+        "R-11": "PASS",
+        "G1": "PASS",
+        "G2": "PASS",
+        "G3": "PASS",
+        "R-12": "INCONCLUSIVE"
+      },
+      "mutations": {
+        "M-01": "KILLED",
+        "M-02": "KILLED",
+        "M-03": "KILLED",
+        "M-04": "NOT_APPLICABLE",
+        "M-05": "KILLED"
+      },
+      "mutationNotes": {
+        "M-04": "대상 기준 R-06이 기준 상태에서 이미 FAIL이라 적용하지 않는다. G2는 M-03 KILLED로 PASS다"
+      },
+      "scoreDisplay": "78~88/100 · 10점 검토 대기",
+      "followUpClaims": [{ "label": "결제 웹훅 멱등 처리", "anyOf": ["웹훅", "webhook"] }],
+      "claims": [
+        { "anyOf": ["중복 예약", "시간대"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["웹훅", "webhook"], "status": "NO_DATA" },
+        { "anyOf": ["CLI"], "status": "NEEDS_CHECK" }
+      ]
+    },
+    "gaeun": {
+      "level": "신입",
+      "repoUrl": "https://github.com/wanted-hack-inchyangv/gaeun-order-api",
+      "sha": "dbff20e9379a5f61aca6317451221a539e53dfbf",
+      "formerRepoNames": ["order-api-gaeun"],
+      "resume": "samples/personas/gaeun/resume.pdf",
+      "portfolio": ["gaeun-todo-react", "gaeun-bookmark-api"],
+      "criteria": {
+        "R-01": "PASS",
+        "R-02": "PASS",
+        "R-03": "PASS",
+        "R-04": "FAIL",
+        "R-05": "FAIL",
+        "R-06": "FAIL",
+        "R-07": "FAIL",
+        "R-08": "PASS",
+        "R-09": "FAIL",
+        "R-10": "PASS",
+        "R-11": "PASS",
+        "G1": "FAIL",
+        "G2": "INCONCLUSIVE",
+        "G3": "INCONCLUSIVE",
+        "R-12": "INCONCLUSIVE"
+      },
+      "mutations": {
+        "M-01": "SURVIVED",
+        "M-02": "NOT_APPLICABLE",
+        "M-03": "NOT_APPLICABLE",
+        "M-04": "NOT_APPLICABLE",
+        "M-05": "NOT_APPLICABLE"
+      },
+      "mutationNotes": {
+        "M-02": "대상 기준 R-04가 이미 FAIL",
+        "M-03": "대상 기준 R-05가 이미 FAIL",
+        "M-04": "대상 기준 R-06이 이미 FAIL",
+        "M-05": "대상 기준 R-09가 이미 FAIL"
+      },
+      "scoreDisplay": "37~57/100 · 20점 검토 대기",
+      "followUpClaims": [
+        { "label": "동시성 제어와 멱등성 설계 경험", "anyOf": ["동시성", "멱등"] }
+      ],
+      "claims": [
+        { "anyOf": ["React"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["Express"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["동시성", "멱등"], "status": "NEEDS_CHECK" }
+      ]
+    },
+    "dohyun": {
+      "level": "미들",
+      "repoUrl": "https://github.com/wanted-hack-inchyangv/dohyun-order-api",
+      "sha": "3cf84691d53c2112bce57881ffde66b8c5a79c4a",
+      "formerRepoNames": [],
+      "resume": "samples/personas/dohyun/resume.pdf",
+      "portfolio": ["dohyun-board-api", "dohyun-report-batch"],
+      "criteria": {
+        "R-01": "PASS",
+        "R-02": "PASS",
+        "R-03": "PASS",
+        "R-04": "PASS",
+        "R-05": "PASS",
+        "R-06": "PASS",
+        "R-07": "PASS",
+        "R-08": "PASS",
+        "R-09": "PASS",
+        "R-10": "PASS",
+        "R-11": "PASS",
+        "G1": "FAIL",
+        "G2": "FAIL",
+        "G3": "FAIL",
+        "R-12": "INCONCLUSIVE"
+      },
+      "mutations": {
+        "M-01": "SURVIVED",
+        "M-02": "SURVIVED",
+        "M-03": "SURVIVED",
+        "M-04": "SURVIVED",
+        "M-05": "SURVIVED"
+      },
+      "mutationNotes": {},
+      "scoreDisplay": "75~85/100 · 10점 검토 대기",
+      "followUpClaims": [
+        {
+          "label": "클린 아키텍처와 TDD 적용",
+          "anyOf": ["TDD", "클린 아키텍처", "Clean Architecture"]
+        }
+      ],
+      "claims": [
+        { "anyOf": ["SI", "납기"], "status": "EVIDENCE_FOUND" },
+        { "anyOf": ["TDD", "클린 아키텍처", "Clean Architecture"], "status": "NO_DATA" },
+        { "anyOf": ["매출", "보고서", "배치"], "status": "EVIDENCE_FOUND" }
+      ]
+    }
+  }
+}

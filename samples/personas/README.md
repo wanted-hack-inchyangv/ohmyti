@@ -11,12 +11,12 @@ ohmyti(CodeGraph Reviewer)를 시험하기 위해 만든 가상 지원자 페르
 
 ## 페르소나 요약
 
-| 핸들     | 수준   | 과제 제출물                                                                     | 포트폴리오 저장소                                                                                                                                                                            | 기대 판정 요약                                                                                     | 실제 점수                   | 문서                            |
-| -------- | ------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------- |
-| `seojin` | 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | [`seojin-stock-reservation`](https://github.com/wanted-hack-inchyangv/seojin-stock-reservation), [`seojin-idempotency-kit`](https://github.com/wanted-hack-inchyangv/seojin-idempotency-kit) | R-01 ~ R-10 전부 PASS, 결함 없음                                                                   | 90~100/100 (10점 검토 대기) | [persona.md](seojin/persona.md) |
-| `taeyun` | 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | [`taeyun-room-booking`](https://github.com/wanted-hack-inchyangv/taeyun-room-booking), [`taeyun-til-cli`](https://github.com/wanted-hack-inchyangv/taeyun-til-cli)                           | R-06·R-07만 FAIL(멱등 키 충돌, 동시 요청), 나머지 PASS                                             | 78~88/100 (10점 검토 대기)  | [persona.md](taeyun/persona.md) |
-| `gaeun`  | 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | [`gaeun-todo-react`](https://github.com/wanted-hack-inchyangv/gaeun-todo-react), [`gaeun-bookmark-api`](https://github.com/wanted-hack-inchyangv/gaeun-bookmark-api)                         | R-04·R-05·R-06·R-07·R-09 FAIL(입력 검증, 멱등성 전체, 재고 복구 누락)                              | 37~57/100 (20점 검토 대기)  | [persona.md](gaeun/persona.md)  |
-| `dohyun` | 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | [`dohyun-board-api`](https://github.com/wanted-hack-inchyangv/dohyun-board-api), [`dohyun-report-batch`](https://github.com/wanted-hack-inchyangv/dohyun-report-batch)                       | R-01 ~ R-11 전부 PASS, G1 ~ G3은 테스트가 결함을 잡지 못해 FAIL 또는 변이 적용 불가로 INCONCLUSIVE | 75~90/100 (15점 검토 대기)  | [persona.md](dohyun/persona.md) |
+| 핸들     | 수준   | 과제 제출물                                                                     | 포트폴리오 저장소                                                                                                                                                                            | 기대 판정 요약                                                        | 실제 점수                   | 문서                            |
+| -------- | ------ | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------- | ------------------------------- |
+| `seojin` | 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | [`seojin-stock-reservation`](https://github.com/wanted-hack-inchyangv/seojin-stock-reservation), [`seojin-idempotency-kit`](https://github.com/wanted-hack-inchyangv/seojin-idempotency-kit) | R-01 ~ R-10 전부 PASS, 결함 없음                                      | 90~100/100 (10점 검토 대기) | [persona.md](seojin/persona.md) |
+| `taeyun` | 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | [`taeyun-room-booking`](https://github.com/wanted-hack-inchyangv/taeyun-room-booking), [`taeyun-til-cli`](https://github.com/wanted-hack-inchyangv/taeyun-til-cli)                           | R-06·R-07만 FAIL(멱등 키 충돌, 동시 요청), 나머지 PASS                | 78~88/100 (10점 검토 대기)  | [persona.md](taeyun/persona.md) |
+| `gaeun`  | 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | [`gaeun-todo-react`](https://github.com/wanted-hack-inchyangv/gaeun-todo-react), [`gaeun-bookmark-api`](https://github.com/wanted-hack-inchyangv/gaeun-bookmark-api)                         | R-04·R-05·R-06·R-07·R-09 FAIL(입력 검증, 멱등성 전체, 재고 복구 누락) | 37~57/100 (20점 검토 대기)  | [persona.md](gaeun/persona.md)  |
+| `dohyun` | 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | [`dohyun-board-api`](https://github.com/wanted-hack-inchyangv/dohyun-board-api), [`dohyun-report-batch`](https://github.com/wanted-hack-inchyangv/dohyun-report-batch)                       | R-01 ~ R-11 전부 PASS, G1 ~ G3은 테스트가 결함을 잡지 못해 FAIL       | 75~85/100 (10점 검토 대기)  | [persona.md](dohyun/persona.md) |
 
 ## 사용 방법
 
@@ -30,16 +30,18 @@ ohmyti(CodeGraph Reviewer)를 시험하기 위해 만든 가상 지원자 페르
 
 ## 실제 제출 결과 요약
 
-한서진·오태윤·문가은은 2026-09-19 12:38 ~ 12:46 UTC 구간에, 백도현은 같은 날 13:14 ~ 13:17 UTC 구간에 https://ohmyti.vercel.app 에서 채점 기준 `v2-be07fb44`(로컬 `rubric.v1.json`과 동일한 구성)로 제출, 평가를 마쳤다. 한서진·오태윤·문가은의 평가에 쓴 커밋은 과제 제출물 저장소 이름을 변경하기 전의 HEAD이며 현재 HEAD와의 차이는 README 제목과 패키지 이름뿐이다. 백도현은 저장소 이름 변경 이후에 제출했으므로 평가에 쓴 커밋이 곧 현재 HEAD다.
+2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤, `pnpm gate:personas`가 네 페르소나를 https://ohmyti.vercel.app 의 웹 제출 폼으로 현재 HEAD SHA와 함께 제출했다(채점 기준 `v2-be07fb44`). 결과는 조회 API로 읽어 `expected-matrix.json`과 대조했고, 불일치는 0건이었다. 전체 대조 기록은 [`docs/gates/personas.md`](../../docs/gates/personas.md)에 있다.
 
-- R-01 ~ R-11은 네 페르소나 모두 기대와 정확히 일치했다.
-- G1 ~ G3(테스트 실효성): seojin과 taeyun은 전부 PASS였다. gaeun은 G1이 FAIL(제출 테스트가 결함을 놓침)이었고 G2·G3는 대상 기준이 이미 FAIL 상태라 변이를 적용할 수 없어 INCONCLUSIVE였다. dohyun은 G1·G2가 FAIL(제출 테스트가 결함을 놓침)이었고, G3는 유일한 대상 변이(M-05)를 결함 주입기가 적용하지 못해 INCONCLUSIVE였다.
-- R-12(설계·변경 용이성)는 네 페르소나 모두 사람의 검토 대기(INCONCLUSIVE)로 남았다. AI 초안의 잠정 점수는 seojin 9/10, taeyun 7/10, dohyun 4/10이었고, gaeun은 REVIEW_WRITE 실패로 초안 자체가 만들어지지 않았다.
-- 이력서 주장 맥락 연결: seojin과 gaeun은 핵심 주장 3가지가 모두 기대와 일치했다. taeyun은 "결제 웹훅 멱등 처리" 주장이 기대(자료 없음)와 달리 추가 확인 필요로, "팀 생산성 CLI" 주장이 기대(추가 확인 필요)와 달리 관련 근거 확인으로 분류되었다. dohyun은 "다수의 SI 프로젝트에서 REST API 개발과 납기 준수" 주장이 기대(관련 근거 확인)와 달리 확인 필요로, "클린 아키텍처와 TDD 적용" 주장도 기대(자료 없음)와 달리 확인 필요로 분류되었다. gaeun의 "동시성 제어와 멱등성 설계 경험" 주장, taeyun의 "결제 웹훅 멱등 처리" 주장, dohyun의 "클린 아키텍처와 TDD 적용" 주장에는 모두 기대대로 후속 질문이 생성되었다.
-- gaeun의 평가에서는 LLM 리뷰 작성(REVIEW_WRITE) 단계가 출력 스키마 검증에 2회 실패해 미확정으로 처리되었고, AI 리뷰 제안과 R-12 설계 초안이 생성되지 않았다. 점수에는 영향이 없었다. dohyun의 REVIEW_WRITE는 정상 완료되었지만, 제안 5건과 R-12 근거 어디에도 `any` 타입 남용이나 폴링 기반 전역 락 설계는 언급되지 않았다. 단일 파일 구조와 코드 중복 문제는 지적했다.
-- 각 페르소나의 세부 결과(워크벤치 URL, GitHub 근거 선정, 후속 질문 요지 등)는 각자의 `persona.md` "실제 제출 결과" 절에 있다.
+- 기준별 판정(R-01 ~ R-11, G1 ~ G3)과 점수 표시는 네 페르소나 모두 기대값과 일치했다. dohyun은 변이 M-01 ~ M-05가 모두 적용되어 SURVIVED였고 G1·G2·G3가 모두 FAIL이다(이전 제출에서는 M-03·M-05가 적용되지 않아 G3가 INCONCLUSIVE였다).
+- REVIEW_WRITE는 네 페르소나 모두 정상 완료(`llm: OK`)되었고 R-12 AI 초안이 생성되었다. 잠정 점수는 seojin 9/10, taeyun 7/10, gaeun 3/10, dohyun 3/10이다. gaeun은 이전 제출에서 출력 스키마 검증 실패로 초안이 없었다.
+- GitHub 근거: 네 페르소나 모두 이력서에 적힌 본인 포트폴리오 저장소 2개가 선택되었고, 제출 저장소와 다른 페르소나의 저장소는 선택되지 않았다. 선택된 저장소마다 커밋이 8 ~ 16개 수집되었다.
+- 후속 질문: taeyun의 결제 웹훅 멱등 처리 주장, gaeun의 동시성 제어·멱등성 설계 주장, dohyun의 클린 아키텍처·TDD 주장에 기대대로 후속 질문이 생성되었다.
+- 주장 상태 라벨은 LLM 판단이라 경고로만 기록한다. taeyun의 웹훅 주장(기대 자료 없음 → 추가 확인 필요)과 CLI 주장(기대 추가 확인 필요 → 관련 근거 확인), dohyun의 SI 납기 주장(기대 관련 근거 확인 → 추가 확인 필요)과 TDD 주장(기대 자료 없음 → 관련 근거 확인)이 기대와 달랐다.
+- 각 페르소나의 세부 결과(워크벤치 URL, R-12 초안 근거, 후속 질문 요지, 이전 제출 링크)는 각자의 `persona.md` "실제 제출 결과" 절에 있다. 2026-09-19 12:38 ~ 13:17 UTC의 이전 제출 4건은 삭제하지 않고 남겨 두었다.
 
 ## 알려진 한계
 
-- **조직 프로필 공유로 인한 교차 선택**: 네 페르소나가 GitHub 프로필 URL로 같은 조직 프로필(https://github.com/wanted-hack-inchyangv)을 공유하기 때문에, 맥락 연결 단계의 GitHub 근거 선정에서 다른 페르소나의 저장소가 상위 3개 안에 들 수 있다. 실제로 taeyun의 평가에서는 gaeun의 `gaeun-bookmark-api`가, gaeun의 평가에서는 한서진의 과제 제출물이, dohyun의 평가에서도 gaeun의 `gaeun-bookmark-api`가 근거로 선택되었다.
-- **조직 로그인으로는 커밋 작성자 필터가 비어 있게 된다**: GitHub 근거 수집은 GitHub API의 `author=<login>` 파라미터로 그 프로필 로그인이 작성한 최근 커밋과 병합된 PR만 가져온다. 그런데 각 페르소나의 실제 커밋은 페르소나별 가상 이메일(예: `seojin.han@example.com`)로 작성되어 있어 조직 계정(`wanted-hack-inchyangv`)의 GitHub 로그인과 연결되어 있지 않다. 그 결과 실제 제출 4건 모두 모든 후보 저장소에서 최근 커밋 0개, 병합 PR 0개로 수집되었고, 저장소 선정은 README·설명 텍스트의 키워드 중복도에만 의존했다.
+- **스키마 경계의 수량 하한**: seojin은 수량 하한을 zod 스키마 `min(1)`로 검증한다. 변이 M-02는 비교식(`<= 0`)을 찾아 바꾸는 방식이라 이 구조에서는 대상이 없어 NOT_APPLICABLE이다. G1은 M-01 KILLED로 PASS이므로 판정과 점수는 설계와 같다.
+- **바쁜 대기는 R-12 초안 문장에 드러나지 않을 수 있다**: dohyun의 폴링 기반 전역 락(`lockit`/`unlockit`)은 워크벤치의 코드 신호 목록에 "바쁜 대기 1곳"으로 나타나지만, LLM이 쓴 R-12 초안 문장은 `any` 12곳과 strict 꺼짐만 언급했다. 코드 신호는 판정·점수에 쓰지 않는 참고 사실이다.
+- **조직 프로필 공유**: 네 페르소나는 같은 조직 프로필(https://github.com/wanted-hack-inchyangv)을 공유한다. T-603 이후 이력서에 적힌 저장소 링크를 우선 선정하고 제출 저장소를 제외하므로, 이전 제출에서 나타났던 다른 페르소나 저장소의 교차 선택은 이번 제출에서 나타나지 않았다. 이력서에 저장소 링크가 없는 지원자는 여전히 키워드 중복도로 선정된다.
+- **조직 프로필의 커밋 수집**: 각 페르소나의 커밋은 가상 이메일로 작성되어 조직 계정의 GitHub 로그인과 연결되어 있지 않다. T-604 이후 조직 프로필은 작성자 조건 없이 커밋을 수집하고 근거 표에 작성자 조건 `NONE`으로 표시한다. 따라서 수집된 커밋이 지원자 본인의 커밋이라는 보장은 없다.

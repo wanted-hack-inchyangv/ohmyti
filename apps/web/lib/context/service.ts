@@ -6,12 +6,21 @@
  * - 채점 경로(리포트·점수)와 섞지 않는다. 하단 탭을 열었을 때만 페이지가 부른다.
  */
 import {
+  EvaluationContextReportSchema,
   GitHubSourcesSchema,
   type ContextLink,
+  type EvaluationContextReport,
   type GitHubSources,
   type ResumeTextStatus,
 } from "@ohmyti/core";
-import { getSubmissionContext, listContextLinks, toContextLink, type Database } from "@ohmyti/db";
+import {
+  getEvaluation,
+  getSubmissionContext,
+  listContextLinks,
+  toContextLink,
+  type Database,
+} from "@ohmyti/db";
+import { isUuid, type ReportResult } from "@/lib/reports/service";
 
 export interface EvaluationContextData {
   /** 이 평가가 만든 연결 (저장 순서). 평가 ID가 없는 이전 행도 제출의 연결로 본다 */
@@ -75,4 +84,43 @@ export async function readEvaluationContext(
       },
     },
   };
+}
+
+/**
+ * `GET /api/evaluations/[id]/context` (T-606). 하단 탭과 같은 데이터를 조회 API 봉투로 돌려준다.
+ * 게이트(`gate:personas`)가 GitHub 근거 선정과 후속 질문을 대조할 때 읽는다
+ */
+export async function readEvaluationContextReport(
+  deps: { db: Database },
+  evaluationId: string,
+): Promise<ReportResult<EvaluationContextReport>> {
+  if (!isUuid(evaluationId)) {
+    return { ok: false, code: "INVALID_INPUT", message: "평가 ID 형식이 올바르지 않습니다" };
+  }
+  const evaluation = await getEvaluation(deps.db, evaluationId);
+  if (!evaluation) {
+    return {
+      ok: false,
+      code: "EVALUATION_NOT_FOUND",
+      message: `평가 ${evaluationId}를 찾을 수 없습니다`,
+    };
+  }
+  const context = await readEvaluationContext(deps, {
+    submissionId: evaluation.submissionId,
+    evaluationId,
+  });
+  if (!context.ok) return { ok: false, code: "ARTIFACT_NOT_FOUND", message: context.message };
+  const parsed = EvaluationContextReportSchema.safeParse({
+    evaluationId,
+    submissionId: evaluation.submissionId,
+    ...context.data,
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      code: "ARTIFACT_NOT_FOUND",
+      message: `맥락 연결의 형태가 맞지 않습니다: ${parsed.error.issues[0]?.message ?? "알 수 없음"}`,
+    };
+  }
+  return { ok: true, data: parsed.data };
 }

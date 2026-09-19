@@ -80,7 +80,7 @@ function invalidId(label: string): ReportResult<never> {
   return { ok: false, code: "INVALID_INPUT", message: `${label} 형식이 올바르지 않습니다` };
 }
 
-function isUuid(value: string): boolean {
+export function isUuid(value: string): boolean {
   return z.uuid().safeParse(value).success;
 }
 

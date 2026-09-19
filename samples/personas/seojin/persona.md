@@ -75,12 +75,14 @@
 
 ## 실제 제출 결과
 
-- 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`, 기준 구성은 로컬 `rubric.v1.json`과 동일), 제출 일시는 2026-09-19 12:38 ~ 12:46 UTC 구간에 속한다. 평가에 사용한 커밋은 이름을 변경하기 전의 HEAD `28fec210919624306ccc3da0ca0bfd3fab8af1d5`이며, 현재 HEAD(`d35969b619823452e5edc9bf23ed75dc8f596219`)와의 차이는 README 제목과 패키지 이름뿐이다. 제출 당시 저장소 URL은 예전 이름(`order-api-seojin`)이었고, GitHub는 이 URL을 새 이름(`seojin-order-api`)으로 리디렉션한다.
-- 워크벤치: https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769, 점수 90~100/100(10점 검토 대기).
-- 기준별 판정: R-01 ~ R-11이 모두 기대와 일치했고 전부 PASS였다. G1 ~ G3도 전부 PASS였다. R-12는 기대대로 사람의 검토 대기(INCONCLUSIVE)였다.
-- GitHub 근거로 선택된 저장소: `seojin-stock-reservation`, `seojin-idempotency-kit`, 본인의 과제 제출물(제출 당시 이름인 `order-api-seojin`)이다. 이력서·JD 키워드 중복도를 기준으로 선정되었다.
-- 이력서 주장별 실제 상태: 핵심 주장 3가지가 모두 기대와 일치했다. 재고 선점 주장과 멱등성 미들웨어 주장은 각각 `seojin-stock-reservation`, `seojin-idempotency-kit`을 근거로 관련 근거 확인(EVIDENCE_FOUND)으로 판정되었고, Kafka 이벤트 파이프라인 주장은 자료 없음(NO_DATA)으로 판정되었다.
-- 생성된 후속 질문의 요지: R-05, R-06, R-07, R-08, G1 기준과 연결된 질문이 각각 생성되었고, 저장소가 설명하는 방식(멱등성 키 미들웨어의 진행 중 요청 병합, 낙관적 잠금 재시도 정책 등)과 이번 과제 구현(키 단위 직렬화 큐)의 차이를 묻는 내용이었다. 기준과 연결되지 않은 질문 3건도 생성되었는데, 자료 없음으로 판정된 Kafka 이벤트 파이프라인·컨슈머 재처리·응답 지연 개선 주장에 대한 구체적인 설계 방식을 묻는 내용이었다.
+- 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`), 2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤 `pnpm gate:personas`가 웹 제출 폼으로 제출했다. 평가 커밋은 입력값 표의 현재 HEAD `d35969b619823452e5edc9bf23ed75dc8f596219`이다. 대조 기록은 `docs/gates/personas.md`에 있고 `samples/personas/expected-matrix.json`의 기대값과 불일치 0건이었다.
+- 워크벤치: https://ohmyti.vercel.app/evaluations/6b10f046-7ecb-4a4b-aceb-274fdd3c02cb, 점수 90~100/100(10점 검토 대기). 제출부터 평가 종료까지 1040초가 걸렸다.
+- 기준별 판정: R-01 ~ R-11과 G1 ~ G3가 모두 PASS이고, R-12는 사람의 검토 대기(INCONCLUSIVE)다. 변이는 M-01·M-03·M-04·M-05가 KILLED이고, M-02는 수량 하한이 zod 스키마 `min(1)`에 있어 비교식 변이 대상이 아니므로 NOT_APPLICABLE이다(알려진 한계). G1은 M-01 KILLED로 PASS다.
+- LLM 리뷰와 R-12 설계 초안: REVIEW_WRITE가 정상 완료(`llm: OK`)되었고 R-12 초안은 9/10이다. 계층 분리, `IdempotencyStore` 포트와 인메모리 구현의 생성자 주입, 오류 코드 매핑과 검증 규칙의 집중을 근거로 들었다.
+- GitHub 근거로 선택된 저장소: `seojin-stock-reservation`(커밋 16개), `seojin-idempotency-kit`(커밋 13개)이다. 이력서 링크로 선정되었고(`RESUME_LINK`), 제출 저장소(`seojin-order-api`)는 제외되었다. 다른 페르소나의 저장소는 선택되지 않았다.
+- 이력서 주장별 실제 상태: 재고 선점·초과 판매 주장과 멱등성 키 미들웨어 주장은 관련 근거 확인(EVIDENCE_FOUND), Kafka 이벤트 파이프라인 주장은 자료 없음(NO_DATA)으로 모두 기대와 일치했다.
+- 생성된 후속 질문의 요지: 주장 8건 모두에 질문이 생성되었다. 재고 선점 저장소와 격리 수준을 이번 과제의 인메모리 compare-and-set과 비교하는 질문, 멱등성 키의 TTL과 저장 위치를 재시작·다중 인스턴스 상황과 비교하는 질문, Kafka 전환 시 정합성 보장 방식(아웃박스, 사가)과 컨슈머 재처리 조건을 묻는 질문 등이다.
+- 이전 제출(2026-09-19 12:38 UTC경, 이름 변경 전 커밋 `28fec21`): https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769. 그때는 GitHub 근거에 본인의 과제 제출물이 섞여 있었고, T-603 이후 제외된다.
 
 ## 산출물
 

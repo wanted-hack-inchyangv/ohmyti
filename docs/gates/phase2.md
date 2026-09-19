@@ -5,7 +5,7 @@
 - 결과: **통과**
 - 배포: https://ohmyti.vercel.app
 - 기대값 기준: 5단계 배포 (단계 상태 REPO_CHECK DONE · ENV_PREP DONE · REQUIREMENT_VERIFY DONE · TEST_EFFECTIVENESS DONE · REVIEW_WRITE DONE · CONTEXT_LINK DONE) (`--phase 5`)
-- 실행 일시: 2026-09-18T23:12:52.399Z ~ 2026-09-18T23:32:14.346Z (총 19.4분)
+- 실행 일시: 2026-09-19T17:04:02.284Z ~ 2026-09-19T17:23:29.632Z (총 19.5분)
 - 과제 버전: 주문·재고 API · v2 · 승인됨 (`98a4487e-4afc-4f02-8921-7f0c5043bba0`, rubric `v2-be07fb44`)
 - 샘플 저장소: `samples/order-api/sample-repos.json` · 기대 결과표: `samples/order-api/expected-matrix.json`
 
@@ -23,14 +23,14 @@
 
 | 샘플 | 회차 | 제출 ID                                | 평가 ID                                | 상태      | 제출→종료 | 불일치 | digest             |
 | ---- | ---: | -------------------------------------- | -------------------------------------- | --------- | --------: | -----: | ------------------ |
-| A    |    1 | `54628277-c794-419a-b34c-b1c65fabfe12` | `46a50bd3-4060-4c24-926f-c1c96d6880f9` | COMPLETED |      156s |      0 | `b3e9ca7dcc8a7eca` |
-| B    |    1 | `cec1d2e0-e65b-4aea-b0cb-5773fea6897e` | `b3d8cce3-c254-4a1b-8040-16cf1d5a2f45` | COMPLETED |      308s |      0 | `5fef057cec569776` |
-| C    |    1 | `730e2d65-b7f1-4213-ae12-9e2051e2436d` | `52a94438-6567-4466-b236-afb5a5def283` | COMPLETED |      432s |      0 | `9ad4b24052e8d94b` |
-| D    |    1 | `91731cc9-cc1c-4c0c-8c88-65d863e4dd7d` | `1027e1da-19f8-42e3-8847-f5f9fdc978bd` | COMPLETED |      555s |      0 | `2e2f90b96b00bc6f` |
-| A    |    2 | `8720809d-913e-4562-a837-f0c63aa7f4f2` | `ce721ec7-6256-4172-809e-7f2edeae2772` | COMPLETED |      710s |      0 | `b3e9ca7dcc8a7eca` |
-| C    |    2 | `36fd4cd3-fb87-4799-a36c-7596aac381ec` | `f922a124-8065-4acc-9e0e-6dd7fb645c92` | COMPLETED |      830s |      0 | `9ad4b24052e8d94b` |
-| A    |    3 | `05183547-f6b6-41d9-a72b-6c64da3afecc` | `1565e12a-9858-4e92-97cc-f3e7b1182b2d` | COMPLETED |     1013s |      0 | `b3e9ca7dcc8a7eca` |
-| C    |    3 | `8061dbbe-6369-4feb-a04a-1db26b0a00d9` | `fed3a35f-e18a-46f5-b8b1-d24b8f32d5d5` | COMPLETED |     1144s |      0 | `9ad4b24052e8d94b` |
+| A    |    1 | `8857b983-ead7-4db3-867c-8632bbb7df7a` | `cdbf0124-16dd-4aea-a67e-02911b615b07` | COMPLETED |      162s |      0 | `b3e9ca7dcc8a7eca` |
+| B    |    1 | `d4c46505-8d1c-4104-bcf0-51f7b0e45369` | `9ae7b3e4-e360-492c-93ec-ae2cf73206c9` | COMPLETED |      331s |      0 | `5fef057cec569776` |
+| C    |    1 | `2b6d9cdd-82aa-4e55-8c47-ad92b52ffbe6` | `8a82d9e5-3479-4f89-a278-a9b3ea9742ea` | COMPLETED |      458s |      0 | `9ad4b24052e8d94b` |
+| D    |    1 | `de04b990-584a-4e2a-a8ad-e2067933acfc` | `42285c57-c6d7-497d-9497-80160d116425` | COMPLETED |      578s |      0 | `2e2f90b96b00bc6f` |
+| A    |    2 | `0348b17b-b699-4329-a14f-c48865a48710` | `f60e40a6-31ad-4772-ad6b-6cc4af9d2860` | COMPLETED |      730s |      0 | `b3e9ca7dcc8a7eca` |
+| C    |    2 | `3e876e6c-f754-47e6-a79c-9185f52d1fb4` | `a4b0910a-fdf0-4358-90e6-41784c21aa5d` | COMPLETED |      857s |      0 | `9ad4b24052e8d94b` |
+| A    |    3 | `f2f9bfd7-55df-49eb-a0b7-f94e39422cc6` | `30aa01e5-a4ed-4585-be8a-23d6bfbee821` | COMPLETED |     1018s |      0 | `b3e9ca7dcc8a7eca` |
+| C    |    3 | `dcca92d3-9dfb-4fa0-8cf4-88e0c0ead763` | `888092a3-5e31-4e53-92d3-c0a531553cd8` | COMPLETED |     1151s |      0 | `9ad4b24052e8d94b` |
 
 ## 샘플 × 기준 판정 (1회차)
 
@@ -74,6 +74,6 @@
 ## 미지원 저장소
 
 - 저장소: https://github.com/inchyangv/ohmyti-sample-python
-- 제출 ID: `f6ecff8b-5492-496f-8c7b-a9c2e2181ed0` · 상태: UNSUPPORTED
+- 제출 ID: `88a62f8b-2c97-4609-bcf9-0b90937c8fa9` · 상태: UNSUPPORTED
 - 사유(API): `MISSING_PACKAGE_JSON: 루트에 package.json이 없습니다; UNSUPPORTED_LANGUAGE: TypeScript·JavaScript 소스가 없고 requirements.txt이(가) 있습니다. 템플릿은 Node.js 프로젝트만 지원합니다`
 - 기대 사유 코드 `UNSUPPORTED_LANGUAGE`: API ✓ · 화면 HTML(`/submissions/<id>`) ✓

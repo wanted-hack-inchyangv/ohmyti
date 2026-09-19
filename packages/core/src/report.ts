@@ -10,8 +10,9 @@
 import { z } from "zod";
 import { IdSchema, NonNegativeIntSchema, ShaSchema, TimestampSchema, DigestSchema } from "./common";
 import { CriterionResultSchema, EvidenceSchema, ExecutionRecordSchema } from "./contracts";
-import { RubricAreaSchema, SubmissionStatusSchema } from "./enums";
+import { ResumeTextStatusSchema, RubricAreaSchema, SubmissionStatusSchema } from "./enums";
 import {
+  ContextLinkSchema,
   EvaluationStageRecordSchema,
   ExecutionContractSchema,
   MutationExperimentSchema,
@@ -19,6 +20,7 @@ import {
 } from "./entities";
 import { DesignSignalsSchema } from "./design-signals";
 import { FunctionGraphAnalysisSchema } from "./function-graph";
+import { GitHubSourcesSchema } from "./github-sources";
 import { RUBRIC_TOTAL_POINTS, RubricSchema } from "./rubric";
 
 /** `evaluations.score_by_area`에 저장된 영역 소계 하나 (`AreaScore`와 같은 형태). 워커가 판정 저장 시 함께 쓴다 */
@@ -149,6 +151,32 @@ export const DesignSignalsReportSchema = z.strictObject({
 export type DesignSignalsReport = z.infer<typeof DesignSignalsReportSchema>;
 
 /** `GET /api/submissions/[id]`: 제출 상태와 최신 평가 */
+/**
+ * 지원자 맥락 (T-606): 워크벤치 하단 탭(T-504)이 보이는 맥락 연결과 GitHub 보충 조회 결과. 게이트(`gate:personas`)가 읽는다.
+ * 이력서 본문은 넣지 않는다(유무·텍스트 상태·사유만). 점수·판정과 무관하다.
+ */
+export const EvaluationContextReportSchema = z.strictObject({
+  evaluationId: IdSchema,
+  submissionId: IdSchema,
+  /** 이 평가가 만든 연결 (저장 순서) */
+  links: z.array(ContextLinkSchema),
+  /** 같은 제출을 다른 평가가 다시 연결해 이 평가에서 보이지 않는 연결 수 */
+  otherEvaluationLinkCount: NonNegativeIntSchema,
+  resume: z.strictObject({
+    uploaded: z.boolean(),
+    textStatus: ResumeTextStatusSchema,
+    reason: z.string().nullable(),
+  }),
+  github: z.strictObject({
+    login: z.string().nullable(),
+    /** 아직 조회하지 않았으면 null */
+    sources: GitHubSourcesSchema.nullable(),
+    /** 저장된 값이 스키마와 맞지 않아 읽지 못했다 */
+    invalid: z.boolean(),
+  }),
+});
+export type EvaluationContextReport = z.infer<typeof EvaluationContextReportSchema>;
+
 export const SubmissionSummarySchema = z.strictObject({
   id: IdSchema,
   assignmentVersionId: IdSchema,
@@ -221,6 +249,10 @@ export const RunRecordReportResponseSchema = z.union([
 ]);
 export const FunctionGraphReportResponseSchema = z.union([
   apiOkSchema(FunctionGraphReportSchema),
+  ApiErrorSchema,
+]);
+export const EvaluationContextReportResponseSchema = z.union([
+  apiOkSchema(EvaluationContextReportSchema),
   ApiErrorSchema,
 ]);
 export const DesignSignalsReportResponseSchema = z.union([
