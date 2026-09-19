@@ -24,7 +24,7 @@
 
 ## 왜 만들었나요
 
-채용 과제를 채점할 때 흔히 생기는 문제는 다음과 같습니다.
+채용 과제를 채점할 때 이런 문제가 흔히 생깁니다.
 
 - **테스트 통과를 요구사항 충족으로 착각합니다.** 지원자가 작성한 테스트가 모두 통과해도, 같은 주문을 두 번 보내면 재고가 두 번 차감되는 결함은 그대로 남을 수 있습니다.
 - **감점의 근거가 남지 않습니다.** 채점자마다 기준이 다르고, 왜 감점했는지 지원자나 다른 면접관이 다시 확인할 방법이 없습니다.
@@ -49,14 +49,14 @@
 3. 왼쪽 `테스트 실효성`의 **G1**을 누르면, 재고 부족 검사를 지운 변형에서도 제출 테스트 11개가 모두 통과했다는 실험 결과와 diff가 열립니다.
 4. 하단 `후속 질문` 탭에서 이력서 주장과 채점 근거를 연결해 만든 면접 질문을 확인합니다.
 
-가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 백도현은 실행 기준(75점)을 한서진과 똑같이 만점 받았지만, 제출 테스트가 주입한 결함을 잡지 못해 테스트 실효성에서 점수 차이가 납니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
+가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 백도현은 실행 기준(75점)을 한서진과 똑같이 만점 받았지만, 제출 테스트가 주입한 결함 다섯 개를 하나도 잡지 못해 테스트 실효성에서 점수 차이가 납니다. `설계·변경 용이성` 기준을 누르면 AST로 센 코드 신호(`any` 사용 위치, 바쁜 대기, 중복 블록, 약한 단언)를 코드 위치와 함께 볼 수 있습니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
 
 | 페르소나        | 과제 제출물                                                                     | 설계한 결함                                                                       | 채점 결과                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                                                              | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/8b63e0f3-3913-4a10-9f64-23d57d3fd769) |
-| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청                                                   | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/e2611352-232d-47cd-aebe-a4617aa3afe8)  |
-| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구                                         | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/ce678955-90ce-4287-8e84-41787deb0cfe)  |
-| 백도현 · 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | 요구사항은 모두 통과하지만 테스트가 결함을 잡지 못하고 구조가 한 파일에 몰려 있음 | [75~90/100 · 15점 검토 대기](https://ohmyti.vercel.app/evaluations/58451401-116a-4aea-b13f-e20de92a869f)  |
+| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                                                              | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/6b10f046-7ecb-4a4b-aceb-274fdd3c02cb) |
+| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청                                                   | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/009b7afb-a8ef-4187-b60a-874a56f3bd76)  |
+| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구                                         | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/8d5c095b-d5a0-45c1-813a-d05785a9fec5)  |
+| 백도현 · 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | 요구사항은 모두 통과하지만 테스트가 결함을 잡지 못하고 구조가 한 파일에 몰려 있음 | [75~85/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/f2a11050-6f32-4ca8-9974-7154f5b364d3)  |
 
 ## 화면
 
@@ -132,7 +132,7 @@ TypeScript 5.9 · Node.js 22 · Next.js 16 (App Router) · React 19 · Tailwind 
 
 ## 검증
 
-- **CI**: 타입 검사, 린트, 단위·통합 테스트(약 1,100건), 빌드, 워커 Docker 이미지 스모크, Playwright E2E(웹 + 워커 + PostgreSQL)를 모든 push에서 실행합니다.
+- **CI**: 타입 검사, 린트, 단위·통합 테스트(약 1,200건), 빌드, 워커 Docker 이미지 스모크, Playwright E2E(웹 + 워커 + PostgreSQL)를 모든 push에서 실행합니다.
 - **단계별 게이트**: 샘플 A~D를 3회 반복 채점해 기대 결과표와 대조하고 판정이 매번 같은지 확인합니다. 기록은 [`docs/gates/`](docs/gates)에 있습니다.
 - **인수 기준**: 인수 기준별 상태와 증거는 [`docs/acceptance.md`](docs/acceptance.md)에 있습니다.
 
@@ -231,7 +231,9 @@ pnpm gate:phase1 [--rounds 3] [--out docs/gates/phase1.md] [--json docs/gates/ph
                           # 1단계 게이트(T-110): 샘플 A/B/C/D를 러너로 기동해 하네스·제출 테스트를 돌리고 expected-matrix와 대조, 3회 반복해 판정 digest가 같은지 확인. 불일치·비결정성이면 exit 1. 템플릿 node_modules(template:build)가 필요하다. 요약 JSON은 db:seed:sample이 승인 근거로 쓴다
 pnpm gate:phase2 --base-url https://ohmyti.vercel.app [--phase 5] [--repeat 3] [--repeat-samples A,C] [--samples A,B,C,D] [--skip-unsupported] [--out docs/gates/phase2.md] [--json docs/gates/phase2.json]
                           # 배포 환경 E2E(T-208, T-507): 배포된 웹에 샘플 A/B/C/D의 공개 저장소(samples/order-api/sample-repos.json)를 API로 제출하고, 워커 채점 결과를 조회 API로 읽어 expected-matrix와 대조. 반복 제출의 판정 digest 일치(결정성)와 미지원(Python) 저장소 거절도 확인
-                          # --phase는 배포된 단계의 기대값: 2(mutation 이전, withoutMutationStage), 4(테스트 실효성·리뷰 작성 DONE), 5(맥락 연결까지 DONE, 기본). 접근 비밀번호는 APP_ACCESS_PASSWORD 또는 --password
+                          # --phase는 배포된 단계의 기대값: 2(mutation 이전, withoutMutationStage), 4(테스트 실효성·리뷰 작성 DONE), 5(맥락 연결까지 DONE, 기본). 접근 비밀번호는 APP_ACCESS_PASSWORD 또는 --password(공개 배포는 생략)
+pnpm gate:personas --base-url https://ohmyti.vercel.app [--personas seojin,taeyun,gaeun,dohyun] [--skip-screenshots]
+                          # 6단계 게이트(T-606): 페르소나 4종을 웹 폼(이력서 PDF 포함)으로 제출하고 판정·변이·단계·GitHub 근거·후속 질문을 samples/personas/expected-matrix.json과 대조, 화면을 데스크톱·모바일로 캡처. 기록 docs/gates/personas.md
 pnpm gate:phase4 [--fake]  # 4단계 게이트(T-408): 임시 DB에서 채점기 검증 → 승인 흐름 → A/B/C/D 전체 파이프라인(LLM 포함)을 기대 결과표와 대조. B 만점, D = C, LLM 전후 판정 불변 확인. 기록 docs/gates/phase4.md
 pnpm demo:seed [--env-store --external-worker] [--samples A,B,C,D]
                           # 샘플 체험(/demo)의 저장된 실행을 실제 파이프라인으로 만든다(T-505). 배포 환경은 --env-store --external-worker

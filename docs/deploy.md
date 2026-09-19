@@ -84,7 +84,7 @@ railway deployment list --service worker --json                    # 상태: BUI
 railway logs --service worker --lines 50                           # "db:migrate OK", "워커 시작", "폴링 중"
 ```
 
-pre-deploy 단계가 `node dist/migrate.js`로 마이그레이션을 적용한 뒤 컨테이너가 뜨고, Railway가 `/healthz`(200)를 확인한다. 워커는 유휴 상태에서도 1분마다 `폴링 중` info 로그를 남긴다.
+pre-deploy 단계가 `node dist/migrate.js`로 마이그레이션을 적용한 뒤 컨테이너가 뜨고 Railway가 `/healthz`(200)를 확인한다. 워커는 유휴 상태에서도 1분마다 `폴링 중` info 로그를 남긴다.
 
 GitHub 자동 배포는 연결하지 않았다. 필요하면 `railway service source connect --repo inchyangv/ohmyti --branch main --service worker`.
 
@@ -146,9 +146,9 @@ Vercel Git 연동과 Railway GitHub 자동 배포는 쓰지 않는다. 배포는
 
 - 쿠키가 없거나 서명·만료가 잘못된 HTML 탐색은 `/login?next=<원래 경로>`로 307, API·비HTML 요청은 401 JSON.
 - `POST /api/login`(JSON `{password, next}` 또는 form)이 비밀번호를 확인하고 200에 쿠키를 발급한다. 틀리면 401. `next`는 같은 사이트의 절대 경로만 허용한다.
-- `APP_ACCESS_PASSWORD`가 없으면 `next dev`에서는 보호가 꺼지고, production(`next start`, Vercel)에서는 `instrumentation.ts`가 오류를 남기고 종료한다. `SESSION_SECRET`은 32자 이상이어야 한다.
+- `APP_ACCESS_PASSWORD`가 없으면 `next dev`에서는 보호가 꺼지고 production(`next start`, Vercel)에서는 `instrumentation.ts`가 오류를 남기고 종료한다. `SESSION_SECRET`은 32자 이상이어야 한다.
 - `robots.txt`는 전체 차단(`Disallow: /`).
-- 공개 데모 배포는 `APP_ACCESS_MODE=public`으로 보호를 끈다. 이 값이 있으면 비밀번호 설정과 상관없이 모든 경로가 열리고, production에서도 비밀번호 없이 기동하며, `robots.txt`는 `Allow: /`가 된다. 현재 https://ohmyti.vercel.app 은 이 모드로 운영한다.
+- 공개 데모 배포는 `APP_ACCESS_MODE=public`으로 보호를 끈다. 이 값이 있으면 비밀번호 설정과 상관없이 모든 경로가 열리고 production에서도 비밀번호 없이 기동하며 `robots.txt`는 `Allow: /`가 된다. 현재 https://ohmyti.vercel.app 은 이 모드로 운영한다.
 
 ```bash
 curl -i -H "accept: text/html" https://ohmyti.vercel.app/                 # 307 → /login?next=%2F
@@ -183,12 +183,27 @@ export DOCKER_CONFIG=/tmp/docker-anon DOCKER_HOST=unix://$HOME/.docker/run/docke
 배포가 끝난 뒤 실제 입력 경로(공개 GitHub 저장소 URL)로 샘플을 제출해 채점 결과를 대조한다. 워커 배포(마이그레이션 포함)와 웹 배포가 모두 최신 커밋이어야 한다.
 
 ```bash
-APP_ACCESS_PASSWORD=<접근 비밀번호> pnpm gate:phase2 --base-url https://ohmyti.vercel.app
+pnpm gate:phase2 --base-url https://ohmyti.vercel.app          # 공개 배포(APP_ACCESS_MODE=public)
+APP_ACCESS_PASSWORD=<접근 비밀번호> pnpm gate:phase2 --base-url <보호된 배포 URL>
 ```
 
 - 샘플 저장소: `samples/order-api/sample-repos.json`(A/B/C/D 각각 `inchyangv/ohmyti-sample-{a,b,c,d}`, 미지원 검사용 `ohmyti-sample-python`). 각 저장소는 `samples/order-api/impl-*` 디렉터리 내용(`node_modules` 제외) 전체다. 샘플을 고치면 저장소를 다시 push하고 이 파일의 `sha`를 갱신한다.
-- 흐름: `POST /api/login` → `GET /api/assignment-versions`(승인 버전이 정확히 하나여야 한다) → `POST /api/submissions`(샘플별, SHA 고정) → `GET /api/submissions/[id]` 폴링 → `GET /api/evaluations/[id]`·`runs/[runId]` → 대조. 기본은 A/B/C/D 1회 + A·C 2회 추가(총 8건, 약 10분)이며 워커가 순서대로 처리한다.
+- 흐름: `POST /api/login`(비밀번호가 있을 때만) → `GET /api/assignment-versions`(승인 버전이 정확히 하나여야 한다) → `POST /api/submissions`(샘플별, SHA 고정) → `GET /api/submissions/[id]` 폴링 → `GET /api/evaluations/[id]`·`runs/[runId]` → 대조. 기본은 A/B/C/D 1회 + A·C 2회 추가(총 8건, 약 10분)이며 워커가 순서대로 처리한다.
 - 결과는 `docs/gates/phase2.md`·`phase2.json`에 남는다. 워커 로그의 비밀값 마스킹 확인은 게이트 밖에서 한다: `railway variables --service worker --json`의 `BLOB_READ_WRITE_TOKEN`·`DEEP_SEEK_API_KEY`·DB 비밀번호 값을 `railway logs --service worker --lines 3000` 출력에서 `grep -F`로 찾아 0건이어야 한다.
+
+## 6단계 게이트: 페르소나 회귀 (T-606)
+
+가상 지원자 페르소나 4종(`samples/personas/`)을 배포 환경에 실제 입력 경로(웹 폼, 이력서 PDF 포함)로 제출해 결과를 대조한다. 워커·웹이 모두 최신 커밋이어야 한다.
+
+```bash
+pnpm gate:personas --base-url https://ohmyti.vercel.app
+```
+
+- 기대값: `samples/personas/expected-matrix.json`(페르소나별 저장소 URL·SHA·이력서·포트폴리오, 기준별 판정, 변이별 결과, 점수 표시, 후속 질문이 있어야 하는 주장, 주장별 기대 상태).
+- 흐름: Playwright가 `/submissions/new`에 저장소 URL·SHA·이력서·GitHub 프로필 URL을 넣어 제출 → `GET /api/submissions/[id]` 폴링 → `GET /api/evaluations/[id]`(판정·변이·단계) + `GET /api/evaluations/[id]/context`(GitHub 근거·맥락 연결, 이력서 본문 없음) → 대조. 4건은 워커가 순서대로 처리하며 약 15~25분 걸린다.
+- 실패 조건: 판정·점수, 변이 결과, 점수 표시, 단계 상태, REVIEW_WRITE의 LLM 결과(OK)와 R-12 초안, GitHub 근거(본인 포트폴리오 포함, 제출 저장소·다른 페르소나 저장소 없음, 커밋 1개 이상), 후속 질문 존재. 주장 상태 라벨은 경고로만 남긴다.
+- 끝나면 첫 화면 → 제출 → 제출 상태 → 워크벤치(R-12 포함)를 데스크톱·모바일로 캡처해 `docs/gates/personas/`에 두고 HTTP 상태·가로 넘침·오류 문구·콘솔 오류를 점검한다. 결과는 `docs/gates/personas.md`·`personas.json`.
+- 워커에 `GITHUB_TOKEN`이 없으면 GitHub API 한도가 IP당 시간 60회다. 페르소나 한 건은 프로필 보충 조회에 11회 안팎을 쓰므로 다른 게이트와 겹쳐 돌리기 전에 한도를 확인한다(`railway ssh --service worker -- node -e "fetch('https://api.github.com/rate_limit').then(r=>r.json()).then(j=>console.log(j.rate))"`).
 
 ## Vercel Sandbox 러너 (T-209)
 
@@ -239,8 +254,8 @@ railway up --service worker
 ## 운영 메모
 
 - 마이그레이션은 워커 pre-deploy에서만 적용한다. 웹 배포는 스키마를 바꾸지 않으므로 스키마 변경이 있는 커밋은 워커를 먼저 배포한다.
-- 샘플 과제 시드(T-201)는 로컬에서 프로덕션 DB·Blob을 가리켜 실행한다. 공개 프록시 연결 문자열은 `railway variables --service Postgres --json`의 `PGUSER`·`PGPASSWORD`·`RAILWAY_TCP_PROXY_DOMAIN`·`RAILWAY_TCP_PROXY_PORT`·`PGDATABASE`로 조립한다(`?sslmode=require`). `DATABASE_URL=<공개 프록시> ARTIFACT_STORE=blob BLOB_ACCESS=private BLOB_READ_WRITE_TOKEN=<토큰> pnpm db:seed:sample`. 멱등이라 다시 실행해도 안전하며, 승인된 버전은 바꾸지 않는다.
+- 샘플 과제 시드(T-201)는 로컬에서 프로덕션 DB·Blob을 가리켜 실행한다. 공개 프록시 연결 문자열은 `railway variables --service Postgres --json`의 `PGUSER`·`PGPASSWORD`·`RAILWAY_TCP_PROXY_DOMAIN`·`RAILWAY_TCP_PROXY_PORT`·`PGDATABASE`로 조립한다(`?sslmode=require`). `DATABASE_URL=<공개 프록시> ARTIFACT_STORE=blob BLOB_ACCESS=private BLOB_READ_WRITE_TOKEN=<토큰> pnpm db:seed:sample`. 멱등이라 다시 실행해도 안전하며 승인된 버전은 바꾸지 않는다.
 - 워커 재배포 중 진행 중 job은 SIGTERM 후 25초 안에 끝나지 않으면 QUEUED로 반납된다(T-006). `drainingSeconds`는 이보다 길게 둔다.
 - DB 비밀번호 교체: Railway `Postgres` 변수 변경 → 워커는 참조라 자동 반영, Vercel `DATABASE_URL`은 다시 넣고 재배포.
 - 데이터 삭제·초기화 명령(`pnpm db:reset`)은 `RAILWAY_ENVIRONMENT`·`VERCEL_ENV=production`에서 거부된다.
-- 샘플 체험(T-505): 워커를 먼저 배포(pre-deploy가 마이그레이션 `0015` 적용)한 뒤 웹을 배포하고, 로컬에서 프로덕션 DB·Blob을 가리켜 `pnpm demo:seed --env-store --external-worker`를 실행한다(연결 문자열은 위와 같이 조립). Railway 워커가 A/B/C/D를 실제로 채점하며, 처음 실행에서 GitHub로 수집한 스냅샷을 Blob `demo/samples/<id>/`에 저장해 두고 `이 샘플로 새로 실행`이 재사용한다. 시나리오는 `docs/demo.md`.
+- 샘플 체험(T-505): 워커를 먼저 배포(pre-deploy가 마이그레이션 `0015` 적용)한 뒤 웹을 배포하고 로컬에서 프로덕션 DB·Blob을 가리켜 `pnpm demo:seed --env-store --external-worker`를 실행한다(연결 문자열은 위와 같이 조립). Railway 워커가 A/B/C/D를 실제로 채점하며 처음 실행에서 GitHub로 수집한 스냅샷을 Blob `demo/samples/<id>/`에 저장해 두고 `이 샘플로 새로 실행`이 재사용한다. 시나리오는 `docs/demo.md`.
