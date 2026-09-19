@@ -41,6 +41,7 @@ export function WorkbenchShell({
     <main
       className="flex min-h-screen w-full min-w-0 flex-col bg-surface text-ink"
       data-testid="workbench"
+      data-layout="full-width"
       data-selected-criterion={view.selectedCriterion?.id}
       data-selected-run={view.selectedRun?.id}
       data-tab={view.tab ?? undefined}

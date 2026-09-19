@@ -53,3 +53,17 @@ pre,
 .font-mono {
   letter-spacing: 0;
 }
+
+/*
+ * 화면 전체 폭을 쓰는 페이지(워크벤치, `data-layout="full-width"`)에서는 헤더도 전체 폭으로 펴고
+ * 좌우 여백을 본문(px-4, lg:px-6)과 맞춘다.
+ */
+body:has([data-layout="full-width"]) [data-site-header-inner] {
+  max-width: none;
+  padding-inline: 1rem;
+}
+@media (min-width: 1024px) {
+  body:has([data-layout="full-width"]) [data-site-header-inner] {
+    padding-inline: 1.5rem;
+  }
+}

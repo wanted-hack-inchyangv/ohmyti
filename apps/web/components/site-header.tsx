@@ -10,7 +10,10 @@ export function SiteHeader() {
       className="sticky top-0 z-30 border-b border-neutral-200 bg-surface/95 backdrop-blur"
       data-testid="site-header"
     >
-      <div className="mx-auto flex h-[60px] max-w-6xl items-center gap-6 px-4 sm:px-6">
+      <div
+        data-site-header-inner
+        className="mx-auto flex h-[60px] max-w-6xl items-center gap-6 px-4 sm:px-6"
+      >
         <a
           href="/"
           className="group flex items-center gap-2.5 text-ink"
