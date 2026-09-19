@@ -755,7 +755,7 @@ export async function runEvaluationPipeline(
         const outcome = await stageTimeout(
           "CONTEXT_LINK",
           runContextLinkPipelineStage(
-            { submissionId: submission.id, evaluationId, rubric },
+            { submissionId: submission.id, evaluationId, rubric, repoUrl: submission.repoUrl },
             {
               db,
               store,

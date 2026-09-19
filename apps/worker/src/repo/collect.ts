@@ -164,6 +164,7 @@ export async function collectRepository(
   const requestedRef = input.repoRef?.trim() || parsed.ref;
   let submissionSha: string;
   let refLabel: string;
+  let canonicalFullName: string | undefined;
   try {
     if (input.pinnedSha) {
       submissionSha = input.pinnedSha;
@@ -172,6 +173,7 @@ export async function collectRepository(
       const resolved = await resolveSha(github, parsed.owner, parsed.repo, requestedRef);
       submissionSha = resolved.sha;
       refLabel = resolved.refLabel;
+      canonicalFullName = resolved.fullName;
     }
   } catch (error) {
     if (error instanceof RepoNotAccessibleError) {
@@ -226,7 +228,11 @@ export async function collectRepository(
 
     const manifest: SnapshotManifest = {
       version: 1,
-      repo: { owner: parsed.owner, name: parsed.repo },
+      repo: {
+        owner: parsed.owner,
+        name: parsed.repo,
+        ...(canonicalFullName ? { fullName: canonicalFullName } : {}),
+      },
       submissionSha,
       requestedRef: refLabel,
       snapshotDigest: built.digest,
@@ -261,7 +267,7 @@ async function resolveSha(
   owner: string,
   repo: string,
   requestedRef: string | undefined,
-): Promise<{ sha: string; refLabel: string }> {
+): Promise<{ sha: string; refLabel: string; fullName?: string | undefined }> {
   const repository = await github.getRepository(owner, repo);
   if (repository.isPrivate) {
     // 토큰이 있으면 비공개 저장소가 200으로 올 수 있다. MVP는 공개 저장소만 지원한다 (PRD 3장)
@@ -273,7 +279,7 @@ async function resolveSha(
   if (explicitSha && commit.sha !== explicitSha) {
     throw new RepoNotAccessibleError(`요청한 SHA ${explicitSha}가 저장소에 없습니다`);
   }
-  return { sha: commit.sha, refLabel: ref };
+  return { sha: commit.sha, refLabel: ref, fullName: repository.fullName };
 }
 
 export interface RepoCheckStageDeps extends Omit<CollectRepositoryDeps, "store"> {

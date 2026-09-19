@@ -98,6 +98,7 @@ describe("createGitHubClient (fetch 모킹)", () => {
     await expect(github.getRepository("acme", "order-api")).resolves.toEqual({
       owner: "acme",
       repo: "order-api",
+      fullName: "acme/order-api",
       defaultBranch: "main",
       isPrivate: false,
     });
@@ -196,6 +197,33 @@ describe("collectRepository", () => {
     ]);
     expect(manifest.dropped.gitEntries).toBeGreaterThan(0);
     expect(await tempDirsLeft()).toEqual([]);
+  });
+
+  it("이름이 바뀐 저장소는 옛 URL로 수집해도 manifest에 정식 이름을 남긴다 (T-603)", async () => {
+    // GitHub는 옛 이름을 새 이름으로 리디렉션하고 응답의 full_name은 새 이름이다
+    const fake = fakeGitHub({
+      "acme/order-api-old": await publicRepo({ fullName: "acme/order-api-renamed" }),
+    });
+    const github = createGitHubClient({ fetch: fake.fetch });
+    const result = await collectRepository(
+      { submissionId: "s-renamed", repoUrl: "https://github.com/acme/order-api-old" },
+      deps(github),
+    );
+    if (result.outcome !== "PINNED") throw new Error("PINNED 아님");
+    expect(result.manifest.repo).toEqual({
+      owner: "acme",
+      name: "order-api-old",
+      fullName: "acme/order-api-renamed",
+    });
+    const stored = await store.get(artifactKeys.snapshotManifest("s-renamed"));
+    const manifest = SnapshotManifestSchema.parse(
+      JSON.parse(Buffer.from(stored!.body).toString("utf8")),
+    );
+    expect(manifest.repo.fullName).toBe("acme/order-api-renamed");
+    // T-603 이전 manifest(정식 이름 없음)도 그대로 읽힌다
+    expect(
+      SnapshotManifestSchema.safeParse({ ...manifest, repo: { owner: "acme", name: "x" } }).success,
+    ).toBe(true);
   });
 
   it("ref가 없으면 기본 브랜치, repoRef가 있으면 URL의 ref보다 우선한다", async () => {

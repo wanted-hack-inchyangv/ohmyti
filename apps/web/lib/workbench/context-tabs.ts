@@ -103,6 +103,8 @@ export interface GitHubTabView {
   reason: string | null;
   /** 조회 범위: 후보 수·요청 수 */
   scope: string | null;
+  /** 선정에서 뺀 후보 안내: 제출 저장소, 범용 키워드만 겹친 후보 수 (T-603). 이전 기록이면 비어 있다 */
+  selectionNotes: string[];
   repos: RepoCardView[];
   empty: TabEmptyView | null;
 }
@@ -266,8 +268,26 @@ function selectionReason(sources: GitHubSources, repo: GitHubRepoSource): string
   if (sources.selection === "RECENT_PUSH") {
     return "이력서·JD 키워드와 겹치는 저장소가 없어 최근 push 순으로 골랐습니다";
   }
+  if (sources.selection === "RESUME_LINK") {
+    return repo.matchedKeywords.length === 0
+      ? "이력서·JD에 저장소 주소가 있음"
+      : `이력서·JD에 저장소 주소가 있음 · 겹친 키워드: ${repo.matchedKeywords.join(", ")}`;
+  }
   if (repo.matchedKeywords.length === 0) return "이력서·JD 키워드와 겹침";
   return `이력서·JD 키워드와 겹침: ${repo.matchedKeywords.join(", ")}`;
+}
+
+function selectionNotes(sources: GitHubSources): string[] {
+  const notes: string[] = [];
+  if (sources.excludedRepos && sources.excludedRepos.length > 0) {
+    notes.push(`제출 저장소는 근거 후보에서 뺐습니다: ${sources.excludedRepos.join(", ")}`);
+  }
+  if (sources.genericOnlyCount && sources.genericOnlyCount > 0) {
+    notes.push(
+      `범용 키워드(api, express, typescript 등)만 겹친 저장소 ${sources.genericOnlyCount}개는 고르지 않았습니다`,
+    );
+  }
+  return notes;
 }
 
 function collectedSummary(repo: GitHubRepoSource): string[] {
@@ -342,6 +362,7 @@ function buildGitHubTab(
     scope: sources
       ? `공개 저장소 ${sources.candidateCount}개${sources.candidateListTruncated ? "(목록 첫 페이지까지)" : ""} 중 최대 ${sources.repos.length}개 선정 · GitHub 요청 ${sources.requestCount}/${sources.requestLimit}`
       : null,
+    selectionNotes: sources ? selectionNotes(sources) : [],
     repos: (sources?.repos ?? []).map((repo) => ({
       fullName: repo.fullName,
       url: repo.url,
@@ -520,6 +541,7 @@ export function buildContextTabsView(
           statusLabel: null,
           reason: null,
           scope: null,
+          selectionNotes: [],
           repos: [],
           empty: unavailable,
         },

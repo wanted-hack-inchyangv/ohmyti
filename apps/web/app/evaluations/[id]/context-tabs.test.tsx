@@ -491,6 +491,44 @@ describe("이력서 연결 · GitHub 근거 · 후속 질문", () => {
     expect(html).toContain('data-repo="octo/payments"');
     expect(textOf(html)).toContain("REQUEST_LIMIT_REACHED");
     expect(textOf(html)).not.toContain("987");
+    // T-603 이전 기록(제외·범용 필드 없음)도 그대로 열리고 안내는 없다
+    expect(GITHUB.excludedRepos).toBeUndefined();
+    expect(GITHUB.genericOnlyCount).toBeUndefined();
+    expect(view.github.selectionNotes).toEqual([]);
+    expect(html).not.toContain('data-testid="github-selection-notes"');
+  });
+
+  it("제출 저장소 제외와 범용 키워드만 겹친 후보 수를 탭 상단에 보인다 (T-603)", () => {
+    const base = contextData();
+    const sources: GitHubSources = GitHubSourcesSchema.parse({
+      ...GITHUB,
+      status: "COLLECTED",
+      reason: null,
+      selection: "RESUME_LINK",
+      excludedRepos: ["octo/order-api"],
+      genericOnlyCount: 4,
+    });
+    const context = {
+      ok: true as const,
+      data: { ...base, github: { login: "octo", sources, invalid: false } },
+    };
+    const { view } = build("github", { context });
+    expect(view.github.selectionNotes).toEqual([
+      "제출 저장소는 근거 후보에서 뺐습니다: octo/order-api",
+      "범용 키워드(api, express, typescript 등)만 겹친 저장소 4개는 고르지 않았습니다",
+    ]);
+    expect(view.github.repos[0]!.selectionReason).toBe(
+      "이력서·JD에 저장소 주소가 있음 · 겹친 키워드: idempotent, payment",
+    );
+    const html = render("github", { context });
+    expect(html).toContain('data-testid="github-selection-notes"');
+    const text = textOf(html);
+    expect(text).toContain("octo/order-api");
+    expect(text).toContain("저장소 4개는 고르지 않았습니다");
+    // 안내는 저장소 목록보다 위에 있다
+    expect(html.indexOf("github-selection-notes")).toBeLessThan(
+      html.indexOf('data-testid="repo-list"'),
+    );
   });
 
   it("GitHub 조회 전·형태 오류·자료 없음은 이유를 그대로 보인다", () => {

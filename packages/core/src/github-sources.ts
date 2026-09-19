@@ -45,7 +45,10 @@ export const GitHubRepoSourceSchema = z.strictObject({
   language: z.string().max(100).nullable(),
   topics: z.array(z.string().max(100)).max(30),
   pushedAt: TimestampSchema.nullable(),
-  /** 선정 근거: 이력서·JD 키워드와 겹친 저장소 토큰(정렬됨). 점수는 그 개수다 */
+  /**
+   * 선정 근거: 이력서·JD 키워드와 겹친 저장소 토큰. 범용이 아닌 토큰을 앞에 두고 각 묶음 안은 정렬한다(T-603).
+   * 점수는 그 개수다
+   */
   matchedKeywords: z.array(z.string().max(100)).max(50),
   relevanceScore: z.int().min(0),
   /** README 앞 4 KiB (UTF-8, 마스킹 후). 없으면 null */
@@ -90,11 +93,21 @@ export const GitHubSourcesSchema = z.strictObject({
   reason: z.string().max(1000).nullable(),
   login: z.string().max(100).nullable(),
   collectedAt: TimestampSchema,
-  /** 선정 방식: 키워드 겹침, 또는 키워드가 없어 최근 push 순 */
-  selection: z.enum(["KEYWORD_OVERLAP", "RECENT_PUSH"]).nullable(),
-  /** 후보로 본 공개 저장소 수(포크 제외)와 목록 첫 페이지 상한에 걸렸는지 */
+  /**
+   * 선정 방식: 이력서·JD가 주소로 직접 가리킨 저장소(`RESUME_LINK`, T-603), 키워드 겹침,
+   * 또는 키워드가 없어 최근 push 순
+   */
+  selection: z.enum(["RESUME_LINK", "KEYWORD_OVERLAP", "RECENT_PUSH"]).nullable(),
+  /** 후보로 본 공개 저장소 수(포크·제출 저장소 제외)와 목록 첫 페이지 상한에 걸렸는지 */
   candidateCount: z.int().min(0),
   candidateListTruncated: z.boolean(),
+  /**
+   * 근거 후보에서 뺀 제출 저장소(`owner/name`, 목록에 있던 이름). 채점 대상이 이력서 근거로 다시 쓰이지 않게 한다 (T-603).
+   * T-603 이전 기록에는 없다
+   */
+  excludedRepos: z.array(z.string().min(3).max(200)).max(10).optional(),
+  /** 키워드 겹침 선정에서 범용 키워드만 겹쳐 빠진 후보 수 (T-603). 다른 선정 방식이거나 T-603 이전 기록이면 없다 */
+  genericOnlyCount: z.int().min(0).optional(),
   repos: z.array(GitHubRepoSourceSchema).max(10),
   /** 실제로 보낸 GitHub API 요청 수와 상한 */
   requestCount: z.int().min(0),

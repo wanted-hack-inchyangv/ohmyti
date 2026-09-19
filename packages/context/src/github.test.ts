@@ -11,7 +11,9 @@ import fc from "fast-check";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   collectGitHubSources,
+  genericKeywordPredicate,
   GITHUB_PROFILE_LIMITS,
+  linkedRepoNames,
   loadGitHubProfileConfig,
   matchKeywords,
   profileRequestLimit,
@@ -26,6 +28,14 @@ import {
   type FakeProfile,
   type FakeProfileRepo,
 } from "./testing/github";
+import {
+  PERSONA_EXPECTED,
+  PERSONA_HANDLES,
+  PERSONA_ORG_LOGIN,
+  PERSONA_ORG_REPOS,
+  PERSONA_RESUME_TEXTS,
+  personaOrgProfile,
+} from "./testing/personas";
 
 const NOW = new Date("2026-09-19T00:00:00.000Z");
 const RESUME = [
@@ -117,7 +127,7 @@ describe("키워드 (github)", () => {
 });
 
 describe("collectGitHubSources (github)", () => {
-  it("관련 저장소를 최대 3개만 겹침 점수 → 최근 push 순으로 고르고 포크는 뺀다", async () => {
+  it("관련 저장소를 최대 3개만 비범용 겹침 → 전체 겹침 → 최근 push 순으로 고르고 포크는 뺀다", async () => {
     const api = fakeGitHubProfileApi([devProfile()]);
     const sources = await collectGitHubSources(
       { login: "dev-kim", resumeText: RESUME },
@@ -135,10 +145,18 @@ describe("collectGitHubSources (github)", () => {
       "dev-kim/order-api",
     ]);
     const [first] = sources.repos;
-    expect(first!.matchedKeywords).toEqual(
-      ["inventory", "postgresql", "reservation", "service", "transactions", "typescript"].sort(),
-    );
+    // 범용이 아닌 토큰을 앞에 둔다 (T-603)
+    expect(first!.matchedKeywords).toEqual([
+      "inventory",
+      "postgresql",
+      "reservation",
+      "transactions",
+      "service",
+      "typescript",
+    ]);
     expect(first!.relevanceScore).toBe(first!.matchedKeywords.length);
+    // typescript-notes는 범용 키워드(typescript)만 겹친다
+    expect(sources.genericOnlyCount).toBe(1);
     expect(sources.repos.map((r) => r.fullName)).not.toContain("dev-kim/inventory-fork");
     expect(sources.repos.map((r) => r.fullName)).not.toContain("dev-kim/dotfiles");
   });
@@ -487,6 +505,168 @@ describe("collectGitHubSources (github)", () => {
     const message = sources.repos[0]!.commits[0]!.message;
     expect(message.length).toBeLessThanOrEqual(500);
     expect(message).not.toContain(`ghp_${"a".repeat(36)}`);
+  });
+});
+
+describe("근거 선정 보강: 제출 저장소 제외와 범용 키워드 (github, T-603)", () => {
+  const ORG = `${PERSONA_ORG_LOGIN}/`;
+  const personaRepos = (handle: string) =>
+    PERSONA_ORG_REPOS.map((r) => ORG + r.name).filter((name) =>
+      name.startsWith(`${ORG}${handle}-`),
+    );
+  /** 주소를 지운 이력서. 키워드 겹침 선정만 남는다 */
+  const withoutLinks = (text: string) => text.replace(/github\.com\/\S+/g, "");
+
+  it("fixture: 조직 저장소 14개, 이력서 4종", () => {
+    expect(PERSONA_ORG_REPOS).toHaveLength(14);
+    for (const repo of PERSONA_ORG_REPOS)
+      expect(allKeys(repo).filter((k) => POPULARITY_KEY.test(k))).toEqual([]);
+    for (const handle of PERSONA_HANDLES) {
+      expect(PERSONA_RESUME_TEXTS[handle].length).toBeGreaterThan(500);
+    }
+  });
+
+  it.each(PERSONA_HANDLES)(
+    "%s: 본인의 포트폴리오 2개만 고른다. 제출 저장소와 다른 페르소나의 저장소는 없다",
+    async (handle) => {
+      const expected = PERSONA_EXPECTED[handle];
+      const api = fakeGitHubProfileApi([personaOrgProfile()]);
+      const sources = await collectGitHubSources(
+        {
+          login: PERSONA_ORG_LOGIN,
+          resumeText: PERSONA_RESUME_TEXTS[handle],
+          excludeRepos: [expected.submittedAs, expected.submissionRepo],
+        },
+        { fetch: api.fetch, now: () => NOW },
+      );
+      expect(GitHubSourcesSchema.safeParse(sources).success).toBe(true);
+      expect(sources.status).toBe("COLLECTED");
+      expect(sources.selection).toBe("RESUME_LINK");
+      const selected = sources.repos.map((r) => r.fullName);
+      expect([...selected].sort()).toEqual([...expected.portfolio].sort());
+      expect(selected).not.toContain(expected.submissionRepo);
+      for (const other of PERSONA_HANDLES.filter((h) => h !== handle)) {
+        for (const name of personaRepos(other)) expect(selected).not.toContain(name);
+      }
+      expect(sources.excludedRepos).toEqual([expected.submissionRepo]);
+      expect(sources.candidateCount).toBe(13);
+      expect(api.requests.length).toBeLessThanOrEqual(profileRequestLimit(3));
+      expect(allKeys(sources).filter((k) => POPULARITY_KEY.test(k))).toEqual([]);
+      // 선정 사유는 범용이 아닌 토큰이 앞이다
+      for (const repo of sources.repos) {
+        expect(repo.matchedKeywords[0]).not.toMatch(/^(api|express|typescript|rest)$/);
+      }
+    },
+  );
+
+  it("제출 저장소 비교는 대소문자를 무시하고, 목록에 없는 이름은 기록하지 않는다", async () => {
+    const api = fakeGitHubProfileApi([personaOrgProfile()]);
+    const sources = await collectGitHubSources(
+      {
+        login: PERSONA_ORG_LOGIN,
+        resumeText: withoutLinks(PERSONA_RESUME_TEXTS.seojin),
+        excludeRepos: [
+          "Wanted-Hack-Inchyangv/SEOJIN-Order-API",
+          `${PERSONA_EXPECTED.seojin.submittedAs}`,
+        ],
+      },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(sources.selection).toBe("KEYWORD_OVERLAP");
+    expect(sources.excludedRepos).toEqual([PERSONA_EXPECTED.seojin.submissionRepo]);
+    expect(sources.repos.map((r) => r.fullName)).not.toContain(
+      PERSONA_EXPECTED.seojin.submissionRepo,
+    );
+  });
+
+  it("제출 저장소를 넘기지 않으면 키워드 겹침으로 제출물이 다시 선택된다 (실측 결함 재현)", async () => {
+    const api = fakeGitHubProfileApi([personaOrgProfile()]);
+    const sources = await collectGitHubSources(
+      { login: PERSONA_ORG_LOGIN, resumeText: withoutLinks(PERSONA_RESUME_TEXTS.seojin) },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(sources.excludedRepos).toBeUndefined();
+    expect(sources.repos.map((r) => r.fullName)).toContain(PERSONA_EXPECTED.seojin.submissionRepo);
+  });
+
+  it.each(["taeyun", "dohyun"] as const)(
+    "%s: 주소가 없어도 범용 키워드만 겹친 gaeun-bookmark-api는 고르지 않고 그 수를 기록한다",
+    async (handle) => {
+      const api = fakeGitHubProfileApi([personaOrgProfile()]);
+      const sources = await collectGitHubSources(
+        {
+          login: PERSONA_ORG_LOGIN,
+          resumeText: withoutLinks(PERSONA_RESUME_TEXTS[handle]),
+          excludeRepos: [PERSONA_EXPECTED[handle].submissionRepo],
+        },
+        { fetch: api.fetch, now: () => NOW },
+      );
+      expect(sources.selection).toBe("KEYWORD_OVERLAP");
+      const selected = sources.repos.map((r) => r.fullName);
+      expect(selected).not.toContain(`${ORG}gaeun-bookmark-api`);
+      expect(selected.slice(0, 2).sort()).toEqual([...PERSONA_EXPECTED[handle].portfolio].sort());
+      expect(sources.genericOnlyCount).toBeGreaterThanOrEqual(1);
+      for (const repo of sources.repos) {
+        expect(repo.matchedKeywords.some((k) => !genericKeywordPredicate([])(k))).toBe(true);
+      }
+    },
+  );
+
+  it("범용 키워드만 겹치면 억지로 고르지 않고 NO_DATA + NO_RELATED_REPOS이며 그 수를 기록한다", async () => {
+    const api = fakeGitHubProfileApi([personaOrgProfile()]);
+    const sources = await collectGitHubSources(
+      { login: PERSONA_ORG_LOGIN, resumeText: "TypeScript Express REST API 백엔드 프로젝트 개발" },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(sources.status).toBe("NO_DATA");
+    expect(sources.reason).toMatch(/^NO_RELATED_REPOS: /);
+    expect(sources.repos).toEqual([]);
+    expect(sources.genericOnlyCount).toBeGreaterThanOrEqual(5);
+    expect(api.requests).toHaveLength(1);
+  });
+
+  it("범용 판정: 목록, 조사가 붙은 목록 토큰, 후보 4개 이상에서 절반 이상에 나오는 토큰", () => {
+    const three = [new Set(["a1", "shared"]), new Set(["shared"]), new Set(["b1"])];
+    expect(genericKeywordPredicate(three)("shared")).toBe(false);
+    const four = [...three, new Set(["c1"])];
+    const isGeneric = genericKeywordPredicate(four);
+    expect(isGeneric("shared")).toBe(true);
+    expect(isGeneric("a1")).toBe(false);
+    for (const token of [
+      "api",
+      "express",
+      "typescript",
+      "백엔드",
+      "프로젝트",
+      "express로",
+      "crud와",
+    ]) {
+      expect(isGeneric(token)).toBe(true);
+    }
+    expect(isGeneric("재고")).toBe(false);
+  });
+
+  it("주소 인용: 같은 로그인의 저장소 이름만, 대소문자 무시, 끝의 .git·마침표를 뗀다", () => {
+    const names = linkedRepoNames(
+      [
+        "github.com/Dev-Kim/Order-Service.git",
+        "https://github.com/dev-kim/payments.",
+        "github.com/other/elsewhere",
+        "GitHub github.com/dev-kim",
+      ].join("\n"),
+      "dev-kim",
+    );
+    expect([...names].sort()).toEqual(["order-service", "payments"]);
+  });
+
+  it("주소로 가리킨 저장소가 목록에 없으면 키워드 겹침으로 고른다", async () => {
+    const api = fakeGitHubProfileApi([devProfile()]);
+    const sources = await collectGitHubSources(
+      { login: "dev-kim", resumeText: `${RESUME}\ngithub.com/dev-kim/deleted-repo` },
+      { fetch: api.fetch, now: () => NOW },
+    );
+    expect(sources.selection).toBe("KEYWORD_OVERLAP");
+    expect(sources.repos.map((r) => r.fullName)).toContain("dev-kim/inventory-service");
   });
 });
 

@@ -1,10 +1,16 @@
 /**
  * GitHub 프로필 보충 조회 (TICKET.md T-502). CONTEXT_LINK 단계에서 이력서 추출(T-501) 다음에 한다.
  *
- * - 프로필 전체를 평가하지 않는다. 공개 저장소 목록에서 이력서·JD 키워드와 겹치는 저장소를 최대 `maxRepos`(3)개 고른다.
- *   겹침 점수는 저장소 이름·설명·토픽·주 언어의 토큰 중 키워드에 있는 것의 개수다. 동점은 최근 push 순, 그다음 이름 순이다.
- *   키워드가 하나도 없으면(이력서 없음) 최근 push 순으로 고른다(`RECENT_PUSH`). 키워드가 있는데 겹치는 저장소가 없으면
- *   관련 없는 저장소를 억지로 고르지 않고 `NO_DATA`(`NO_RELATED_REPOS`)다 (G-09).
+ * - 프로필 전체를 평가하지 않는다. 공개 저장소 목록에서 이력서·JD와 관련된 저장소를 최대 `maxRepos`(3)개 고른다.
+ *   제출 저장소(`excludeRepos`)는 후보에서 뺀다. 채점 대상이 이력서 주장의 근거로 다시 쓰이면 순환이다 (T-603).
+ *   1. 이력서·JD가 이 프로필의 저장소를 주소(`github.com/<login>/<repo>`)로 직접 가리키면 그 저장소만 고른다(`RESUME_LINK`).
+ *      여러 지원자가 조직 프로필 하나를 공유하면 키워드로 남은 자리를 채우는 순간 다른 사람의 저장소가 들어온다.
+ *   2. 아니면 키워드 겹침(`KEYWORD_OVERLAP`)이다. 저장소 이름·설명·토픽·주 언어의 토큰 중 키워드에 있는 것이 겹침이고,
+ *      범용 기술·직무 토큰(`GENERIC_KEYWORDS`)과 후보 4개 이상에서 절반 이상의 후보에 나오는 토큰은 범용으로 본다.
+ *      범용이 아닌 토큰이 1개 이상 겹친 저장소만 고르고, 비범용 겹침 수 → 전체 겹침 수 → 최근 push → 이름 순으로 정렬한다.
+ *      범용 키워드만 겹쳐 빠진 후보 수는 `genericOnlyCount`로 남긴다.
+ *   3. 키워드가 하나도 없으면(이력서 없음) 최근 push 순으로 고른다(`RECENT_PUSH`).
+ *   키워드가 있는데 고를 저장소가 없으면 관련 없는 저장소를 억지로 채우지 않고 `NO_DATA`(`NO_RELATED_REPOS`)다 (G-09).
  * - 저장소별 수집: README 앞 4 KiB, 언어 목록, 최상위 파일 목록, 해당 사용자의 최근 커밋 메시지 20개, 해당 사용자의 병합된 PR 제목 10개.
  * - 요청 수 상한: 목록 1회 + 저장소당 5회 = `1 + 5 × maxRepos` (기본 16). 상한에 닿으면 더 보내지 않는다.
  *   속도 제한 응답을 한 번 받으면 이후 요청은 보내지 않는다.
@@ -74,6 +80,11 @@ export interface GitHubProfileInput {
   resumeText?: string | null | undefined;
   /** 직무 설명. MVP 입력에는 아직 없다 */
   jdText?: string | null | undefined;
+  /**
+   * 근거 후보에서 뺄 저장소(`owner/name`, 대소문자 무시). 워커가 제출 저장소를 넘긴다.
+   * 이름이 바뀐 저장소는 수집 단계(T-202)가 확인한 정식 이름도 함께 넘겨야 목록의 새 이름과 맞는다
+   */
+  excludeRepos?: readonly string[] | undefined;
 }
 
 type Env = Record<string, string | undefined>;
@@ -125,6 +136,71 @@ export function tokenizeKeywords(text: string): Set<string> {
     out.add(token);
   }
   return out;
+}
+
+/**
+ * 범용 기술·직무 토큰 (T-603). 이것만 겹치는 저장소는 지원자와 관련 있다고 보지 않는다.
+ * 같은 조직 프로필의 거의 모든 저장소에 나오는 말이라 근거 선정을 구분하지 못한다
+ */
+export const GENERIC_KEYWORDS: ReadonlySet<string> = new Set(
+  (
+    "api apis rest restful express node nodejs js ts typescript javascript react server backend frontend " +
+    "fullstack crud web app application service http json 백엔드 프론트엔드 풀스택 프로젝트 개발 개발자 구현 " +
+    "서버 서비스 과제 assignment"
+  ).split(" "),
+);
+
+/** 후보가 이 수 이상이면 절반 이상의 후보에 나오는 토큰도 범용으로 본다 */
+export const GENERIC_BY_FREQUENCY_MIN_CANDIDATES = 4;
+
+/**
+ * 후보 저장소 토큰 집합 목록에서 범용 토큰을 판정하는 함수를 만든다.
+ * `GENERIC_KEYWORDS`에 있거나(끝에 붙은 한글 조사를 뗀 `typescript로`·`crud와`도 포함),
+ * 후보가 4개 이상일 때 절반 이상의 후보에 나오는 토큰이면 범용이다.
+ */
+export function genericKeywordPredicate(
+  candidateTokens: ReadonlyArray<ReadonlySet<string>>,
+): (token: string) => boolean {
+  const frequent = new Set<string>();
+  if (candidateTokens.length >= GENERIC_BY_FREQUENCY_MIN_CANDIDATES) {
+    const counts = new Map<string, number>();
+    for (const tokens of candidateTokens) {
+      for (const token of tokens) counts.set(token, (counts.get(token) ?? 0) + 1);
+    }
+    for (const [token, count] of counts) {
+      if (count * 2 >= candidateTokens.length) frequent.add(token);
+    }
+  }
+  return (token) =>
+    GENERIC_KEYWORDS.has(token) ||
+    GENERIC_KEYWORDS.has(token.replace(/\p{Script=Hangul}+$/u, "")) ||
+    frequent.has(token);
+}
+
+/**
+ * 텍스트가 주소로 가리키는 `login` 소유 저장소 이름(소문자). `github.com/<login>/<repo>` 형태만 본다.
+ * 끝의 `.git`과 문장 부호는 떼어 낸다
+ */
+export function linkedRepoNames(text: string, login: string): Set<string> {
+  const out = new Set<string>();
+  const owner = login.toLowerCase();
+  for (const match of text.matchAll(/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)/gi)) {
+    if (match[1]!.toLowerCase() !== owner) continue;
+    const name = match[2]!
+      .toLowerCase()
+      .replace(/\.git$/, "")
+      .replace(/[._-]+$/, "");
+    if (name) out.add(name);
+  }
+  return out;
+}
+
+/** `owner/name` 비교용 정규화 (대소문자 무시, 앞뒤 공백·`/` 제거) */
+function normalizeFullName(fullName: string): string {
+  return fullName
+    .trim()
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase();
 }
 
 /** 저장소 토큰 중 키워드와 겹치는 것. 한글 토큰은 조사가 붙은 키워드(`재고를`)도 앞부분이 같으면 겹친 것으로 본다 */
@@ -338,7 +414,10 @@ async function readHead(
 
 interface Candidate {
   item: RepoListItem;
+  /** 겹친 토큰. 범용이 아닌 것을 앞에 둔다 */
   matched: string[];
+  /** 겹친 토큰 중 범용이 아닌 것의 수 */
+  specificCount: number;
   pushedAt: string | null;
 }
 
@@ -348,8 +427,9 @@ function repoTokens(item: RepoListItem): Set<string> {
   );
 }
 
-/** 겹침 점수 내림차순 → 최근 push → 이름 순 */
+/** 비범용 겹침 수 내림차순 → 전체 겹침 수 내림차순 → 최근 push → 이름 순 */
 function compareCandidates(a: Candidate, b: Candidate): number {
+  if (b.specificCount !== a.specificCount) return b.specificCount - a.specificCount;
   if (b.matched.length !== a.matched.length) return b.matched.length - a.matched.length;
   const pa = a.pushedAt ?? "";
   const pb = b.pushedAt ?? "";
@@ -409,7 +489,15 @@ export async function collectGitHubSources(
     status: GitHubSourcesStatus,
     reason: string | null,
     extra: Partial<
-      Pick<GitHubSources, "selection" | "candidateCount" | "candidateListTruncated" | "repos">
+      Pick<
+        GitHubSources,
+        | "selection"
+        | "candidateCount"
+        | "candidateListTruncated"
+        | "excludedRepos"
+        | "genericOnlyCount"
+        | "repos"
+      >
     > = {},
   ): GitHubSources =>
     GitHubSourcesSchema.parse({
@@ -445,23 +533,70 @@ export async function collectGitHubSources(
     );
   }
   const candidateListTruncated = parsed.data.length >= GITHUB_PROFILE_LIMITS.listPageSize;
-  const publicRepos = parsed.data.filter((item) => !item.fork && !item.private);
-  const listed = { candidateCount: publicRepos.length, candidateListTruncated };
-  if (publicRepos.length === 0) return result("NO_DATA", reasonOf("NO_PUBLIC_REPOS"), listed);
+  const excludeSet = new Set((input.excludeRepos ?? []).map(normalizeFullName));
+  const excludedRepos: string[] = [];
+  const publicRepos = parsed.data.filter((item) => {
+    if (item.fork || item.private) return false;
+    if (excludeSet.has(normalizeFullName(item.full_name))) {
+      excludedRepos.push(truncate(item.full_name, 200));
+      return false;
+    }
+    return true;
+  });
+  const listed = {
+    candidateCount: publicRepos.length,
+    candidateListTruncated,
+    ...(input.excludeRepos ? { excludedRepos: excludedRepos.slice(0, 10) } : {}),
+  };
+  if (publicRepos.length === 0) {
+    return result(
+      "NO_DATA",
+      reasonOf("NO_PUBLIC_REPOS", excludedRepos.length > 0 ? "제출 저장소 제외" : undefined),
+      listed,
+    );
+  }
 
-  const keywords = tokenizeKeywords([input.resumeText ?? "", input.jdText ?? ""].join("\n"));
-  const selection = keywords.size > 0 ? "KEYWORD_OVERLAP" : "RECENT_PUSH";
-  const candidates: Candidate[] = publicRepos.map((item) => ({
-    item,
-    matched: keywords.size > 0 ? matchKeywords(repoTokens(item), keywords) : [],
-    pushedAt: isoOrNull(item.pushed_at),
-  }));
-  const selected = candidates
-    .filter((c) => selection === "RECENT_PUSH" || c.matched.length > 0)
-    .sort(compareCandidates)
-    .slice(0, maxRepos);
+  const keywordText = [input.resumeText ?? "", input.jdText ?? ""].join("\n");
+  const keywords = tokenizeKeywords(keywordText);
+  const tokensOf = new Map(publicRepos.map((item) => [item, repoTokens(item)]));
+  const isGeneric = genericKeywordPredicate([...tokensOf.values()]);
+  const candidates: Candidate[] = publicRepos.map((item) => {
+    const all = keywords.size > 0 ? matchKeywords(tokensOf.get(item)!, keywords) : [];
+    const specific = all.filter((t) => !isGeneric(t));
+    return {
+      item,
+      matched: [...specific, ...all.filter((t) => isGeneric(t))],
+      specificCount: specific.length,
+      pushedAt: isoOrNull(item.pushed_at),
+    };
+  });
+
+  const linkedNames = linkedRepoNames(keywordText, login);
+  const linked = candidates.filter((c) => linkedNames.has(c.item.name.toLowerCase()));
+  let selection: NonNullable<GitHubSources["selection"]>;
+  let eligible: Candidate[];
+  let genericOnly: { genericOnlyCount: number } | Record<string, never> = {};
+  if (linked.length > 0) {
+    selection = "RESUME_LINK";
+    eligible = linked;
+  } else if (keywords.size === 0) {
+    selection = "RECENT_PUSH";
+    eligible = candidates;
+  } else {
+    selection = "KEYWORD_OVERLAP";
+    eligible = candidates.filter((c) => c.specificCount > 0);
+    genericOnly = {
+      genericOnlyCount: candidates.filter((c) => c.matched.length > 0 && c.specificCount === 0)
+        .length,
+    };
+  }
+  const selected = eligible.sort(compareCandidates).slice(0, maxRepos);
   if (selected.length === 0) {
-    return result("NO_DATA", reasonOf("NO_RELATED_REPOS"), { ...listed, selection });
+    return result("NO_DATA", reasonOf("NO_RELATED_REPOS"), {
+      ...listed,
+      selection,
+      ...genericOnly,
+    });
   }
 
   const repos: GitHubRepoSource[] = [];
@@ -471,7 +606,7 @@ export async function collectGitHubSources(
 
   const failures = repos.flatMap((r) => r.missing);
   if (failures.length === 0) {
-    return result("COLLECTED", null, { ...listed, selection, repos });
+    return result("COLLECTED", null, { ...listed, selection, ...genericOnly, repos });
   }
   const code: GitHubSourcesReasonCode = failures.some((f) => f.reason.startsWith("RATE_LIMITED"))
     ? "RATE_LIMITED"
@@ -481,6 +616,7 @@ export async function collectGitHubSources(
   return result("PARTIAL", reasonOf(code, `${failures.length}개 항목을 수집하지 못했습니다`), {
     ...listed,
     selection,
+    ...genericOnly,
     repos,
   });
 }
@@ -660,6 +796,7 @@ export interface GitHubSourcesDeps {
 export async function runGitHubSourcesCollection(
   deps: GitHubSourcesDeps,
   submissionId: string,
+  options: { excludeRepos?: readonly string[] | undefined } = {},
 ): Promise<GitHubSourcesSummary> {
   const context = await getSubmissionContext(deps.db, submissionId);
   const existing = context?.githubSources
@@ -674,7 +811,11 @@ export async function runGitHubSourcesCollection(
       : null;
   let sources: GitHubSources;
   try {
-    sources = await deps.collect({ login, resumeText });
+    sources = await deps.collect({
+      login,
+      resumeText,
+      ...(options.excludeRepos ? { excludeRepos: options.excludeRepos } : {}),
+    });
   } catch (error) {
     const name = error instanceof Error ? error.name : "Error";
     sources = GitHubSourcesSchema.parse({

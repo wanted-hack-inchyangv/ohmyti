@@ -72,6 +72,8 @@ export interface FakeGitHubRepo {
   refs: Record<string, string>;
   /** SHA → tarball 바이트 (또는 만들기 함수) */
   tarballs: Record<string, Uint8Array | (() => Promise<Uint8Array>)>;
+  /** 저장소 응답의 `full_name`. 이름이 바뀐 저장소(옛 이름 키로 등록)를 흉내 낸다. 없으면 요청한 `owner/name` */
+  fullName?: string;
 }
 
 export interface FakeGitHubState {
@@ -113,7 +115,11 @@ export function fakeGitHub(repos: Record<string, FakeGitHubRepo>): {
     const repo = state.repos[`${owner}/${name}`];
     if (!repo || repo.isPrivate) return json({ message: "Not Found" }, 404);
     if (!rest) {
-      return json({ default_branch: repo.defaultBranch, private: false });
+      return json({
+        full_name: repo.fullName ?? `${owner}/${name}`,
+        default_branch: repo.defaultBranch,
+        private: false,
+      });
     }
     if (rest.startsWith("commits/")) {
       const ref = decodeURIComponent(rest.slice("commits/".length));

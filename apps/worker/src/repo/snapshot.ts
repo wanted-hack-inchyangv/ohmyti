@@ -34,7 +34,15 @@ export type SnapshotFile = z.infer<typeof SnapshotFileSchema>;
 /** 수집 결과 기록. `submissions/<id>/snapshot-manifest.json`에 저장한다 */
 export const SnapshotManifestSchema = z.strictObject({
   version: z.literal(1),
-  repo: z.strictObject({ owner: z.string().min(1), name: z.string().min(1) }),
+  /**
+   * 제출 URL의 owner·name과, GitHub가 확인한 정식 `owner/name`(`fullName`, T-603). 이름이 바뀐 저장소는 둘이 다르다.
+   * `fullName`은 T-603 이전 기록과 SHA를 이미 고정한 재수집에는 없다
+   */
+  repo: z.strictObject({
+    owner: z.string().min(1),
+    name: z.string().min(1),
+    fullName: z.string().min(3).optional(),
+  }),
   /** 고정한 커밋 SHA */
   submissionSha: z.string().regex(/^[0-9a-f]{40}$/),
   /** 사용자가 요청한 ref (브랜치·태그·SHA). 기본 브랜치면 그 이름 */

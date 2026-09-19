@@ -140,6 +140,13 @@ function GitHubTab({ view }: { view: GitHubTabView }) {
           {view.reason && view.repos.length > 0 ? <span>{view.reason}</span> : null}
         </p>
       ) : null}
+      {view.selectionNotes.length > 0 ? (
+        <ul className="text-[13px] text-neutral-600" data-testid="github-selection-notes">
+          {view.selectionNotes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
       {view.empty ? <TabEmpty empty={view.empty} testId="github-empty" /> : null}
       {view.repos.length > 0 ? (
         <ul

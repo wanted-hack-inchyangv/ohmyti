@@ -54,6 +54,11 @@ export class TarballTooLargeError extends Error {
 export interface RepositoryInfo {
   owner: string;
   repo: string;
+  /**
+   * GitHub가 돌려준 정식 `owner/name`. 이름이 바뀐 저장소는 옛 URL이 새 이름으로 리디렉션되므로 요청한 이름과 다를 수 있다.
+   * 응답에 없으면 생략한다 (T-603 GitHub 근거 선정에서 제출 저장소를 뺄 때 쓴다)
+   */
+  fullName?: string;
   defaultBranch: string;
   isPrivate: boolean;
 }
@@ -94,6 +99,11 @@ export interface GitHubClientOptions {
 }
 
 const RepositoryResponse = z.object({
+  full_name: z
+    .string()
+    .regex(/^[^/\s]+\/[^/\s]+$/)
+    .optional()
+    .catch(undefined),
   default_branch: z.string().min(1),
   private: z.boolean(),
 });
@@ -148,6 +158,7 @@ export function createGitHubClient(options: GitHubClientOptions = {}): GitHubCli
       return {
         owner,
         repo,
+        ...(parsed.data.full_name ? { fullName: parsed.data.full_name } : {}),
         defaultBranch: parsed.data.default_branch,
         isPrivate: parsed.data.private,
       };
