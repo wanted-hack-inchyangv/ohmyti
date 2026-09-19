@@ -9,6 +9,7 @@
  * - `evaluations/<id>/sandbox/<envId>/` (러너 로그 접두사, T-204)
  * - `evaluations/<id>/analysis/function-graph.json` (관련 함수 그래프 분석 결과, T-304)
  * - `evaluations/<id>/analysis/design-signals.json` (설계 평가용 코드 신호, T-605)
+ * - `evaluations/<id>/interview-kit.json` (인터뷰 키트, core `InterviewKit`, T-702)
  * - `evaluations/<id>/mutations/<mutationId>/diff.patch`
  * - `evaluations/<id>/mutations/<mutationId>/snapshot.tar.gz` (변형을 적용한 스냅샷. 러너 `prepare` 입력, T-403)
  * - `assignments/<assignmentId>/specs/<sha256>.md` (과제 명세 원문. 내용 주소라 버전 번호를 알기 전에 넣을 수 있다, T-201)
@@ -116,6 +117,9 @@ export const artifactKeys = {
   /** 설계 평가용 코드 신호 (core `DesignSignals`, T-605) */
   designSignals: (evaluationId: string): string =>
     `evaluations/${id(evaluationId, "evaluationId")}/analysis/design-signals.json`,
+  /** 인터뷰 키트 (core `InterviewKit`, T-702). 평가 접두사 아래라 제출 삭제(T-506)가 함께 지운다 */
+  interviewKit: (evaluationId: string): string =>
+    `evaluations/${id(evaluationId, "evaluationId")}/interview-kit.json`,
   mutationDiff: (evaluationId: string, mutationId: string): string =>
     `evaluations/${id(evaluationId, "evaluationId")}/mutations/${id(mutationId, "mutationId")}/diff.patch`,
   /** 변형을 적용한 스냅샷 (T-403). 원본 스냅샷과 같은 형식이라 러너가 그대로 `prepare`한다 */
@@ -165,6 +169,7 @@ export const ARTIFACT_CONTENT_TYPES = {
   stageResult: "application/json",
   functionGraph: "application/json",
   designSignals: "application/json",
+  interviewKit: "application/json",
   mutationDiff: "text/x-patch",
   mutationSnapshot: "application/gzip",
   assignmentSpec: "text/markdown",

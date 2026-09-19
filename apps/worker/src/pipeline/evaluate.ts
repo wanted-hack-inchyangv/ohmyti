@@ -1,9 +1,10 @@
 /**
- * 평가 파이프라인 오케스트레이터 (TICKET.md T-204). `EVALUATE_SUBMISSION` job 하나가 제출 하나를 6단계로 처리한다.
+ * 평가 파이프라인 오케스트레이터 (TICKET.md T-204). `EVALUATE_SUBMISSION` job 하나가 제출 하나를 7단계로 처리한다.
  *
  * REPO_CHECK(T-202) → ENV_PREP(T-203 지원 판정 + 러너 prepare) → REQUIREMENT_VERIFY(기동 → 하네스 → 제출 테스트 → T-304 함수 그래프 분석 → T-205 판정 저장)
  * → TEST_EFFECTIVENESS(T-403 mutation 실험 → T-404 그룹 점수로 MUTATION 기준 판정 교체) → REVIEW_WRITE(T-407 LLM 근거 탐색·리뷰, 점수 불변)
- * → CONTEXT_LINK (T-501 이력서 텍스트 추출 → T-502 GitHub 보충 조회 → T-503 맥락 연결·후속 질문, 점수 불변).
+ * → CONTEXT_LINK (T-501 이력서 텍스트 추출 → T-502 GitHub 보충 조회 → T-503 맥락 연결·후속 질문, 점수 불변)
+ * → INTERVIEW_KIT (T-702 저장된 판정에서 질문 슬롯 계획 → LLM 문장 작성 → 인터뷰 키트 아티팩트, 점수 불변).
  *
  * TEST_EFFECTIVENESS는 REQUIREMENT_VERIFY가 DONE일 때만 실행한다. FAILED(제출물 탓)면 변형의 효과를 원본과 비교할 수 없어
  * SKIPPED로 둔다. 변형마다 새 러너 환경을 만들므로 ENV_PREP 환경은 이 단계 전에 파괴한다.
@@ -36,6 +37,7 @@ import {
   maskSensitive,
   REVIEW_WRITE_LLM_NOT_CONFIGURED_REASON,
   CONTEXT_LINK_VALIDATION_RUN_SKIP_REASON,
+  INTERVIEW_KIT_VALIDATION_RUN_SKIP_REASON,
   STAGE_NOT_IMPLEMENTED_REASON,
   type EvaluationStage,
   type EvaluationStageRecord,
@@ -97,6 +99,7 @@ import type { LlmClient } from "@ohmyti/llm";
 import { runReviewWriteStage } from "../review-write";
 import type { GitHubSourcesCollector } from "@ohmyti/context";
 import { runContextLinkPipelineStage } from "./context-link";
+import { runInterviewKitStage } from "../interview-kit";
 
 /** 구현 전 단계의 SKIPPED 사유 (티켓 문구 그대로). 모든 단계가 구현된 뒤에는 쓰지 않는다 */
 export const NOT_IMPLEMENTED_SKIP_REASON = STAGE_NOT_IMPLEMENTED_REASON;
@@ -778,6 +781,49 @@ export async function runEvaluationPipeline(
           ),
         );
         evaluation = await updateEvaluationStage(db, evaluationId, "CONTEXT_LINK", {
+          state: outcome.state,
+          ...(outcome.reason ? { reason: mask(outcome.reason) } : {}),
+          detail: outcome.detail,
+          now: now(),
+        });
+      }
+    }
+
+    // ── INTERVIEW_KIT (T-702) ────────────────────────────────────────────────────
+    // 저장된 판정·근거·변이·설계 신호에서 질문 슬롯을 정하고 LLM은 문장만 쓴다. 이력서는 LLM에 넣지 않는다(PRD 14.2).
+    // 점수는 바꾸지 않는다. LLM을 부르지 못해도 기본 질문으로 키트를 저장하고 단계는 DONE + 사유다
+    await enter("INTERVIEW_KIT");
+    const kitState = stageState("INTERVIEW_KIT");
+    if (kitState === "PENDING" || kitState === "RUNNING") {
+      if (validationRun) {
+        evaluation = await updateEvaluationStage(db, evaluationId, "INTERVIEW_KIT", {
+          state: "SKIPPED",
+          reason: INTERVIEW_KIT_VALIDATION_RUN_SKIP_REASON,
+          now: now(),
+        });
+      } else {
+        if (kitState === "PENDING") {
+          await updateEvaluationStage(db, evaluationId, "INTERVIEW_KIT", {
+            state: "RUNNING",
+            now: now(),
+          });
+        }
+        const current = (await getEvaluation(db, evaluationId))!;
+        const outcome = await stageTimeout(
+          "INTERVIEW_KIT",
+          runInterviewKitStage(
+            {
+              evaluationId,
+              submissionId: submission.id,
+              rubric,
+              contract,
+              spec: { title: version.title, specRef: version.specRef },
+              stageLog: current.stageLog,
+            },
+            { db, store, logger, llm: llmForThisEvaluation(), secrets },
+          ),
+        );
+        evaluation = await updateEvaluationStage(db, evaluationId, "INTERVIEW_KIT", {
           state: outcome.state,
           ...(outcome.reason ? { reason: mask(outcome.reason) } : {}),
           detail: outcome.detail,

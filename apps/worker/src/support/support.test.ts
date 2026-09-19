@@ -375,6 +375,7 @@ describe.skipIf(!hasTestDb)("runSupportCheckStage (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "SKIPPED"],
+      ["INTERVIEW_KIT", "SKIPPED"],
     ]);
     const envPrep = stages[0]!;
     expect(envPrep.reason).toMatch(/^DISALLOWED_DEPENDENCY: .*axios/);

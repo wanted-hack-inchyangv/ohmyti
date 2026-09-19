@@ -30,6 +30,8 @@ export const EvaluationStageSchema = z.enum([
   "TEST_EFFECTIVENESS",
   "REVIEW_WRITE",
   "CONTEXT_LINK",
+  /** 인터뷰 키트 (T-702, PRD 14.2). 저장된 판정에서 질문 슬롯을 정하고 LLM은 문장만 쓴다 */
+  "INTERVIEW_KIT",
 ]);
 export type EvaluationStage = z.infer<typeof EvaluationStageSchema>;
 export const EVALUATION_STAGE_ORDER: readonly EvaluationStage[] = EvaluationStageSchema.options;
@@ -103,12 +105,14 @@ export const RubricAreaSchema = z.enum([
 ]);
 export type RubricArea = z.infer<typeof RubricAreaSchema>;
 
-/** LLM 호출 용도. 1.5의 네 곳 밖에서는 호출하지 않는다. */
+/** LLM 호출 용도. 1.5의 다섯 곳 밖에서는 호출하지 않는다. */
 export const AiReviewKindSchema = z.enum([
   "RUBRIC_DRAFT",
   "MUTATION_TARGETS",
   "EVIDENCE_REVIEW",
   "CONTEXT_LINK",
+  /** 인터뷰 키트의 질문 문장 (T-702). 이력서·JD·GitHub 자료를 넣지 않는다 */
+  "INTERVIEW_KIT",
 ]);
 export type AiReviewKind = z.infer<typeof AiReviewKindSchema>;
 

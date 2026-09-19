@@ -39,7 +39,7 @@ export default async function NewSubmissionPage() {
   );
 }
 
-/** 제출 뒤 진행되는 실제 6단계 이름. 진행 상태가 아니라 순서 안내다 */
+/** 제출 뒤 진행되는 실제 7단계 이름. 진행 상태가 아니라 순서 안내다 */
 function StagePreview() {
   const labels = Object.values(STAGE_LABEL);
   return (

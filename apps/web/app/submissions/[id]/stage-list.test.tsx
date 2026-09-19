@@ -4,7 +4,7 @@ import { buildStageViews } from "@/lib/submissions/service";
 import { StageList } from "./stage-list";
 
 describe("StageList", () => {
-  it("stage_log에서 만든 6단계를 세로로 그리고 진행률 바·퍼센트가 없다", () => {
+  it("stage_log에서 만든 7단계를 세로로 그리고 진행률 바·퍼센트가 없다", () => {
     const html = renderToStaticMarkup(
       <StageList
         stages={buildStageViews([
@@ -19,7 +19,7 @@ describe("StageList", () => {
         ])}
       />,
     );
-    expect(html.match(/<li /g)).toHaveLength(6);
+    expect(html.match(/<li /g)).toHaveLength(7);
     expect(html).toContain('data-stage="REPO_CHECK" data-state="DONE"');
     expect(html).toContain('data-stage="ENV_PREP" data-state="RUNNING"');
     expect(html).toContain('data-stage="CONTEXT_LINK" data-state="PENDING"');

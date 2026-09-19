@@ -207,6 +207,29 @@ describe("lintInterviewQuestion", () => {
     ]);
   });
 
+  it("의도와 신호의 인상 표현을 검출하고, 행동으로 적은 신호와 주 질문에는 적용하지 않는다 (T-702)", () => {
+    const violations = lintInterviewQuestion({
+      ...base,
+      intent: "지원자가 열정이 있는지 본다.",
+      positiveSignals: ["똑똑하게 답한다.", base.positiveSignals[1]!],
+      concernSignals: [base.concernSignals[0]!, "태도가 소극적이다.", "자신감 없이 답한다."],
+    });
+    expect(violations).toEqual([
+      { field: "intent", index: null, rule: "IMPRESSION", note: "열정·성실" },
+      { field: "positiveSignals", index: 0, rule: "IMPRESSION", note: "똑똑" },
+      { field: "concernSignals", index: 1, rule: "IMPRESSION", note: "태도·인상" },
+      { field: "concernSignals", index: 2, rule: "IMPRESSION", note: "자신감" },
+    ]);
+    // 기술 문장은 걸리지 않는다
+    for (const signal of [
+      "락 범위와 재시도 조건을 구분해 설명한다.",
+      "가격 인상 규칙을 저장소 계층에 둔 이유를 말한다.",
+      "성능 저하 없이 처리량을 늘리는 방법을 비교한다.",
+    ]) {
+      expect(lintInterviewQuestion({ ...base, positiveSignals: [signal, signal] })).toEqual([]);
+    }
+  });
+
   it("근거 참조가 없으면 위반이다", () => {
     expect(lintInterviewQuestion({ ...base, refs: [] })).toEqual([
       { field: "refs", index: null, rule: "NO_REFS" },

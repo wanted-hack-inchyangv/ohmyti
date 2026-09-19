@@ -189,7 +189,7 @@ export interface ReportComparison {
 
 /**
  * 기대값을 고르는 배포 단계. 2 = T-208 시점(mutation·리뷰·맥락 단계 미구현), 4 = T-408 이후(TEST_EFFECTIVENESS·REVIEW_WRITE
- * DONE, CONTEXT_LINK SKIPPED), 5 = T-503 이후 최종(모든 단계 DONE). 기본값은 현재 배포 기준인 5다.
+ * DONE, CONTEXT_LINK SKIPPED), 5 = T-503 이후 최종(모든 단계 DONE, T-702 이후에는 INTERVIEW_KIT 포함). 기본값은 현재 배포 기준인 5다.
  */
 export const GATE_PHASES = [2, 4, 5] as const;
 export type GatePhase = (typeof GATE_PHASES)[number];
@@ -229,7 +229,8 @@ type StageName =
   | "REQUIREMENT_VERIFY"
   | "TEST_EFFECTIVENESS"
   | "REVIEW_WRITE"
-  | "CONTEXT_LINK";
+  | "CONTEXT_LINK"
+  | "INTERVIEW_KIT";
 
 /** 단계별 기대 파이프라인 단계 상태 */
 export function expectedStageStates(phase: GatePhase): Record<StageName, "DONE" | "SKIPPED"> {
@@ -240,6 +241,7 @@ export function expectedStageStates(phase: GatePhase): Record<StageName, "DONE" 
     TEST_EFFECTIVENESS: phase >= 4 ? "DONE" : "SKIPPED",
     REVIEW_WRITE: phase >= 4 ? "DONE" : "SKIPPED",
     CONTEXT_LINK: phase >= 5 ? "DONE" : "SKIPPED",
+    INTERVIEW_KIT: phase >= 5 ? "DONE" : "SKIPPED",
   };
 }
 

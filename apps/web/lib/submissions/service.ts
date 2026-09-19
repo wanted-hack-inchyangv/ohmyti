@@ -231,6 +231,7 @@ export const STAGE_LABEL: Record<EvaluationStage, string> = {
   TEST_EFFECTIVENESS: "테스트 실효성",
   REVIEW_WRITE: "리뷰 작성",
   CONTEXT_LINK: "맥락 연결",
+  INTERVIEW_KIT: "인터뷰 키트",
 };
 
 export const STAGE_STATE_LABEL: Record<StageState, string> = {
@@ -387,6 +388,18 @@ export function summarizeStage(record: EvaluationStageRecord): string | null {
       if (score && typeof score["display"] === "string") parts.push(`점수 ${score["display"]}`);
       break;
     }
+    case "INTERVIEW_KIT": {
+      // T-702 단계 기록: 질문 수와 우선순위별 개수, 기본 질문으로 채운 수
+      if (typeof detail["slotCount"] === "number") parts.push(`질문 ${detail["slotCount"]}개`);
+      const priorities = asObject(detail["priorities"]);
+      if (priorities && typeof priorities["MUST"] === "number") {
+        parts.push(`필수 ${priorities["MUST"]}개`);
+      }
+      if (typeof detail["templateCount"] === "number" && detail["templateCount"] > 0) {
+        parts.push(`기본 질문 ${detail["templateCount"]}개`);
+      }
+      break;
+    }
     default: {
       if (typeof detail["ticket"] === "string") parts.push(`${detail["ticket"]}에서 구현`);
     }
@@ -394,7 +407,7 @@ export function summarizeStage(record: EvaluationStageRecord): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-/** `stage_log`만으로 6단계 뷰를 만든다. 기록이 없는 단계는 PENDING */
+/** `stage_log`만으로 7단계 뷰를 만든다. 기록이 없는 단계는 PENDING */
 export function buildStageViews(stageLog: readonly EvaluationStageRecord[]): StageView[] {
   return EVALUATION_STAGE_ORDER.map((stage) => {
     const record = stageLog.find((r) => r.stage === stage) ?? { stage, state: "PENDING" as const };

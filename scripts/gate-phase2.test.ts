@@ -66,7 +66,7 @@ function fixture(
     sha?: string;
     tests?: { status: string; total: number; files: number };
     stagesDone?: boolean;
-    /** 기본 2. 4 이상이면 TEST_EFFECTIVENESS·REVIEW_WRITE(5면 CONTEXT_LINK까지) DONE */
+    /** 기본 2. 4 이상이면 TEST_EFFECTIVENESS·REVIEW_WRITE(5면 CONTEXT_LINK·INTERVIEW_KIT까지) DONE */
     phase?: GatePhase;
     /** MUTATION 기준(G1~G3) 판정. 없으면 INCONCLUSIVE(null) */
     groups?: Record<string, { verdict: Verdict; earnedPoints: number | null }>;
@@ -266,10 +266,11 @@ function fixture(
       { stage: "REPO_CHECK", state: "DONE" },
       { stage: "ENV_PREP", state: "DONE" },
       { stage: "REQUIREMENT_VERIFY", state: stagesDone ? "DONE" : "FAILED" },
-      ...(["TEST_EFFECTIVENESS", "REVIEW_WRITE", "CONTEXT_LINK"] as const).map((stage) =>
-        expectedStageStates(phase)[stage] === "DONE"
-          ? { stage, state: "DONE" as const }
-          : { stage, state: "SKIPPED" as const, reason: "not_implemented" },
+      ...(["TEST_EFFECTIVENESS", "REVIEW_WRITE", "CONTEXT_LINK", "INTERVIEW_KIT"] as const).map(
+        (stage) =>
+          expectedStageStates(phase)[stage] === "DONE"
+            ? { stage, state: "DONE" as const }
+            : { stage, state: "SKIPPED" as const, reason: "not_implemented" },
       ),
     ],
     reviewEvents: [],
@@ -315,12 +316,13 @@ describe("단계별 기대값 (T-507)", () => {
     expect(expectedAtPhase(5, "EXECUTION", undefined)).toBeNull();
   });
 
-  it("단계 상태: 2는 뒤 세 단계 SKIPPED, 4는 CONTEXT_LINK만 SKIPPED, 5는 모두 DONE", () => {
-    expect(Object.values(expectedStageStates(2)).filter((s) => s === "SKIPPED")).toHaveLength(3);
+  it("단계 상태: 2는 뒤 네 단계 SKIPPED, 4는 CONTEXT_LINK·INTERVIEW_KIT만 SKIPPED, 5는 모두 DONE", () => {
+    expect(Object.values(expectedStageStates(2)).filter((s) => s === "SKIPPED")).toHaveLength(4);
     expect(expectedStageStates(4)).toMatchObject({
       TEST_EFFECTIVENESS: "DONE",
       REVIEW_WRITE: "DONE",
       CONTEXT_LINK: "SKIPPED",
+      INTERVIEW_KIT: "SKIPPED",
     });
     expect(Object.values(expectedStageStates(5)).every((s) => s === "DONE")).toBe(true);
   });

@@ -91,6 +91,7 @@ describe("상태 전이 표", () => {
       "TEST_EFFECTIVENESS",
       "REVIEW_WRITE",
       "CONTEXT_LINK",
+      "INTERVIEW_KIT",
     ]);
   });
 

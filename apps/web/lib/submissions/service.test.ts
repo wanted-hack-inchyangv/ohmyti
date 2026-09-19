@@ -115,7 +115,7 @@ describe("parseUnsupportedReason", () => {
 });
 
 describe("buildStageViews", () => {
-  it("stage_log만으로 6단계를 만들고 기록 없는 단계는 대기다", () => {
+  it("stage_log만으로 7단계를 만들고 기록 없는 단계는 대기다", () => {
     const views = buildStageViews([]);
     expect(views.map((v) => v.label)).toEqual([
       "저장소 확인",
@@ -124,9 +124,10 @@ describe("buildStageViews", () => {
       "테스트 실효성",
       "리뷰 작성",
       "맥락 연결",
+      "인터뷰 키트",
     ]);
     expect(views.every((v) => v.state === "PENDING" && v.stateLabel === "대기")).toBe(true);
-    expect(Object.keys(STAGE_LABEL)).toHaveLength(6);
+    expect(Object.keys(STAGE_LABEL)).toHaveLength(7);
   });
 
   it("완료된 단계는 기록된 값으로 요약하고 미지원 단계는 사유 코드·상세를 그대로 낸다", () => {
@@ -187,6 +188,25 @@ describe("buildStageViews", () => {
     expect(summary).toBe(
       "기동 HEALTHY · 하네스 통과 18/20 (실패 1, 미확정 1) · 제출 테스트 PASSED 9/9 · 점수 82~90/100 · 8점 검토 대기",
     );
+  });
+
+  it("INTERVIEW_KIT 요약은 질문 수·필수 질문 수·기본 질문 수를 옮긴다", () => {
+    const detail = {
+      slotCount: 9,
+      templateCount: 9,
+      priorities: { MUST: 4, SHOULD: 4, OPTIONAL: 1 },
+      llm: "NOT_RUN",
+    };
+    expect(summarizeStage({ stage: "INTERVIEW_KIT", state: "DONE", detail })).toBe(
+      "질문 9개 · 필수 4개 · 기본 질문 9개",
+    );
+    expect(
+      summarizeStage({
+        stage: "INTERVIEW_KIT",
+        state: "DONE",
+        detail: { ...detail, templateCount: 0 },
+      }),
+    ).toBe("질문 9개 · 필수 4개");
   });
 });
 

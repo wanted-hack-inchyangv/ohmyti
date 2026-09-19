@@ -363,6 +363,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "DONE"],
+      ["INTERVIEW_KIT", "DONE"],
     ]);
     for (const record of stages) {
       expect(record.startedAt).toBeTruthy();
@@ -373,6 +374,10 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
     expect(stages[4]!.reason).toBe(REVIEW_WRITE_LLM_NOT_CONFIGURED_REASON);
     expect(stages[5]!.reason).toBeUndefined();
     expect(stages[5]!.detail?.contextLink).toMatchObject({ llm: "NOT_NEEDED", linkCount: 1 });
+    // INTERVIEW_KIT(T-702): LLM이 없어도 기본 질문으로 키트를 저장하고 DONE + 사유다
+    expect(stages[6]!.reason).toBe("LLM 미실행(설정 없음)");
+    expect(stages[6]!.detail).toMatchObject({ llm: "NOT_CONFIGURED", dropped: [] });
+    expect(stages[6]!.detail!.templateCount).toBe(stages[6]!.detail!.slotCount);
     expect(stages[0]!.detail).toMatchObject({ submissionSha: SHA_A, reused: false });
     expect(stages[1]!.detail).toMatchObject({
       supported: true,
@@ -422,6 +427,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "SKIPPED"],
+      ["INTERVIEW_KIT", "SKIPPED"],
     ]);
     expect(result.stageLog[1]!.reason).toMatch(/^DISALLOWED_DEPENDENCY: .*axios/);
     const evaluation = await getEvaluation(tdb.db, result.evaluationId!);
@@ -454,6 +460,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "DONE"],
+      ["INTERVIEW_KIT", "DONE"],
     ]);
     const verify = result.stageLog[2]!;
     expect(verify.reason).toMatch(/서비스가 하네스 실행 중 스스로 종료/);
@@ -476,7 +483,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
     // 제출 테스트는 그래도 실행됐다 (실행 코드는 A와 같으므로 통과)
     expect(verify.detail?.tests).toMatchObject({ status: "PASSED" });
     // TEST_EFFECTIVENESS는 원본 검증이 실패해 건너뛴다(T-403). REVIEW_WRITE는 LLM이 없어 건너뛰고 CONTEXT_LINK는 미구현 사유
-    // (부록 B: REQUIREMENT_VERIFY가 FAILED여도 REVIEW_WRITE·CONTEXT_LINK는 가능한 범위에서 진행)
+    // (부록 B: REQUIREMENT_VERIFY가 FAILED여도 REVIEW_WRITE·CONTEXT_LINK·INTERVIEW_KIT은 가능한 범위에서 진행)
     expect(result.stageLog[3]!.reason).toBe(REQUIREMENT_VERIFY_FAILED_SKIP_REASON);
     expect(result.stageLog[3]!.detail).toMatchObject({ requirementVerify: "FAILED" });
     // 테스트 실효성 점수(T-404): 건너뛴 단계의 사유로 세 그룹 모두 검토 대기
@@ -578,6 +585,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "DONE"],
+      ["INTERVIEW_KIT", "DONE"],
     ]);
     // DONE 단계의 기록이 그대로다 (다시 실행하지 않았다)
     expect(after.stageLog[0]).toEqual(before.stageLog[0]);
@@ -648,6 +656,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       ["TEST_EFFECTIVENESS", "SKIPPED"],
       ["REVIEW_WRITE", "SKIPPED"],
       ["CONTEXT_LINK", "SKIPPED"],
+      ["INTERVIEW_KIT", "SKIPPED"],
     ]);
     expect(evaluation.stageLog[1]!.reason).toMatch(/^ENVIRONMENT: /);
     expect(evaluation.stageLog[1]!.detail?.failureKind).toBe("ENVIRONMENT");

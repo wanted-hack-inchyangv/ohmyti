@@ -771,7 +771,10 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
       rs.map(({ earnedPoints, verdict }) => ({ earnedPoints, verdict }));
     expect(strip(await scoreRows(d.evaluationId))).toEqual(strip(await scoreRows(c.evaluationId)));
     // D의 README 지시문은 untrusted 블록 안으로만 들어갔다
-    const user = d.fake.sent.at(-1)!.messages.find((m) => m.role === "user")!.content;
+    const user = d.fake.sent
+      .filter((c) => c.purpose === "EVIDENCE_REVIEW")
+      .at(-1)!
+      .messages.find((m) => m.role === "user")!.content;
     const outside = user.replace(
       /<<<UNTRUSTED_DATA[^\n]*>>>\n[\s\S]*?\n<<<END_UNTRUSTED_DATA[^\n]*>>>/g,
       "",
@@ -958,7 +961,7 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
       ];
       return { output };
     });
-    expect(fake.sent).toHaveLength(1);
+    expect(fake.sent.filter((c) => c.purpose === "EVIDENCE_REVIEW")).toHaveLength(1);
     const stage = await reviewStage(evaluationId);
     expect(stage.state).toBe("DONE");
     expect(stage.reason).toBeUndefined();

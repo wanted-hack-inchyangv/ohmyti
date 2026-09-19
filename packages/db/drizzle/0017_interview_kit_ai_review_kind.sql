@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ai_review_kind" ADD VALUE 'INTERVIEW_KIT';

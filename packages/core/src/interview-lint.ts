@@ -25,6 +25,8 @@ export const InterviewLintRuleSchema = z.enum([
   "VERACITY_CHALLENGE",
   "PERSONAL_TOPIC",
   "FORBIDDEN_EXPRESSION",
+  /** 의도·신호가 관찰할 수 있는 행동 대신 인상("똑똑하다", "열정이 있다")을 적었다 (T-702) */
+  "IMPRESSION",
   "NO_REFS",
 ]);
 export type InterviewLintRule = z.infer<typeof InterviewLintRuleSchema>;
@@ -151,6 +153,17 @@ export const PERSONAL_TOPIC_PATTERNS: readonly LabeledPattern[] = [
   { label: "외모", pattern: /외모|체중|몸무게/ },
 ];
 
+/**
+ * 인상 표현: 좋은 답변의 신호·우려 신호·의도는 관찰할 수 있는 행동으로 적는다(T-702 구현 메모).
+ * "똑똑하다", "열정이 있다", "태도가 좋다"처럼 면접관의 인상을 적은 문장을 걸러낸다
+ */
+export const IMPRESSION_PATTERNS: readonly LabeledPattern[] = [
+  { label: "똑똑", pattern: /똑똑|영리|머리가\s*좋|총명/ },
+  { label: "열정·성실", pattern: /열정|성실(?:하|해|함|성)|의욕(?:이|적)/ },
+  { label: "태도·인상", pattern: /태도가|인상(?:이|을|적)|호감|느낌이\s*(?:좋|든|온)|센스/ },
+  { label: "자신감", pattern: /자신감(?:이|\s*있|\s*없)/ },
+];
+
 function firstLabel(text: string, patterns: readonly LabeledPattern[]): string | null {
   for (const { label, pattern } of patterns) {
     if (pattern.test(text)) return label;
@@ -172,6 +185,14 @@ function lintExpression(text: string): Array<{ rule: InterviewLintRule; note: st
   if (personal) found.push({ rule: "PERSONAL_TOPIC", note: personal });
   const forbidden = findForbiddenContextExpression(text);
   if (forbidden) found.push({ rule: "FORBIDDEN_EXPRESSION", note: forbidden });
+  return found;
+}
+
+/** 의도·신호 문장: 표현 규칙 + 인상 표현 */
+function lintDescription(text: string): Array<{ rule: InterviewLintRule; note: string }> {
+  const found = lintExpression(text);
+  const impression = firstLabel(text, IMPRESSION_PATTERNS);
+  if (impression) found.push({ rule: "IMPRESSION", note: impression });
   return found;
 }
 
@@ -210,8 +231,8 @@ export interface LintableInterviewQuestion {
 }
 
 /**
- * 인터뷰 질문 검사 (결정적). 주 질문과 꼬리 질문은 항목마다 질문 규칙 전체를, 의도와 신호는 표현 규칙(어조·신상·금지 표현)을
- * 적용한다. 위반이 없으면 빈 배열이다.
+ * 인터뷰 질문 검사 (결정적). 주 질문과 꼬리 질문은 항목마다 질문 규칙 전체를, 의도와 신호는 표현 규칙(어조·신상·금지 표현)과
+ * 인상 표현 규칙(T-702)을 적용한다. 위반이 없으면 빈 배열이다.
  */
 export function lintInterviewQuestion(input: LintableInterviewQuestion): InterviewLintViolation[] {
   const violations: InterviewLintViolation[] = [];
@@ -226,12 +247,12 @@ export function lintInterviewQuestion(input: LintableInterviewQuestion): Intervi
   };
   push("question", null, lintQuestionText(input.question));
   input.probes?.forEach((probe, index) => push("probes", index, lintQuestionText(probe)));
-  if (input.intent !== undefined) push("intent", null, lintExpression(input.intent));
+  if (input.intent !== undefined) push("intent", null, lintDescription(input.intent));
   input.positiveSignals?.forEach((signal, index) =>
-    push("positiveSignals", index, lintExpression(signal)),
+    push("positiveSignals", index, lintDescription(signal)),
   );
   input.concernSignals?.forEach((signal, index) =>
-    push("concernSignals", index, lintExpression(signal)),
+    push("concernSignals", index, lintDescription(signal)),
   );
   if (input.refs.length === 0) violations.push({ field: "refs", index: null, rule: "NO_REFS" });
   return violations;

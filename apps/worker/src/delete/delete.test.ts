@@ -157,6 +157,8 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
       [`${runPrefix}actual.json`, "application/json"],
       [diffRef, "text/x-patch"],
       [artifactKeys.stageResult(evaluationId, "REQUIREMENT_VERIFY", "harness"), "application/json"],
+      // 인터뷰 키트 (T-702): 이력서 연결 질문이 들어 있으므로 제출 삭제가 함께 지워야 한다
+      [artifactKeys.interviewKit(evaluationId), "application/json"],
       [shared, "application/gzip"],
     ] as const) {
       await store.put(key, "x", { contentType: type });
@@ -369,6 +371,8 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
     expect(await store.deletePrefix(artifactKeys.evaluationPrefix(target.evaluationId))).toBe(0);
     expect(await store.exists(target.snapshotRef)).toBe(false);
     expect(await store.exists(target.resumeRef)).toBe(false);
+    expect(await store.exists(artifactKeys.interviewKit(target.evaluationId))).toBe(false);
+    expect(await store.exists(artifactKeys.interviewKit(other.evaluationId))).toBe(true);
     // 샘플 스냅샷처럼 접두사 밖 공유 아티팩트는 지우지 않는다
     expect(await store.exists(target.shared)).toBe(true);
     // 다른 제출은 그대로다
@@ -397,7 +401,7 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
       `submissions/${target.submissionId}/`,
       `evaluations/${target.evaluationId}/`,
     ]);
-    expect(removed.artifacts.deletedObjects).toBe(7);
+    expect(removed.artifacts.deletedObjects).toBe(8);
     expect(removed.artifacts.keptSharedRefs).toEqual([target.shared]);
     expect(await findSubmissionDeletion(tdb.db, target.submissionId)).toMatchObject({
       state: "DONE",

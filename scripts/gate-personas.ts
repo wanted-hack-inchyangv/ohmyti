@@ -50,6 +50,7 @@ export const STAGES = [
   "TEST_EFFECTIVENESS",
   "REVIEW_WRITE",
   "CONTEXT_LINK",
+  "INTERVIEW_KIT",
 ] as const;
 
 // ── 기대값 ──────────────────────────────────────────────────────────────────────

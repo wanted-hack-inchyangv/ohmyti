@@ -261,7 +261,7 @@ describe("미평가 영역 탭", () => {
 
   it("SKIPPED·UNSUPPORTED·FAILED·진행 중 단계와 기록이 없는 단계를 모두 사유와 함께 나열한다 (모든 조합)", () => {
     const states: StageState[] = ["DONE", "SKIPPED", "UNSUPPORTED", "FAILED", "PENDING", "RUNNING"];
-    // 여섯 단계 각각에 상태를 돌려 가며 배치한다 (6가지 회전 × 상태 6개)
+    // 일곱 단계 각각에 상태를 돌려 가며 배치한다 (6가지 회전 × 상태 6개)
     for (let shift = 0; shift < states.length; shift += 1) {
       const stages: EvaluationStageRecord[] = EVALUATION_STAGE_ORDER.map((stage, i) => {
         const state = states[(i + shift) % states.length]!;

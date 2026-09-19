@@ -137,6 +137,9 @@ export const InterviewKitLlmStatusSchema = z.enum([
 ]);
 export type InterviewKitLlmStatus = z.infer<typeof InterviewKitLlmStatusSchema>;
 
+/** 채점기 사전 검증 실행(T-405)에서 INTERVIEW_KIT을 건너뛸 때의 사유 (단계 SKIPPED) */
+export const INTERVIEW_KIT_VALIDATION_RUN_SKIP_REASON = "검증 실행은 인터뷰 키트를 만들지 않음";
+
 /** 후처리가 버린 LLM 출력 항목. 문장 본문은 남기지 않는다 */
 export const InterviewKitDroppedSchema = z.strictObject({
   /** LLM 출력 배열의 위치 */

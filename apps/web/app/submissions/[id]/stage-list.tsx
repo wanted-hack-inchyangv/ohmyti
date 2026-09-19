@@ -1,7 +1,7 @@
 import type { StageView, SubmissionStatusView } from "@/lib/submissions/service";
 
 /**
- * 6단계 세로 스테퍼 (PRD 6장 ②). `stage_log`에서 만든 `StageView`만 그린다.
+ * 7단계 세로 스테퍼 (PRD 6장 ②). `stage_log`에서 만든 `StageView`만 그린다.
  * 진행률 바·퍼센트는 두지 않는다. 완료된 단계는 기록된 결과 요약만 보여 준다.
  * 색: 실패·미지원 빨강(fail), 진행 중 파랑(primary, 정보), 완료 차콜, 대기·건너뜀 회색.
  */

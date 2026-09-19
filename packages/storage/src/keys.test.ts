@@ -19,6 +19,7 @@ describe("artifactKeys", () => {
     );
     expect(artifactKeys.functionGraph("e1")).toBe("evaluations/e1/analysis/function-graph.json");
     expect(artifactKeys.designSignals("e1")).toBe("evaluations/e1/analysis/design-signals.json");
+    expect(artifactKeys.interviewKit("e1")).toBe("evaluations/e1/interview-kit.json");
     expect(artifactKeys.stageResult("e1", "REQUIREMENT_VERIFY", "harness")).toBe(
       "evaluations/e1/stages/REQUIREMENT_VERIFY/harness.json",
     );

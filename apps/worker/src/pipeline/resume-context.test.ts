@@ -206,7 +206,7 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
     expect(JSON.stringify(stage)).not.toContain(MARKER);
   }, 300_000);
 
-  it("이력서 본문이 DB에 있는 동안 일어난 RUBRIC_DRAFT·MUTATION_TARGETS·EVIDENCE_REVIEW 호출과 ai_reviews 행에 표식이 없다", async () => {
+  it("이력서 본문이 DB에 있는 동안 일어난 RUBRIC_DRAFT·MUTATION_TARGETS·EVIDENCE_REVIEW·INTERVIEW_KIT 호출과 ai_reviews 행에 표식이 없다", async () => {
     // 이미 텍스트가 저장된 제출(사람 입력)을 평가한다. 채점 단계가 도는 내내 표식이 submission_context에 있다
     const submissionId = await submitWithResume();
     await setResumeText(tdb.db, submissionId, {
@@ -242,7 +242,12 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
     // CONTEXT_LINK(T-503)는 이력서를 읽는 유일한 용도라 대상에서 뺀다
     const rows = (await tdb.db.select().from(aiReviews)).filter((r) => r.kind !== "CONTEXT_LINK");
     const kinds = new Set(rows.map((r) => r.kind));
-    for (const kind of ["RUBRIC_DRAFT", "MUTATION_TARGETS", "EVIDENCE_REVIEW"] as const) {
+    for (const kind of [
+      "RUBRIC_DRAFT",
+      "MUTATION_TARGETS",
+      "EVIDENCE_REVIEW",
+      "INTERVIEW_KIT",
+    ] as const) {
       expect(kinds, `${kind} 호출이 실제로 있어야 한다`).toContain(kind);
     }
     for (const row of rows) {
@@ -250,7 +255,13 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
     }
     const scoringSent = fake.sent.filter((s) => s.purpose !== "CONTEXT_LINK");
     const purposes = new Set(scoringSent.map((s) => s.purpose));
-    expect([...purposes].sort()).toEqual(["EVIDENCE_REVIEW", "MUTATION_TARGETS", "RUBRIC_DRAFT"]);
+    // INTERVIEW_KIT(T-702)도 이력서를 넣지 않는 호출이다
+    expect([...purposes].sort()).toEqual([
+      "EVIDENCE_REVIEW",
+      "INTERVIEW_KIT",
+      "MUTATION_TARGETS",
+      "RUBRIC_DRAFT",
+    ]);
     for (const sent of scoringSent) {
       expect(JSON.stringify(sent.messages), `${sent.purpose} 요청`).not.toContain(MARKER);
     }
