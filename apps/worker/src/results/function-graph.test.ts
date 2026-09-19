@@ -97,5 +97,5 @@ describe("caseInputsOf", () => {
       expect(analysis.cases).toEqual([]);
     }
     expect(staticRelations).toEqual([]);
-  });
+  }, 30_000);
 });

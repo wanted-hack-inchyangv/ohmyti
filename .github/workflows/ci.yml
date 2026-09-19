@@ -177,8 +177,12 @@ jobs:
         run: pnpm db:migrate
 
       # 샘플 체험(demo.spec.ts)이 읽는 저장된 실행을 실제 파이프라인으로 만든다 (T-505). 워커를 직접 띄웠다가 내린다
+      # CI에는 DeepSeek 키가 없으므로 gate:phase4와 같은 고정 응답(위치 후보 없음·빈 리뷰)으로 ai_reviews를 남긴다
       - name: Demo seed
         run: pnpm demo:seed
+        env:
+          LLM_PROVIDER: fake
+          LLM_FAKE_RESPONSES_FILE: ${{ github.workspace }}/e2e/fixtures/llm-fake-demo.json
 
       # chromium 프로젝트(워커 없음) → stack 프로젝트(워커를 띄워 샘플 C 제출·재실행·사람 수정, 단계별 스크린샷)
       - name: E2E

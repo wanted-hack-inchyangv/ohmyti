@@ -1,0 +1,4 @@
+{
+  "MUTATION_TARGETS": { "output": { "candidates": [] } },
+  "EVIDENCE_REVIEW": { "output": { "failures": [], "designReviews": [], "suggestions": [] } }
+}

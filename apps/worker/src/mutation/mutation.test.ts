@@ -447,7 +447,8 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
   }, 300_000);
 
   it("벽시계 상한을 넘기면 진행 중인 실험과 남은 실험이 TIMEOUT으로 기록되고 단계는 DONE이며 환경이 남지 않는다", async () => {
-    // 변형 서비스 기동을 늦춰 첫 변형이 실행 중일 때 상한에 걸리게 한다 (변형 하나의 실행이 1~2초라 그냥 두면 타이밍에 기댄다)
+    // 변형 서비스 기동을 늦춰 첫 변형이 실행 중일 때 상한에 걸리게 한다 (변형 하나의 실행이 1~2초라 그냥 두면 타이밍에 기댄다).
+    // 상한은 느린 CI 러너에서도 첫 변형의 환경 준비가 끝날 만큼 둔다
     const slowStart = (runner: SandboxRunner): SandboxRunner => ({
       kind: runner.kind,
       prepare: (...args) => runner.prepare(...args),
@@ -455,7 +456,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       destroy: (env) => runner.destroy(env),
       startService: async (env, options) => {
         if (options?.label === "mutation-service") {
-          await new Promise((resolve) => setTimeout(resolve, 4000));
+          await new Promise((resolve) => setTimeout(resolve, 15_000));
         }
         return runner.startService(env, options);
       },
@@ -463,21 +464,21 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
     const started = Date.now();
     const { result, experiments, detail, leftovers, processes } = await evaluate(
       "a",
-      { timeoutMs: 1500 },
+      { timeoutMs: 5000 },
       slowStart,
     );
     expect(result.submissionStatus).toBe("COMPLETED");
     expect(result.stageLog.find((s) => s.stage === "TEST_EFFECTIVENESS")!.state).toBe("DONE");
     expect(detail.deadlineReached).toBe(true);
-    expect(detail.timeoutMs).toBe(1500);
+    expect(detail.timeoutMs).toBe(5000);
     expect(detail.outcomes).toEqual({ TIMEOUT: 5 });
     const [first, ...rest] = experiments;
     // 첫 변형은 유효성 검증 중에 멈췄다 (환경을 만든 뒤)
     expect(first!.mutationId).toBe("M-01");
-    expect(first!.reason).toBe("단계 벽시계 상한(1500ms)을 넘겨 유효성 검증 중에 중단함");
+    expect(first!.reason).toBe("단계 벽시계 상한(5000ms)을 넘겨 유효성 검증 중에 중단함");
     // 나머지는 시작하지 않았다
     for (const e of rest) {
-      expect(e.reason).toBe("단계 벽시계 상한(1500ms)을 넘겨 실행하지 않음");
+      expect(e.reason).toBe("단계 벽시계 상한(5000ms)을 넘겨 실행하지 않음");
     }
     for (const e of experiments) {
       expect(e.outcome).toBe("TIMEOUT");
