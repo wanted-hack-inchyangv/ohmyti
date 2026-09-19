@@ -25,6 +25,8 @@ import type {
   RubricDraftFailureCode,
   RubricDraftStatus,
   RubricValidationError,
+  ScorecardCompetencyEntry,
+  ScorecardQuestionNote,
   SourceLocation,
 } from "@ohmyti/core";
 import { createdAt, id, timestamptz, updatedAt } from "./columns";
@@ -504,6 +506,37 @@ export const aiReviews = pgTable(
   (t) => [
     index("ai_reviews_evaluation_kind_idx").on(t.evaluationId, t.kind),
     check("ai_reviews_version_positive", sql`${t.version} >= 1`),
+  ],
+);
+
+/**
+ * 면접 스코어카드 (T-707, PRD 14.3의 8절). 면접관이 면접 뒤에 손으로 기입한 기록이다.
+ *
+ * - 행은 넣기만 한다. 같은 면접관이 다시 저장하면 새 행이 쌓이고 이전 행이 이력으로 남는다(UPDATE 경로가 없다).
+ * - 점수 관련 컬럼(score, point, earned, grade)을 두지 않는다. 역량별 값은 `competencies` jsonb 안의 사람 기입값이며
+ *   과제 점수·판정·다이제스트와 무관하다. 테스트가 컬럼 이름을 대조한다.
+ * - 제출 삭제 cascade에 들어간다(`evaluation_id`의 ON DELETE CASCADE + `deletion.ts`의 명시적 삭제).
+ */
+export const interviewScorecards = pgTable(
+  "interview_scorecards",
+  {
+    id: id(),
+    evaluationId: uuid("evaluation_id")
+      .notNull()
+      .references(() => evaluations.id, { onDelete: "cascade" }),
+    /** 면접관 이름 (사람이 입력한 문자열. 계정·권한은 범위 밖이다) */
+    interviewer: text("interviewer").notNull(),
+    /** `ScorecardCompetencyEntry[]`: 역량별 1~4 값과 메모. 비워 둔 칸은 null */
+    competencies: jsonb("competencies").$type<ScorecardCompetencyEntry[]>().notNull(),
+    /** `ScorecardQuestionNote[]`: 인터뷰 키트 질문별 메모 */
+    questionNotes: jsonb("question_notes").$type<ScorecardQuestionNote[]>().notNull(),
+    /** 면접관 최종 의견 (자유 서술) */
+    finalNote: text("final_note"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("interview_scorecards_evaluation_idx").on(t.evaluationId, t.createdAt),
+    check("interview_scorecards_interviewer_not_blank", sql`btrim(${t.interviewer}) <> ''`),
   ],
 );
 

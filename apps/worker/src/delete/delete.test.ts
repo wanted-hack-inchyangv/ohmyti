@@ -19,6 +19,8 @@ import {
   findSubmissionDeletion,
   getDeletionLog,
   getJob,
+  insertInterviewScorecard,
+  interviewScorecards,
   jobs,
   mutationExperiments,
   requestSubmissionDeletion,
@@ -252,6 +254,14 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
       claim: "이력서 미제공",
       status: "NO_DATA",
     });
+    // 면접 스코어카드 (T-707): 제출 삭제 뒤에 행이 남으면 안 된다
+    await insertInterviewScorecard(tdb.db, {
+      evaluationId,
+      interviewer: "김면접",
+      competencies: [{ competency: "REQUIREMENTS", value: 3, note: null }],
+      questionNotes: [],
+      finalNote: "면접 메모",
+    });
     const finishedJob = await enqueue(tdb.db, {
       type: "EVALUATE_SUBMISSION",
       payload: { submissionId },
@@ -293,6 +303,9 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
       contextLinks: await count(
         tdb.db.select().from(contextLinks).where(eq(contextLinks.submissionId, submissionId)),
       ),
+      interviewScorecards: await count(
+        tdb.db.select().from(interviewScorecards).where(inEval(interviewScorecards.evaluationId)),
+      ),
       aiReviews: await count(
         tdb.db
           .select()
@@ -322,6 +335,7 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
     reviewEvents: 0,
     mutationExperiments: 0,
     contextLinks: 0,
+    interviewScorecards: 0,
     aiReviews: 0,
     jobs: 0,
   };
@@ -340,6 +354,7 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
       reviewEvents: 1,
       mutationExperiments: 1,
       contextLinks: 1,
+      interviewScorecards: 1,
       aiReviews: 2,
       jobs: 1,
     });
@@ -387,6 +402,7 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
     expect(removed.counts).toEqual({
       jobs: 1,
       contextLinks: 1,
+      interviewScorecards: 1,
       aiReviews: 2,
       mutationExperiments: 1,
       evidences: 1,

@@ -143,6 +143,8 @@ export interface ResumeLinkView {
 
 export interface InterviewGuideQuestionView {
   questionId: string;
+  /** 키트 안의 질문 번호 (Q1, Q2 …). 스코어카드의 질문별 메모가 같은 번호를 쓴다 */
+  number: number;
   label: string;
   kindLabel: string;
   competencyName: string;
@@ -454,6 +456,7 @@ export function buildHiringReportView(input: HiringReportViewInput): HiringRepor
       notice: guideNotice,
       questions: hiring.interviewGuide.mustQuestions.map((question) => ({
         questionId: question.questionId,
+        number: question.number,
         label: questionNumberLabel(question.number),
         kindLabel: INTERVIEW_QUESTION_KIND_LABELS[question.kind],
         competencyName: COMPETENCIES[question.competency].name,

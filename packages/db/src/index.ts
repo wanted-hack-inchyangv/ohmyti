@@ -17,6 +17,7 @@ export * from "./mutations";
 export * from "./validation";
 export * from "./rubric-drafts";
 export * from "./context-links";
+export * from "./interview-scorecards";
 export { createTestDatabase, type TestDatabase } from "./testing";
 export { seedEvaluation } from "./test-fixtures";
 export * from "./demo";

@@ -7,7 +7,9 @@
  */
 import {
   ANCHOR_LABELS,
+  COMPETENCIES,
   INTERVIEW_QUESTION_KIND_LABELS,
+  type Competency,
   type HiringReport,
   type ObservationRef,
   type ReviewState,
@@ -45,6 +47,11 @@ const CONTEXT_STATUS_LABEL: Record<HiringReport["resumeLinks"]["links"][number][
   };
 
 const NO_DATA_LINE = "자료 없음";
+
+/** 역량 → 한국어 이름. 저장된 스코어카드(T-707)가 쓴다 */
+const COMPETENCY_NAME: Record<Competency, string> = Object.fromEntries(
+  Object.entries(COMPETENCIES).map(([key, info]) => [key, info.name]),
+) as Record<Competency, string>;
 
 /** 근거 참조 한 줄. 화면의 딥링크는 T-706이 붙이며 Markdown은 저장된 식별자만 적는다 */
 export function formatRef(ref: ObservationRef): string {
@@ -325,6 +332,37 @@ export function hiringReportToMarkdown(report: HiringReport): string {
     push("- 기입: [ ] 1 [ ] 2 [ ] 3 [ ] 4", "- 메모:", "");
   }
   push("### 면접관 최종 의견", "", "- 메모:", "");
+
+  // 8-1. 저장된 스코어카드 (T-707). 면접관이 적은 값 그대로이며 평균·합산을 만들지 않는다
+  push("### 저장된 스코어카드", "");
+  if (report.scorecard.saved.length === 0) {
+    push("- 저장된 스코어카드가 없습니다.", "");
+  } else {
+    push(
+      "- 면접관이 기입한 기록입니다. 시스템은 값을 제안하지 않으며 평균과 합산을 내지 않습니다.",
+      "",
+    );
+    for (const card of report.scorecard.saved) {
+      push(
+        `#### ${cell(card.interviewer)} · ${card.createdAt}${card.latest ? "" : " (이전 기록)"}`,
+        "",
+      );
+      const filled = card.competencies.filter((c) => c.value !== null || c.note !== null);
+      if (filled.length === 0) push("- 역량 기입 없음");
+      for (const entry of filled) {
+        const name = COMPETENCY_NAME[entry.competency];
+        const value =
+          entry.value === null ? "미기입" : `${entry.value} ${ANCHOR_LABELS[entry.value]}`;
+        push(`- ${name}: ${value}${entry.note ? ` · ${cell(entry.note)}` : ""}`);
+      }
+      for (const note of card.questionNotes) {
+        push(
+          `- 질문 ${note.number === null ? note.questionId : `Q${note.number}`}: ${cell(note.note)}`,
+        );
+      }
+      push(`- 최종 의견: ${card.finalNote === null ? NO_DATA_LINE : cell(card.finalNote)}`, "");
+    }
+  }
 
   // 9. 감사 정보
   push("## 9. 감사 정보", "");

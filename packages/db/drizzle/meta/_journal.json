@@ -141,6 +141,13 @@
       "when": 1789856457645,
       "tag": "0019_assignment_versions_report_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789860277282,
+      "tag": "0020_interview_scorecards",
+      "breakpoints": true
     }
   ]
 }

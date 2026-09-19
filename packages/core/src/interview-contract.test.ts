@@ -12,6 +12,7 @@ import {
 } from "./competency";
 import { RubricAreaSchema } from "./enums";
 import {
+  HIRING_REPORT_SCHEMA_VERSION,
   HiringReportSchema,
   JUDGEMENT_KEY_ALLOWED_PATHS,
   collectSchemaKeyPaths,
@@ -83,7 +84,7 @@ const kit: InterviewKit = {
 
 function buildReport(): HiringReport {
   return {
-    schemaVersion: 1,
+    schemaVersion: HIRING_REPORT_SCHEMA_VERSION,
     evaluationId: "eval-1",
     assignment: { name: "order-api", version: 1, title: "주문 API" },
     isSample: true,
@@ -190,6 +191,7 @@ function buildReport(): HiringReport {
         interviewOnly: COMPETENCIES[competency].interviewOnly,
         anchors: [...COMPETENCY_ANCHORS[competency]],
       })),
+      saved: [],
     },
     audit: {
       evaluationId: "eval-1",

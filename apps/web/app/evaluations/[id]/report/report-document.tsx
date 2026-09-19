@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ANCHOR_LABELS } from "@ohmyti/core";
+import { ANCHOR_LABELS, COMPETENCIES, type Competency } from "@ohmyti/core";
 import {
   Badge,
   LinkButton,
@@ -15,6 +15,12 @@ import type {
   ReportBarView,
 } from "@/lib/reports/hiring-report-view";
 import { CopyButton } from "../copy-button";
+import { SavedScorecards, ScorecardForm } from "./scorecard-form";
+
+/** 역량 → 한국어 이름. 저장된 스코어카드(T-707)가 쓴다 */
+const COMPETENCY_NAMES: Record<Competency, string> = Object.fromEntries(
+  Object.entries(COMPETENCIES).map(([key, info]) => [key, info.name]),
+) as Record<Competency, string>;
 
 /**
  * 채용 리포트 문서 (TICKET.md T-706, PRD 14.3의 9개 절). 채용 담당자와 결정권자가 읽는 한 건의 문서다.
@@ -394,77 +400,75 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
 
       <Section index={7} title="평가 범위와 한계" testId="report-scope">
         <div className="contents print:grid print:grid-cols-2 print:gap-x-4 print:gap-y-1">
-        <ScopeList
-          title="미평가 영역"
-          testId="report-unassessed"
-          items={view.scope.unassessedAreas}
-          empty="기록된 미평가 영역이 없습니다."
-        />
-        <div className="flex flex-col gap-1" data-testid="report-inconclusive">
-          <h3 className="text-[13px] font-bold text-ink">미확정 기준</h3>
-          {view.scope.inconclusive.length === 0 ? (
-            <p className="text-[12px] text-neutral-500">미확정 기준이 없습니다.</p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {view.scope.inconclusive.map((item) => (
-                <li
-                  key={item.criterionId}
-                  data-criterion={item.criterionId}
-                  className="flex flex-wrap items-center gap-2 text-[12px] text-neutral-700"
-                >
-                  <span className="font-semibold">
+          <ScopeList
+            title="미평가 영역"
+            testId="report-unassessed"
+            items={view.scope.unassessedAreas}
+            empty="기록된 미평가 영역이 없습니다."
+          />
+          <div className="flex flex-col gap-1" data-testid="report-inconclusive">
+            <h3 className="text-[13px] font-bold text-ink">미확정 기준</h3>
+            {view.scope.inconclusive.length === 0 ? (
+              <p className="text-[12px] text-neutral-500">미확정 기준이 없습니다.</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {view.scope.inconclusive.map((item) => (
+                  <li
+                    key={item.criterionId}
+                    data-criterion={item.criterionId}
+                    className="flex flex-wrap items-center gap-2 text-[12px] text-neutral-700"
+                  >
+                    <span className="font-semibold">
+                      {item.criterionId} {item.title}
+                    </span>
+                    {item.environmental ? (
+                      <Badge tone="pending">실행 환경 장애이며 제출 코드의 결함이 아닙니다</Badge>
+                    ) : null}
+                    <span className="text-neutral-500">
+                      {item.reason ?? "사유가 기록되지 않았습니다"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-col gap-1" data-testid="report-scope-pending">
+            <h3 className="text-[13px] font-bold text-ink">사람 검토 대기</h3>
+            {view.scope.pendingReview.length === 0 ? (
+              <p className="text-[12px] text-neutral-500">검토 대기 기준이 없습니다.</p>
+            ) : (
+              <ul className="flex flex-col gap-0.5 text-[12px] text-neutral-700">
+                {view.scope.pendingReview.map((item) => (
+                  <li key={item.criterionId} data-criterion={item.criterionId}>
                     {item.criterionId} {item.title}
-                  </span>
-                  {item.environmental ? (
-                    <Badge tone="pending">
-                      실행 환경 장애이며 제출 코드의 결함이 아닙니다
-                    </Badge>
-                  ) : null}
-                  <span className="text-neutral-500">
-                    {item.reason ?? "사유가 기록되지 않았습니다"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="flex flex-col gap-1" data-testid="report-scope-pending">
-          <h3 className="text-[13px] font-bold text-ink">사람 검토 대기</h3>
-          {view.scope.pendingReview.length === 0 ? (
-            <p className="text-[12px] text-neutral-500">검토 대기 기준이 없습니다.</p>
-          ) : (
-            <ul className="flex flex-col gap-0.5 text-[12px] text-neutral-700">
-              {view.scope.pendingReview.map((item) => (
-                <li key={item.criterionId} data-criterion={item.criterionId}>
-                  {item.criterionId} {item.title}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="flex flex-col gap-1" data-testid="report-llm-usage">
-          <h3 className="text-[13px] font-bold text-ink">LLM 사용 범위</h3>
-          {view.scope.llmUsage.length === 0 ? (
-            <p className="text-[12px] text-neutral-500">LLM을 쓴 단계 기록이 없습니다.</p>
-          ) : (
-            <ul className="flex flex-col gap-0.5 text-[12px] text-neutral-700">
-              {view.scope.llmUsage.map((usage) => (
-                <li key={usage.stage} data-stage={usage.stage}>
-                  {usage.stage}: {usage.state}
-                  {usage.model ? ` · 모델 ${usage.model}` : ""}
-                  {usage.promptVersion ? ` · 프롬프트 ${usage.promptVersion}` : ""}
-                  {usage.reason ? ` · ${usage.reason}` : ""}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <ScopeList
-          title="지원 범위"
-          testId="report-support-scope"
-          items={view.scope.supportScope}
-          empty="지원 범위 안내가 없습니다."
-        />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="flex flex-col gap-1" data-testid="report-llm-usage">
+            <h3 className="text-[13px] font-bold text-ink">LLM 사용 범위</h3>
+            {view.scope.llmUsage.length === 0 ? (
+              <p className="text-[12px] text-neutral-500">LLM을 쓴 단계 기록이 없습니다.</p>
+            ) : (
+              <ul className="flex flex-col gap-0.5 text-[12px] text-neutral-700">
+                {view.scope.llmUsage.map((usage) => (
+                  <li key={usage.stage} data-stage={usage.stage}>
+                    {usage.stage}: {usage.state}
+                    {usage.model ? ` · 모델 ${usage.model}` : ""}
+                    {usage.promptVersion ? ` · 프롬프트 ${usage.promptVersion}` : ""}
+                    {usage.reason ? ` · ${usage.reason}` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <ScopeList
+            title="지원 범위"
+            testId="report-support-scope"
+            items={view.scope.supportScope}
+            empty="지원 범위 안내가 없습니다."
+          />
         </div>
       </Section>
 
@@ -492,7 +496,9 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
                   ) : null}
                 </h3>
                 <span className="text-[12px] text-neutral-500">
-                  {competency.anchors.map((anchor) => `${anchor.value} ${anchor.label}`).join(" · ")}
+                  {competency.anchors
+                    .map((anchor) => `${anchor.value} ${anchor.label}`)
+                    .join(" · ")}
                 </span>
               </div>
               <p className="text-[12px] text-neutral-500 print:hidden">{competency.definition}</p>
@@ -519,6 +525,20 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
             <h3 className="text-[13px] font-bold text-ink">면접관 최종 의견</h3>
             <span className="block h-12 border-b border-dashed border-neutral-300" />
           </div>
+        </div>
+
+        <ScorecardForm
+          evaluationId={view.evaluationId}
+          competencies={view.scorecard.competencies}
+          questions={view.interviewGuide.questions}
+        />
+
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-bold text-ink">저장된 스코어카드</h3>
+          <p className="text-[12px] text-neutral-500">
+            면접관이 기입한 기록입니다. 시스템은 값을 제안하지 않으며 평균과 합산을 내지 않습니다.
+          </p>
+          <SavedScorecards saved={view.scorecard.saved} competencyNames={COMPETENCY_NAMES} />
         </div>
       </Section>
 

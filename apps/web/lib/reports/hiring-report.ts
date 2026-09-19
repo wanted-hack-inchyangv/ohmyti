@@ -39,6 +39,7 @@ import {
   type HiringReport,
   type HiringReportQuestionRef,
   type InterviewKit,
+  type InterviewScorecard,
   type KeyObservation,
   type MutationOutcome,
   type ObservationRef,
@@ -48,6 +49,7 @@ import {
 } from "@ohmyti/core";
 import { getAssignmentVersion } from "@ohmyti/db";
 import { readEvaluationContext } from "@/lib/context/service";
+import { readScorecards } from "@/lib/scorecards/service";
 import {
   readDesignSignals,
   readEvaluationReport,
@@ -88,6 +90,8 @@ export interface HiringReportInput {
   designSignals: DesignSignals | null;
   /** 과제 버전의 리포트 프로필. 없으면 영향 문장 없이 조립한다 */
   profile: ReportProfile | null;
+  /** 면접관이 기입한 스코어카드 (T-707). 저장 순서대로이며, 주지 않으면 기록이 없는 것으로 본다 */
+  scorecards?: readonly InterviewScorecard[];
 }
 
 function stageOf(
@@ -517,6 +521,8 @@ export function buildHiringReport(input: HiringReportInput): HiringReport {
         interviewOnly: COMPETENCIES[competency].interviewOnly,
         anchors: [...COMPETENCY_ANCHORS[competency]],
       })),
+      // 사람이 기입한 기록 그대로. 평균·합산을 만들지 않는다 (PRD 14.4)
+      saved: [...(input.scorecards ?? [])],
     },
     audit: {
       evaluationId: report.evaluation.id,
@@ -549,7 +555,7 @@ export async function readHiringReport(
   const report = await readEvaluationReport({ db: deps.db }, evaluationId);
   if (!report.ok) return report;
 
-  const [kit, designSignals, version, context] = await Promise.all([
+  const [kit, designSignals, version, context, scorecards] = await Promise.all([
     readInterviewKit(deps, evaluationId),
     readDesignSignals(deps, evaluationId),
     getAssignmentVersion(deps.db, report.data.evaluation.assignmentVersionId),
@@ -557,6 +563,7 @@ export async function readHiringReport(
       { db: deps.db },
       { submissionId: report.data.evaluation.submissionId, evaluationId },
     ),
+    readScorecards({ db: deps.db }, evaluationId),
   ]);
   const profileParsed = ReportProfileSchema.safeParse(version?.reportProfile ?? null);
 
@@ -568,6 +575,7 @@ export async function readHiringReport(
       designSignals: designSignals.ok ? designSignals.data.signals : null,
       contextLinks: context.ok ? context.data.links : null,
       profile: profileParsed.success ? profileParsed.data : null,
+      scorecards: scorecards.ok ? scorecards.data : [],
     }),
   };
 }

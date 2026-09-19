@@ -25,4 +25,5 @@ export * from "./context-link";
 export * from "./competency";
 export * from "./interview-lint";
 export * from "./interview";
+export * from "./scorecard";
 export * from "./hiring-report";

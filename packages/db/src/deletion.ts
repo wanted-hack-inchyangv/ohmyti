@@ -17,6 +17,7 @@ import {
   evaluations,
   evidences,
   executionRecords,
+  interviewScorecards,
   jobs,
   mutationExperiments,
   reviewEvents,
@@ -40,6 +41,7 @@ import {
 export interface DeletionCounts {
   jobs: number;
   contextLinks: number;
+  interviewScorecards: number;
   aiReviews: number;
   mutationExperiments: number;
   evidences: number;
@@ -295,6 +297,12 @@ export async function deleteSubmissionRows(
           .delete(contextLinks)
           .where(or(eq(contextLinks.submissionId, submissionId), byEvaluation(contextLinks)))
           .returning({ id: contextLinks.id }),
+      ),
+      interviewScorecards: await count(
+        tx
+          .delete(interviewScorecards)
+          .where(byEvaluation(interviewScorecards))
+          .returning({ id: interviewScorecards.id }),
       ),
       aiReviews: await count(
         tx

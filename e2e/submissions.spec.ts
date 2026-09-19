@@ -77,7 +77,7 @@ test("잘못된 저장소 URL은 서버 요청 없이 클라이언트에서 거�
   expect(posts).toHaveLength(0);
 });
 
-test("이력서·GitHub 없이 제출하면 상태 화면으로 이동하고 6단계가 대기로 보이며 폴링이 시작된다", async ({
+test("이력서·GitHub 없이 제출하면 상태 화면으로 이동하고 7단계가 대기로 보이며 폴링이 시작된다", async ({
   page,
 }) => {
   const seeded = await seed("submit");
@@ -90,10 +90,12 @@ test("이력서·GitHub 없이 제출하면 상태 화면으로 이동하고 6�
   await expect(page.getByTestId("submission-status-badge")).toHaveText("대기열");
   await expect(page.getByTestId("polling-indicator")).toBeVisible();
   const items = page.locator('[data-testid="stage-list"] > li');
-  await expect(items).toHaveCount(6);
+  // 파이프라인은 T-702의 INTERVIEW_KIT까지 7단계다 (부록 B 단계 순서)
+  await expect(items).toHaveCount(7);
   await expect(items.nth(0)).toContainText("저장소 확인");
   await expect(items.nth(5)).toContainText("맥락 연결");
-  await expect(page.locator('[data-state="PENDING"]')).toHaveCount(6);
+  await expect(items.nth(6)).toContainText("인터뷰 키트");
+  await expect(page.locator('[data-state="PENDING"]')).toHaveCount(7);
   await expect(page.getByText("이력서 없음")).toBeVisible();
   await expect(page.getByText("GitHub 미제공")).toBeVisible();
   await expect(page.locator("progress, [role=progressbar]")).toHaveCount(0);
@@ -208,7 +210,7 @@ test("비공개 저장소는 평가 없이 UNSUPPORTED이며 서버가 기록한
   await expect(page.getByText("REPO_NOT_ACCESSIBLE")).toBeVisible();
   await expect(page.getByText("octocat/private-api")).toBeVisible();
   await expect(page.getByText("평가 기록이 없습니다")).toBeVisible();
-  await expect(page.locator('[data-state="PENDING"]')).toHaveCount(6);
+  await expect(page.locator('[data-state="PENDING"]')).toHaveCount(7);
   await expect(page.getByTestId("retry-button")).toHaveCount(0);
 });
 

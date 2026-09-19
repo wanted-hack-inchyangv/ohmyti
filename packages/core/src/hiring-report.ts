@@ -27,8 +27,10 @@ import {
   ObservationRefSchema,
 } from "./interview";
 import { ApiErrorSchema, apiOkSchema, StoredScoreSchema } from "./report";
+import { InterviewScorecardSchema } from "./scorecard";
 
-export const HIRING_REPORT_SCHEMA_VERSION = 1;
+/** 2: 8절에 저장된 스코어카드(`scorecard.saved`)가 들어왔다 (T-707) */
+export const HIRING_REPORT_SCHEMA_VERSION = 2;
 /** 핵심 관측의 강점·결함 각각의 상한 */
 export const HIRING_REPORT_KEY_OBSERVATIONS_MAX = 3;
 
@@ -218,7 +220,10 @@ export const HiringReportScopeSchema = z.strictObject({
   supportScope: z.array(z.string().min(1)),
 });
 
-/** 8. 면접관 스코어카드: 사람이 기입하는 빈 양식. 값 필드가 없다 */
+/**
+ * 8. 면접관 스코어카드: 사람이 기입하는 양식(`competencies`)과 사람이 기입한 기록(`saved`, T-707).
+ * 시스템이 채우는 값 필드는 없다. `saved`의 값은 모두 면접관이 적은 것이며 평균·합산을 만들지 않는다.
+ */
 export const HiringReportScorecardSchema = z.strictObject({
   humanOnly: z.literal(true),
   competencies: z.array(
@@ -230,6 +235,8 @@ export const HiringReportScorecardSchema = z.strictObject({
       anchors: z.array(CompetencyAnchorSchema).length(4),
     }),
   ),
+  /** 저장된 기록. 면접관 이름 → 작성 시각 순이며, 같은 면접관의 이전 기록도 이력으로 남는다 */
+  saved: z.array(InterviewScorecardSchema),
 });
 
 /** 9. 감사 정보 */

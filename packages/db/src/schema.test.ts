@@ -72,6 +72,7 @@ describe.skipIf(!hasTestDb)("@ohmyti/db 스키마 (통합)", () => {
         "mutation_experiments",
         "review_events",
         "context_links",
+        "interview_scorecards",
         "ai_reviews",
         "rubric_drafts",
         "jobs",

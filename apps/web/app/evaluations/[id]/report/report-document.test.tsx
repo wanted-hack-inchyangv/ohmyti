@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   findForbiddenReportExpressions,
   type ContextLink,
@@ -34,6 +34,9 @@ import { HiringReportDocument } from "./report-document";
  * - 출력 전체에 금지 표현이 없다 (PRD 14.4)
  * 인쇄(PDF)·Markdown 복사 동작과 화면 레이아웃은 E2E(`e2e/workbench-hiring-report.spec.ts`)가 확인한다.
  */
+
+// 스코어카드 입력 폼(T-707)은 클라이언트 컴포넌트라 서버 렌더링에서 라우터가 필요하다
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
 const ORIGIN = "https://review.example.com";
 
@@ -247,7 +250,11 @@ describe("채용 리포트 화면 · 네 가지 상태 (G-14)", () => {
 
 describe("채용 리포트 화면 · 금지 표현과 구조", () => {
   it("렌더링 결과와 Markdown 전체에 금지 표현이 없다", () => {
-    for (const overrides of [{}, { kit: null }, { profile: null }] as Partial<HiringReportInput>[]) {
+    for (const overrides of [
+      {},
+      { kit: null },
+      { profile: null },
+    ] as Partial<HiringReportInput>[]) {
       const view = viewOf(overrides);
       expect(findForbiddenReportExpressions(render(overrides))).toEqual([]);
       expect(findForbiddenReportExpressions(view.markdown)).toEqual([]);
@@ -263,6 +270,52 @@ describe("채용 리포트 화면 · 금지 표현과 구조", () => {
     expect(view.scorecard.competencies).toHaveLength(9);
     expect(html).toContain("면접관이 기입하는 빈 양식입니다.");
     expect(html).toContain("면접관 최종 의견");
+  });
+
+  it("스코어카드 절에 입력 폼이 있고 저장된 기록이 없으면 그렇게 적는다 (T-707)", () => {
+    const html = render();
+    expect(html).toContain('data-testid="scorecard-form"');
+    expect(html).toContain('data-testid="scorecard-saved-empty"');
+    expect(html).toContain("저장된 스코어카드가 없습니다.");
+    // 시스템은 어떤 척도도 미리 고르지 않는다 (G-08)
+    expect(html).not.toContain("checked=");
+  });
+
+  it("저장된 스코어카드를 면접관마다 나란히 보이고 합산하지 않는다 (T-707)", () => {
+    const html = render({
+      scorecards: [
+        {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          evaluationId: FIXTURE_EVALUATION_ID,
+          interviewer: "김면접",
+          competencies: [{ competency: "REQUIREMENTS", value: 2, note: "조건을 짚지 못했다" }],
+          questionNotes: [
+            { questionId: "FAILURE_DEBRIEF:R-06", number: 1, note: "재생 기록을 읽었다" },
+          ],
+          finalNote: "동시성 조건을 한 번 더 확인하면 좋겠다",
+          revision: 1,
+          latest: false,
+          createdAt: "2026-09-20T01:00:00.000Z",
+        },
+        {
+          id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          evaluationId: FIXTURE_EVALUATION_ID,
+          interviewer: "박면접",
+          competencies: [{ competency: "DEBUGGING", value: 4, note: null }],
+          questionNotes: [],
+          finalNote: null,
+          revision: 1,
+          latest: true,
+          createdAt: "2026-09-20T02:00:00.000Z",
+        },
+      ],
+    });
+    expect(html).toContain('data-interviewer="김면접"');
+    expect(html).toContain('data-interviewer="박면접"');
+    expect(html).toContain("요구사항 이해와 구현 정확성: 2 보완 필요 · 조건을 짚지 못했다");
+    expect(html).toContain("이전 기록");
+    expect(html).toContain("최종 의견: 적지 않음");
+    expect(findForbiddenReportExpressions(html)).toEqual([]);
   });
 
   it("리포트 링크 경로는 평가 하위의 `report`다", () => {
