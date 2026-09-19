@@ -6,6 +6,7 @@
  * - 이력서·GitHub 없이 평가하면 CONTEXT_LINK가 DONE이고 "이력서 미제공" 연결 하나가 남는다.
  * - D의 README 지시문을 섞은 Fake 응답에서도 claim은 이력서 문장만 저장된다.
  */
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { ExecutionContractSchema, RubricSchema, type ContextLinkSummary } from "@ohmyti/core";
 import { buildTextPdf } from "@ohmyti/context/testing";
 import {
@@ -34,6 +35,7 @@ import { createLogger, type Logger } from "../logger";
 import { createGitHubClient } from "../repo";
 import { fakeGitHub, makeGitHubStyleTarball, type FakeRepoFiles } from "../repo/test-support";
 import { runEvaluationPipeline, type PipelineDeps } from ".";
+import { describeStageLog } from "../testing/premise";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
@@ -175,8 +177,8 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 맥락 연결 (context-link, DB 통합
       }),
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 180_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -225,7 +227,7 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 맥락 연결 (context-link, DB 통합
       { submissionId, attempt: 1, maxAttempts: 3 },
       deps(fake),
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     const evaluation = (await getEvaluation(tdb.db, result.evaluationId!))!;
     const stage = evaluation.stageLog.find((s) => s.stage === "CONTEXT_LINK")!;
     return { evaluationId: result.evaluationId!, stage };

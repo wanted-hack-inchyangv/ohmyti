@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   ExecutionContractSchema,
   REVIEW_WRITE_LLM_NOT_CONFIGURED_REASON,
@@ -275,8 +276,8 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
       runner,
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 120_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -331,7 +332,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
     });
     worker.start();
     try {
-      await worker.drain({ timeoutMs: 110_000 });
+      await worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs });
     } finally {
       await worker.stop();
     }
@@ -666,7 +667,7 @@ describe.skipIf(!hasTestDb)("runEvaluationPipeline (DB 통합)", () => {
     const slow = deps({
       config: {
         stageTimeoutMs: 1000,
-        requestTimeoutMs: 5000,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,

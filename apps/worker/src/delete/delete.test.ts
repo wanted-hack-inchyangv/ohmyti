@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { ExecutionContractSchema, RubricSchema, type ExecutionContract } from "@ohmyti/core";
 import {
   aiReviews,
@@ -534,8 +535,8 @@ describe.skipIf(!hasTestDb)("제출 삭제 cascade (T-506)", () => {
         runner,
         github: createGitHubClient({ fetch: github.fetch }),
         config: {
-          stageTimeoutMs: 120_000,
-          requestTimeoutMs: 5000,
+          stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+          requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
           templateRoot: TEMPLATE_ROOT,
           repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
           workRoot,

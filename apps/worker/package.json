@@ -10,7 +10,7 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "vitest run --root ../.. --project @ohmyti/worker"
+    "test": "vitest run --root ../.. --project @ohmyti/worker --project @ohmyti/worker:process"
   },
   "dependencies": {
     "@ohmyti/analysis": "workspace:*",

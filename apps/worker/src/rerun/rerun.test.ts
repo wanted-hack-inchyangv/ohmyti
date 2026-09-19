@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   ExecutionContractSchema,
   HarnessCaseActualSchema,
@@ -41,6 +42,7 @@ import { runEvaluationPipeline, type PipelineConfig, type PipelineDeps } from ".
 import { createGitHubClient } from "../repo";
 import { fakeGitHub, makeGitHubStyleTarball, type FakeRepoFiles } from "../repo/test-support";
 import { HandlerRegistry, NonRetryableJobError } from "../registry";
+import { assertPremiseVerdicts, describeStageLog } from "../testing/premise";
 import { createWorker, type Worker } from "../worker";
 import {
   compareWithOriginal,
@@ -184,8 +186,8 @@ describe.skipIf(!hasTestDb)("재실행 (DB 통합, 실제 파이프라인·러�
   const harnessVersion = harnessVersionOf(getCaseSet(DEFAULT_CASE_SET));
 
   const config = (): PipelineConfig => ({
-    stageTimeoutMs: 120_000,
-    requestTimeoutMs: 5000,
+    stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+    requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
     templateRoot: TEMPLATE_ROOT,
     repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
     workRoot,
@@ -251,8 +253,15 @@ describe.skipIf(!hasTestDb)("재실행 (DB 통합, 실제 파이프라인·러�
       { submissionId: submission.id, attempt: 1, maxAttempts: 3 },
       pipelineDeps,
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     evaluationId = result.evaluationId!;
+    // 아래 재실행 테스트는 원본 R-05가 FAIL(샘플 C의 멱등 재전송 결함)이라는 전제에 기댄다.
+    // 부하로 하네스 케이스가 INCONCLUSIVE가 되면 그 사유를 담아 여기서 멈춘다 (T-607)
+    assertPremiseVerdicts(
+      await getEvaluationResults(tdb.db, evaluationId),
+      { "R-05": "FAIL" },
+      "원본 평가: 샘플 C",
+    );
   }, 180_000);
 
   afterAll(async () => {
@@ -408,7 +417,7 @@ describe.skipIf(!hasTestDb)("재실행 (DB 통합, 실제 파이프라인·러�
     // 활성 job이 있는 동안 같은 케이스는 중복 적재되지 않는다
     expect((await enqueueRerun()).created).toBe(false);
     worker.start();
-    await worker.drain({ timeoutMs: 90_000 });
+    await worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs });
     const job = (await getJob(tdb.db, id))!;
     expect(job.status).toBe("SUCCEEDED");
     const after = await getEvaluationResults(tdb.db, evaluationId);
@@ -455,7 +464,7 @@ describe.skipIf(!hasTestDb)("재실행 (DB 통합, 실제 파이프라인·러�
       maxAttempts: 1,
     });
     worker.start();
-    await worker.drain({ timeoutMs: 30_000 });
+    await worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs });
     const job = (await getJob(tdb.db, id))!;
     expect(job.status).toBe("FAILED");
     expect(job.lastError).toContain("RunnerEnvironmentError");

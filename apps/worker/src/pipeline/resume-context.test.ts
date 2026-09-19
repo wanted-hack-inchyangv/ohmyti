@@ -7,6 +7,7 @@
  * - 워커 로그 어디에도 이력서 본문이 없다.
  * - T-502: 접근할 수 없는 GitHub 프로필은 `github_sources`에 NO_DATA + 사유로 남고 파이프라인은 끝까지 간다.
  */
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { ExecutionContractSchema, RubricSchema } from "@ohmyti/core";
 import { sampleRubricDraftOutput } from "@ohmyti/core/fixtures";
 import { collectGitHubSources, type GitHubSourcesCollector } from "@ohmyti/context";
@@ -43,6 +44,7 @@ import { createGitHubClient } from "../repo";
 import { fakeGitHub, makeGitHubStyleTarball, type FakeRepoFiles } from "../repo/test-support";
 import { createDraftRubricHandler } from "../rubric-draft";
 import { runEvaluationPipeline, type PipelineDeps } from ".";
+import { describeStageLog } from "../testing/premise";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
@@ -145,8 +147,8 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
       }),
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 180_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -189,7 +191,7 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
       { submissionId, attempt: 1, maxAttempts: 3 },
       deps({ enabled: false }),
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
 
     const context = (await getSubmissionContext(tdb.db, submissionId))!;
     expect(context.resumeTextStatus).toBe("EXTRACTED");
@@ -216,7 +218,7 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
       { submissionId, attempt: 1, maxAttempts: 3 },
       deps({ enabled: true, catalog: LLM_LOCATE_CATALOG }),
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect((await contextStage(result.evaluationId!)).detail).toMatchObject({
       resume: { status: "MANUAL", action: "KEPT" },
     });
@@ -262,7 +264,7 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 이력서 텍스트 추출 (resume, DB
       { submissionId, attempt: 1, maxAttempts: 3 },
       deps({ enabled: false }, (input) => collectGitHubSources(input, { fetch: api.fetch })),
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(api.requests).toEqual([
       "/users/ghost-user/repos?type=owner&sort=pushed&direction=desc&per_page=100",
     ]);

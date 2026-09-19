@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   ExecutionContractSchema,
   FunctionGraphAnalysisSchema,
@@ -64,6 +65,7 @@ import {
   type RequirementResultsSummary,
 } from "./persist";
 import { checkReadme, describeReadmeCheck, findReadmePath } from "./readme-check";
+import { describeStageLog } from "../testing/premise";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
@@ -825,8 +827,8 @@ describe.skipIf(!hasTestDb)("판정 저장 (DB 통합, 실제 파이프라인)",
       runner,
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 120_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -879,7 +881,7 @@ describe.skipIf(!hasTestDb)("판정 저장 (DB 통합, 실제 파이프라인)",
 
   it("A: `75~100/100 · 25점 검토 대기`, 판정 15건, 감점 없음, R-12·G1~G3만 검토 대기", async () => {
     const { result, evaluation, results } = await evaluate("main");
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(evaluation).toMatchObject({
       scoreEarned: 75,
       scoreMin: 75,
@@ -938,7 +940,7 @@ describe.skipIf(!hasTestDb)("판정 저장 (DB 통합, 실제 파이프라인)",
     const c = await evaluate("c");
     const d = await evaluate("d");
     for (const { result, evaluation, results } of [c, d]) {
-      expect(result.submissionStatus).toBe("COMPLETED");
+      expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
       expect(evaluation).toMatchObject({
         scoreEarned: 49,
         scoreMin: 49,
@@ -1168,7 +1170,7 @@ describe.skipIf(!hasTestDb)("판정 저장 (DB 통합, 실제 파이프라인)",
 
   it("문법 오류 픽스처(T-304): 단계는 DONE이고 그래프는 `unavailable`이며 사유에 파일·라인이 있다", async () => {
     const { result, verify, graph, verifyDetail, results } = await evaluate("syntax");
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(verify.state).toBe("DONE");
     expect(graph?.status).toBe("unavailable");
     if (graph?.status !== "unavailable") throw new Error("unreachable");

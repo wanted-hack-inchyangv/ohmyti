@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ExecutionContractSchema, type ExecutionContract } from "@ohmyti/core";
@@ -65,7 +66,7 @@ beforeAll(async () => {
       ...LOCAL_RUNNER_DEFAULTS,
       templateRoot,
       workRoot: path.join(ws.root, "work"),
-      runTimeoutMs: 60_000,
+      runTimeoutMs: TEST_TIME_BUDGETS.runMs,
       killGraceMs: 500,
     },
     artifactStore: ws.store,

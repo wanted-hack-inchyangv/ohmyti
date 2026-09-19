@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { sampleRubric } from "@ohmyti/core/fixtures";
 import {
   approveAssignmentVersion,
@@ -542,7 +543,7 @@ describe.skipIf(!hasTestDb)("runRepoCheckStage (DB 통합)", () => {
       if (job?.status === "SUCCEEDED" || job?.status === "FAILED") break;
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    await worker.drain({ timeoutMs: 20_000 });
+    await worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs });
     await worker.stop();
     expect(sawRetry).toBe(true);
 

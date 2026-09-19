@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import { ExecutionContractSchema, RubricSchema, type ExecutionContract } from "@ohmyti/core";
 import { MUTATION_CATALOG, replaceNodeEdit, type MutationDefinition } from "@ohmyti/analysis";
 import {
@@ -38,6 +39,7 @@ import {
   type PipelineResult,
 } from "../pipeline";
 import { plannedMutations, preconditionOf, type TestEffectivenessDetail } from "./stage";
+import { describeStageLog } from "../testing/premise";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
@@ -279,8 +281,8 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       runner,
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 180_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -325,7 +327,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
 
   it("A: M-01~M-05 모두 KILLED이고 각 실험에 하네스 FAIL 유효성 검증 기록과 제출 테스트 기록이 있다", async () => {
     const { result, experiments, detail, store } = await evaluated("a");
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     const stage = result.stageLog.find((s) => s.stage === "TEST_EFFECTIVENESS")!;
     expect(stage.state).toBe("DONE");
     expect(detail.precondition).toEqual({
@@ -407,7 +409,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
 
   it("인라인 핸들러(T-602): M-01~M-05가 모두 휴리스틱으로 적용되고 대상 기준이 변형에서 FAIL이며 모두 SURVIVED, G1~G3 FAIL", async () => {
     const { result, experiments, detail, store } = await evaluate("inline");
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(detail.outcomes).toEqual({ SURVIVED: 5 });
     expect(
       experiments.map((e) => [e.mutationId, e.targetCriterionId, e.outcome, e.validationVerdict]),
@@ -552,7 +554,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       { timeoutMs: 15_000 },
       slowStart,
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(result.stageLog.find((s) => s.stage === "TEST_EFFECTIVENESS")!.state).toBe("DONE");
     expect(detail.deadlineReached).toBe(true);
     expect(detail.timeoutMs).toBe(15_000);

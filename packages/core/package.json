@@ -12,6 +12,10 @@
     "./fixtures": {
       "types": "./src/fixtures.ts",
       "default": "./src/fixtures.ts"
+    },
+    "./testing": {
+      "types": "./src/testing.ts",
+      "default": "./src/testing.ts"
     }
   },
   "scripts": {

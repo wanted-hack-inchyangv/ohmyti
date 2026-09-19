@@ -13,7 +13,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "vitest run --root ../.. --project @ohmyti/runner"
+    "test": "vitest run --root ../.. --project @ohmyti/runner --project @ohmyti/runner:process"
   },
   "dependencies": {
     "@ohmyti/core": "workspace:*",

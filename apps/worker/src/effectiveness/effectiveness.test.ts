@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   aggregateScore,
   ExecutionContractSchema,
@@ -439,8 +440,8 @@ describe.skipIf(!hasTestDb)("테스트 실효성 점수 산정 (DB 통합)", () 
       }),
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 180_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,

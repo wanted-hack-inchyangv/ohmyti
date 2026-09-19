@@ -212,7 +212,9 @@ pnpm --filter @ohmyti/worker dev   # 워커 (TEMPLATE_ROOT는 절대 경로로 �
 ```bash
 pnpm typecheck   # 모든 패키지 + 루트 스크립트
 pnpm lint        # ESLint (typescript-eslint, Next.js 규칙)
-pnpm test        # Vitest (워크스페이스 프로젝트별 실행)
+pnpm test        # Vitest (워크스페이스 프로젝트별 실행). 실제 프로세스를 띄우는 워커·러너 통합 테스트(`*:process` 프로젝트)는
+                 # 단위 테스트가 끝난 뒤 적은 동시 실행 수(코어 절반, 1~3, VITEST_PROCESS_WORKERS로 조정)로 돈다 (T-607, vitest.config.ts)
+                 # 제한을 명시하지 않은 테스트는 --testTimeout 30000(부하 여유)이고, 통합 테스트의 시간 예산은 @ohmyti/core/testing에 모았다
 pnpm build       # Next.js 빌드 + 워커 번들(esbuild → apps/worker/dist)
 pnpm e2e         # Playwright (E2E_PORT, 기본 4310에 dev 서버를 띄운다). chromium 프로젝트(워커 없음) 뒤에 stack 프로젝트(e2e/workbench-stack.spec.ts, T-308)가
                  # 워커를 띄워(E2E_WORKER_PORT 4320에 이미 있으면 재사용) 샘플 C 제출 → 감점 클릭 → 근거 → 재실행 → R-12 승인을 돌리고 test-results/phase3-screenshots/에 스크린샷을 남긴다

@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   claimJob,
   createTestDatabase,
@@ -49,9 +50,12 @@ function bufferDestination() {
   return { lines, write: (msg: string) => void lines.push(msg) };
 }
 
+/** `waitFor`를 기본 예산으로 쓰는 테스트의 제한 시간 */
+const WAIT_TEST_TIMEOUT_MS = TEST_TIME_BUDGETS.waitForMs * 2;
+
 async function waitFor(
   check: () => Promise<boolean>,
-  timeoutMs = 10_000,
+  timeoutMs: number = TEST_TIME_BUDGETS.waitForMs,
   label = "조건",
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -128,8 +132,8 @@ describe.skipIf(!hasTestDb)("워커 루프 (통합)", () => {
     a.worker.start();
     b.worker.start();
     await Promise.all([
-      a.worker.drain({ timeoutMs: 30_000 }),
-      b.worker.drain({ timeoutMs: 30_000 }),
+      a.worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs }),
+      b.worker.drain({ timeoutMs: TEST_TIME_BUDGETS.drainMs }),
     ]);
 
     expect(await statusCounts(tdb.db)).toEqual({ SUCCEEDED: 100 });
@@ -147,51 +151,61 @@ describe.skipIf(!hasTestDb)("워커 루프 (통합)", () => {
     }
   }, 60_000);
 
-  it("핸들러가 예외를 던지면 attempts가 늘고 백오프 후 재시도되며 max_attempts를 넘기면 FAILED가 된다", async () => {
-    let calls = 0;
-    const registry = new HandlerRegistry().register("RERUN_EXECUTION", () => {
-      calls += 1;
-      return Promise.reject(new Error(`실패 ${calls} (token sk-abcdefghijklmnop)`));
-    });
-    const { id } = await enqueue(tdb.db, { type: "RERUN_EXECUTION", payload: {}, maxAttempts: 2 });
+  it(
+    "핸들러가 예외를 던지면 attempts가 늘고 백오프 후 재시도되며 max_attempts를 넘기면 FAILED가 된다",
+    async () => {
+      let calls = 0;
+      const registry = new HandlerRegistry().register("RERUN_EXECUTION", () => {
+        calls += 1;
+        return Promise.reject(new Error(`실패 ${calls} (token sk-abcdefghijklmnop)`));
+      });
+      const { id } = await enqueue(tdb.db, {
+        type: "RERUN_EXECUTION",
+        payload: {},
+        maxAttempts: 2,
+      });
 
-    const { worker, lines } = makeWorker("w-fail", registry);
-    worker.start();
+      const { worker, lines } = makeWorker("w-fail", registry);
+      const startedAt = Date.now();
+      worker.start();
 
-    // 가져갈 때 attempts가 먼저 오르므로, 실패가 기록되어 QUEUED로 돌아올 때까지 기다린다
-    await waitFor(
-      async () => {
-        const job = await getJob(tdb.db, id);
-        return job?.attempts === 1 && job.status === "QUEUED" && calls === 1;
-      },
-      5_000,
-      "1차 시도",
-    );
-    let row = await getJob(tdb.db, id);
-    expect(row?.status).toBe("QUEUED");
-    expect(row?.lastError).toContain("실패 1");
-    const firstRunAfter = row?.runAfter.getTime() ?? 0;
-    expect(firstRunAfter).toBeGreaterThan(Date.now() - 100);
+      // 가져갈 때 attempts가 먼저 오르므로, 실패가 기록되어 QUEUED로 돌아올 때까지 기다린다
+      await waitFor(
+        async () => {
+          const job = await getJob(tdb.db, id);
+          return job?.attempts === 1 && job.status === "QUEUED" && calls === 1;
+        },
+        undefined,
+        "1차 시도",
+      );
+      let row = await getJob(tdb.db, id);
+      expect(row?.status).toBe("QUEUED");
+      expect(row?.lastError).toContain("실패 1");
+      const firstRunAfter = row?.runAfter.getTime() ?? 0;
+      // 1차 실패는 시작 뒤에 기록되므로 runAfter는 시작 시각 + 최소 백오프(1초) 이후다. 관측 시각과 비교하면 부하에서 흔들린다
+      expect(firstRunAfter).toBeGreaterThanOrEqual(startedAt + 1_000);
 
-    await waitFor(
-      async () => (await getJob(tdb.db, id))?.status === "FAILED",
-      10_000,
-      "FAILED 전환",
-    );
-    row = await getJob(tdb.db, id);
-    expect(calls).toBe(2);
-    expect(row?.attempts).toBe(2);
-    expect(row?.lastError).toContain("실패 2");
-    expect(row?.lockedBy).toBeNull();
-    // 2차 시도는 백오프(기본 1초 이상) 뒤에 시작됐다.
-    expect(row?.updatedAt.getTime()).toBeGreaterThanOrEqual(firstRunAfter);
-    expect(worker.status().processed).toMatchObject({ retried: 1, failed: 1 });
+      await waitFor(
+        async () => (await getJob(tdb.db, id))?.status === "FAILED",
+        undefined,
+        "FAILED 전환",
+      );
+      row = await getJob(tdb.db, id);
+      expect(calls).toBe(2);
+      expect(row?.attempts).toBe(2);
+      expect(row?.lastError).toContain("실패 2");
+      expect(row?.lockedBy).toBeNull();
+      // 2차 시도는 백오프(기본 1초 이상) 뒤에 시작됐다.
+      expect(row?.updatedAt.getTime()).toBeGreaterThanOrEqual(firstRunAfter);
+      expect(worker.status().processed).toMatchObject({ retried: 1, failed: 1 });
 
-    const out = lines.join("");
-    expect(out).toContain("백오프 후 재시도");
-    expect(out).toContain("더 이상 재시도하지 않습니다");
-    expect(out).not.toContain("sk-abcdefghijklmnop");
-  }, 20_000);
+      const out = lines.join("");
+      expect(out).toContain("백오프 후 재시도");
+      expect(out).toContain("더 이상 재시도하지 않습니다");
+      expect(out).not.toContain("sk-abcdefghijklmnop");
+    },
+    WAIT_TEST_TIMEOUT_MS,
+  );
 
   it("NonRetryableJobError와 미구현 핸들러는 즉시 FAILED로 끝난다", async () => {
     const registry = createDefaultRegistry().register("DELETE_SUBMISSION", () =>
@@ -221,125 +235,152 @@ describe.skipIf(!hasTestDb)("워커 루프 (통합)", () => {
     expect(b?.lastError).toContain("아직 구현되지 않았습니다");
   });
 
-  it("heartbeat가 끊긴 RUNNING job을 다른 워커가 회수해 처리한다", async () => {
-    const processedBy: string[] = [];
-    const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", (_job, ctx) => {
-      processedBy.push(ctx.workerId);
-      return Promise.resolve();
-    });
-    const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
+  it(
+    "heartbeat가 끊긴 RUNNING job을 다른 워커가 회수해 처리한다",
+    async () => {
+      const processedBy: string[] = [];
+      const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", (_job, ctx) => {
+        processedBy.push(ctx.workerId);
+        return Promise.resolve();
+      });
+      const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
 
-    // 죽은 워커를 흉내 낸다: 잡기만 하고 heartbeat를 보내지 않는다.
-    const claimed = await claimJob(tdb.db, { workerId: "w-dead" });
-    expect(claimed?.id).toBe(id);
+      // 죽은 워커를 흉내 낸다: 잡기만 하고 heartbeat를 보내지 않는다.
+      const claimed = await claimJob(tdb.db, { workerId: "w-dead" });
+      expect(claimed?.id).toBe(id);
 
-    const { worker, lines } = makeWorker("w-alive", registry, {
-      staleMs: 300,
-      heartbeatIntervalMs: 100,
-      reclaimIntervalMs: 100,
-    });
-    worker.start();
+      const { worker, lines } = makeWorker("w-alive", registry, {
+        staleMs: 300,
+        heartbeatIntervalMs: 100,
+        reclaimIntervalMs: 100,
+      });
+      worker.start();
 
-    await waitFor(
-      async () => (await getJob(tdb.db, id))?.status === "SUCCEEDED",
-      5_000,
-      "회수 후 성공",
-    );
-    const row = await getJob(tdb.db, id);
-    expect(row?.attempts).toBe(2);
-    expect(processedBy).toEqual(["w-alive"]);
-    expect(lines.join("")).toContain("heartbeat가 끊긴 job을 회수했습니다");
-  });
+      await waitFor(
+        async () => (await getJob(tdb.db, id))?.status === "SUCCEEDED",
+        undefined,
+        "회수 후 성공",
+      );
+      const row = await getJob(tdb.db, id);
+      expect(row?.attempts).toBe(2);
+      expect(processedBy).toEqual(["w-alive"]);
+      expect(lines.join("")).toContain("heartbeat가 끊긴 job을 회수했습니다");
+    },
+    WAIT_TEST_TIMEOUT_MS,
+  );
 
-  it("실행 중 소유권을 잃으면 ctx.heartbeat()가 JobLostError를 던지고 결과를 덮어쓰지 않는다", async () => {
-    let lostSeen = false;
-    const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async (_job, ctx) => {
-      // 다른 워커가 회수할 때까지 기다린다.
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      try {
-        await ctx.heartbeat();
-      } catch (error) {
-        lostSeen = (error as Error).name === "JobLostError";
-        throw error;
-      }
-    });
-    const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
+  it(
+    "실행 중 소유권을 잃으면 ctx.heartbeat()가 JobLostError를 던지고 결과를 덮어쓰지 않는다",
+    async () => {
+      let lostSeen = false;
+      const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async (job, ctx) => {
+        // 다른 워커가 회수할 때까지 기다린다. 고정 시간 대기는 부하에서 회수보다 먼저 끝날 수 있어 관측으로 기다린다.
+        await waitFor(
+          async () => (await getJob(tdb.db, job.id))?.lockedBy !== "w-slow",
+          undefined,
+          "w-fast 회수",
+        );
+        try {
+          await ctx.heartbeat();
+        } catch (error) {
+          lostSeen = (error as Error).name === "JobLostError";
+          throw error;
+        }
+      });
+      const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
 
-    // heartbeat 주기를 stale보다 길게 두어 소유권을 잃게 만든다 (설정 검증은 loadWorkerConfig에서만 한다).
-    const slow = makeWorker("w-slow", registry, {
-      staleMs: 200,
-      heartbeatIntervalMs: 10_000,
-      reclaimIntervalMs: 10_000,
-    });
-    slow.worker.start();
-    await waitFor(
-      async () => (await getJob(tdb.db, id))?.lockedBy === "w-slow",
-      3_000,
-      "w-slow claim",
-    );
-
-    const fast = makeWorker(
-      "w-fast",
-      new HandlerRegistry().register("EVALUATE_SUBMISSION", () => Promise.resolve()),
-      {
+      // heartbeat 주기를 stale보다 길게 두어 소유권을 잃게 만든다 (설정 검증은 loadWorkerConfig에서만 한다).
+      const slow = makeWorker("w-slow", registry, {
         staleMs: 200,
-        heartbeatIntervalMs: 50,
-        reclaimIntervalMs: 50,
-      },
-    );
-    fast.worker.start();
-    await waitFor(
-      async () => (await getJob(tdb.db, id))?.status === "SUCCEEDED",
-      5_000,
-      "w-fast 성공",
-    );
-    await waitFor(() => Promise.resolve(lostSeen), 3_000, "JobLostError 관측");
+        heartbeatIntervalMs: 10_000,
+        reclaimIntervalMs: 10_000,
+      });
+      slow.worker.start();
+      await waitFor(
+        async () => (await getJob(tdb.db, id))?.lockedBy === "w-slow",
+        undefined,
+        "w-slow claim",
+      );
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    const row = await getJob(tdb.db, id);
-    expect(row?.status).toBe("SUCCEEDED");
-    expect(row?.attempts).toBe(2);
-    expect(fast.lines.join("")).toContain("heartbeat가 끊긴 job을 회수했습니다");
-    expect(slow.worker.status().processed).toMatchObject({ succeeded: 0, failed: 0, retried: 0 });
-  });
+      const fast = makeWorker(
+        "w-fast",
+        new HandlerRegistry().register("EVALUATE_SUBMISSION", () => Promise.resolve()),
+        {
+          staleMs: 200,
+          heartbeatIntervalMs: 50,
+          reclaimIntervalMs: 50,
+        },
+      );
+      fast.worker.start();
+      await waitFor(
+        async () => (await getJob(tdb.db, id))?.status === "SUCCEEDED",
+        undefined,
+        "w-fast 성공",
+      );
+      await waitFor(() => Promise.resolve(lostSeen), undefined, "JobLostError 관측");
 
-  it("stop()은 진행 중 job이 끝나기를 기다린 뒤 종료한다", async () => {
-    const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async () => {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-    });
-    const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
-    const { worker } = makeWorker("w-stop", registry);
-    worker.start();
-    await waitFor(async () => (await getJob(tdb.db, id))?.status === "RUNNING", 3_000, "RUNNING");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const row = await getJob(tdb.db, id);
+      expect(row?.status).toBe("SUCCEEDED");
+      expect(row?.attempts).toBe(2);
+      expect(fast.lines.join("")).toContain("heartbeat가 끊긴 job을 회수했습니다");
+      expect(slow.worker.status().processed).toMatchObject({ succeeded: 0, failed: 0, retried: 0 });
+    },
+    WAIT_TEST_TIMEOUT_MS,
+  );
 
-    await worker.stop();
-    expect(worker.status().running).toBe(false);
-    expect((await getJob(tdb.db, id))?.status).toBe("SUCCEEDED");
-  });
+  it(
+    "stop()은 진행 중 job이 끝나기를 기다린 뒤 종료한다",
+    async () => {
+      // 핸들러 안에서 시작을 알린다. DB 폴링은 부하에서 400ms 실행 구간을 놓칠 수 있다
+      let started = false;
+      const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async () => {
+        started = true;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      });
+      const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
+      const { worker } = makeWorker("w-stop", registry);
+      worker.start();
+      await waitFor(() => Promise.resolve(started), undefined, "핸들러 시작");
 
-  it("stop()은 유예 시간이 지나면 진행 중 job을 QUEUED로 반납하고 attempts를 되돌린다", async () => {
-    let aborted = false;
-    const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async (_job, ctx) => {
-      await new Promise<void>((resolve) => {
-        ctx.signal.addEventListener("abort", () => {
-          aborted = true;
-          resolve();
+      await worker.stop();
+      expect(worker.status().running).toBe(false);
+      expect((await getJob(tdb.db, id))?.status).toBe("SUCCEEDED");
+    },
+    WAIT_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "stop()은 유예 시간이 지나면 진행 중 job을 QUEUED로 반납하고 attempts를 되돌린다",
+    async () => {
+      let aborted = false;
+      const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", async (_job, ctx) => {
+        await new Promise<void>((resolve) => {
+          ctx.signal.addEventListener("abort", () => {
+            aborted = true;
+            resolve();
+          });
         });
       });
-    });
-    const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
-    const { worker, lines } = makeWorker("w-hang", registry, { shutdownGraceMs: 200 });
-    worker.start();
-    await waitFor(async () => (await getJob(tdb.db, id))?.status === "RUNNING", 3_000, "RUNNING");
+      const { id } = await enqueue(tdb.db, { type: "EVALUATE_SUBMISSION", payload: {} });
+      const { worker, lines } = makeWorker("w-hang", registry, { shutdownGraceMs: 200 });
+      worker.start();
+      await waitFor(
+        async () => (await getJob(tdb.db, id))?.status === "RUNNING",
+        undefined,
+        "RUNNING",
+      );
 
-    await worker.stop();
-    const row = await getJob(tdb.db, id);
-    expect(row?.status).toBe("QUEUED");
-    expect(row?.attempts).toBe(0);
-    expect(row?.lockedBy).toBeNull();
-    expect(aborted).toBe(true);
-    expect(lines.join("")).toContain("QUEUED로 반납");
-  });
+      await worker.stop();
+      const row = await getJob(tdb.db, id);
+      expect(row?.status).toBe("QUEUED");
+      expect(row?.attempts).toBe(0);
+      expect(row?.lockedBy).toBeNull();
+      expect(aborted).toBe(true);
+      expect(lines.join("")).toContain("QUEUED로 반납");
+    },
+    WAIT_TEST_TIMEOUT_MS,
+  );
 
   it("job 로거는 비밀값을 마스킹하고 job 식별자를 붙인다", async () => {
     const registry = new HandlerRegistry().register("EVALUATE_SUBMISSION", (_job, ctx) => {

@@ -1,3 +1,4 @@
+import { TEST_TIME_BUDGETS } from "@ohmyti/core/testing";
 import {
   EvidenceDetailSchema,
   EvidenceReviewOutputSchema,
@@ -55,6 +56,7 @@ import {
   runReviewWriteStage,
   type ReviewWriteContext,
 } from ".";
+import { describeStageLog } from "../testing/premise";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 
@@ -622,8 +624,8 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
       }),
       github: createGitHubClient({ fetch: github.fetch }),
       config: {
-        stageTimeoutMs: 180_000,
-        requestTimeoutMs: 5000,
+        stageTimeoutMs: TEST_TIME_BUDGETS.stageMs,
+        requestTimeoutMs: TEST_TIME_BUDGETS.harnessRequestMs,
         templateRoot: TEMPLATE_ROOT,
         repoLimits: { maxFiles: 500, maxBytes: 20 * 1024 * 1024 },
         workRoot,
@@ -656,7 +658,7 @@ describe.skipIf(!hasTestDb)("REVIEW_WRITE (DB 통합)", () => {
       { submissionId: submission.id, attempt: 1, maxAttempts: 3 },
       deps,
     );
-    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(result.submissionStatus, describeStageLog(result.stageLog)).toBe("COMPLETED");
     expect(before.length).toBeGreaterThan(0);
     return { evaluationId: result.evaluationId!, store, before, scoreBefore: scoreBefore!, fake };
   }
