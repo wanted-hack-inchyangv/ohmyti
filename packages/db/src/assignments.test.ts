@@ -19,6 +19,7 @@ import {
   rejectAssignmentVersionValidation,
   retireAssignmentVersion,
   rubricContentDigest,
+  setAssignmentVersionReportProfile,
   specDigestOf,
   startAssignmentVersionValidation,
   SubmissionRejectedError,
@@ -79,11 +80,12 @@ describe("승인된 버전을 갱신하는 함수가 없다", () => {
       (name) => typeof (assignmentsModule as Record<string, unknown>)[name] === "function",
     );
     // 내용을 고치는 함수는 DRAFT 전용 `updateDraftAssignmentVersion`(T-406 과제 설정 저장) 하나뿐이다.
-    // DRAFT가 아니면 거부하는 것은 아래 통합 테스트와 DB 트리거가 확인한다
+    // DRAFT가 아니면 거부하는 것은 아래 통합 테스트와 DB 트리거가 확인한다.
+    // `setAssignmentVersionReportProfile`(T-705)은 예외다: rubric·명세·실행 계약이 아니라 채용 리포트의 표시용 자료
+    // (기준별 역량 보정·영향 문장)만 바꾸며 rubricVersion 해시와 점수·판정에 영향이 없다 (아래 통합 테스트가 확인한다)
+    const contentMutators = ["updateDraftAssignmentVersion", "setAssignmentVersionReportProfile"];
     expect(
-      names.filter(
-        (n) => /update|modify|edit|patch|set/i.test(n) && n !== "updateDraftAssignmentVersion",
-      ),
+      names.filter((n) => /update|modify|edit|patch|set/i.test(n) && !contentMutators.includes(n)),
     ).toEqual([]);
     expect(names.sort()).toEqual(
       [
@@ -105,6 +107,7 @@ describe("승인된 버전을 갱신하는 함수가 없다", () => {
         "rejectAssignmentVersionValidation",
         "retireAssignmentVersion",
         "rubricContentDigest",
+        "setAssignmentVersionReportProfile",
         "specDigestOf",
         "startAssignmentVersionValidation",
         "updateDraftAssignmentVersion",
@@ -402,6 +405,33 @@ describe.skipIf(!hasTestDb)("assignments (통합)", () => {
         .where(eq(assignmentVersions.id, approved.id)),
       /assignment_versions_immutable_when_approved|not allowed/,
     );
+  });
+
+  it("승인된 버전에도 채용 리포트 프로필을 넣을 수 있고 rubric과 rubricVersion은 그대로다 (T-705)", async () => {
+    const approved = await approvedVersion("리포트 프로필");
+    const profile = {
+      profileVersion: 1,
+      criteria: [
+        { criterionId: "R-01", competency: "DATA_INTEGRITY" as const, impact: "영향 문장" },
+      ],
+    };
+    const updated = await setAssignmentVersionReportProfile(tdb.db, approved.id, profile);
+    expect(updated?.reportProfile).toEqual(profile);
+    expect(updated?.rubric).toEqual(approved.rubric);
+    expect(updated?.rubricVersion).toBe(approved.rubricVersion);
+    expect(updated?.status).toBe("APPROVED");
+
+    // 형식이 맞지 않는 프로필은 저장하지 않는다
+    await expect(
+      setAssignmentVersionReportProfile(tdb.db, approved.id, {
+        profileVersion: 1,
+        criteria: [{ criterionId: "R-01" }, { criterionId: "R-01" }],
+      }),
+    ).rejects.toThrow();
+
+    expect(await setAssignmentVersionReportProfile(tdb.db, approved.id, null)).toMatchObject({
+      reportProfile: null,
+    });
   });
 
   it("DRAFT 행은 트리거의 제한을 받지 않는다", async () => {

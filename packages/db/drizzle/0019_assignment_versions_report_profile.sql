@@ -1,0 +1,1 @@
+ALTER TABLE "assignment_versions" ADD COLUMN "report_profile" jsonb;

@@ -7,6 +7,8 @@
  * - 명세 원문(SPEC.md)은 Artifact Store `assignments/<id>/specs/<sha256>.md`에, 샘플 A/B/C/D 스냅샷은
  *   `assignments/<id>/versions/1/samples/<id>/snapshot.tar.gz`에 넣고 `validation_samples`에 등록한다.
  *   `human_reviewed_by`·`human_reviewed_at`은 `expected-matrix.json`의 `reviewedBy`·`reviewedAt`이다.
+ * - 채용 리포트 프로필(T-705)은 `report-profile.json`을 그대로 `assignment_versions.report_profile`에 넣는다. rubric 본문·
+ *   rubricVersion 해시와 무관한 표시용 자료라 승인된 버전에도 매 실행마다 덮어쓴다 (RETIRED 버전은 건드리지 않는다).
  * - 멱등: 과제는 이름으로, 버전은 rubric 내용 해시(`rubric_version`의 뒷부분)로 찾아 있으면 다시 만들지 않는다.
  *   샘플은 (버전, 이름) 단위로 upsert한다. 승인된 버전의 본문은 건드리지 않는다 (DB 트리거가 막는다).
  * - 하네스 버전이 바뀌면(T-308): 같은 내용의 APPROVED 버전을 RETIRED로 내리고 다음 번호의 버전을 만들어
@@ -23,8 +25,10 @@ import { parseArgs } from "node:util";
 import { z } from "zod";
 import {
   ExecutionContractSchema,
+  ReportProfileSchema,
   RubricSchema,
   type AssignmentVersionStatus,
+  type ReportProfile,
   type Rubric,
 } from "@ohmyti/core";
 import {
@@ -37,6 +41,7 @@ import {
   requireDatabaseUrl,
   retireAssignmentVersion,
   rubricContentDigest,
+  setAssignmentVersionReportProfile,
   specDigestOf,
   startAssignmentVersionValidation,
   validationSamples,
@@ -113,6 +118,8 @@ export interface SeedSampleResult {
   created: { assignment: boolean; version: boolean; approved: boolean };
   /** 하네스가 바뀌어 RETIRED로 내린 이전 버전 */
   retiredVersionId: string | null;
+  /** 저장한 채용 리포트 프로필의 기준 수 (T-705). RETIRED 버전이면 null */
+  reportProfileCriteria: number | null;
   samples: { id: string; name: string; kind: string; snapshotRef: string; submissionSha: string }[];
 }
 
@@ -175,6 +182,18 @@ export async function seedSampleAssignment(options: SeedSampleOptions): Promise<
   const matrix = ExpectedMatrixSchema.parse(
     await readJson(path.join(sampleDir, "expected-matrix.json")),
   );
+  const reportProfile: ReportProfile = ReportProfileSchema.parse(
+    await readJson(path.join(sampleDir, "report-profile.json")),
+  );
+  const rubricCriterionIds = new Set(rubric.criteria.map((c) => c.id));
+  const unknownProfileCriteria = reportProfile.criteria
+    .map((entry) => entry.criterionId)
+    .filter((criterionId) => !rubricCriterionIds.has(criterionId));
+  if (unknownProfileCriteria.length > 0) {
+    throw new SeedError(
+      `report-profile.json이 rubric에 없는 기준을 참조합니다: ${unknownProfileCriteria.join(", ")}`,
+    );
+  }
   const gatePath = options.gateJsonPath ?? DEFAULT_GATE_JSON;
   let gateRaw: unknown;
   try {
@@ -300,7 +319,17 @@ export async function seedSampleAssignment(options: SeedSampleOptions): Promise<
     log("버전이 RETIRED라 승인 상태를 바꾸지 않습니다");
   }
 
-  // 6. 검증 샘플 A/B/C/D (버전·이름으로 upsert)
+  // 6. 채용 리포트 프로필 (T-705). rubric 본문·rubricVersion과 무관하므로 승인된 버전에도 매 실행마다 최신 내용으로 덮어쓴다
+  if (version.status === "RETIRED") {
+    log("버전이 RETIRED라 리포트 프로필을 바꾸지 않습니다");
+  } else {
+    await setAssignmentVersionReportProfile(db, version.id, reportProfile);
+    log(
+      `리포트 프로필 저장: profileVersion ${reportProfile.profileVersion}, 기준 ${reportProfile.criteria.length}개`,
+    );
+  }
+
+  // 7. 검증 샘플 A/B/C/D (버전·이름으로 upsert)
   const samples: SeedSampleResult["samples"] = [];
   for (const sample of matrix.samples) {
     const dir = path.join(sampleDir, sample.dir);
@@ -358,6 +387,7 @@ export async function seedSampleAssignment(options: SeedSampleOptions): Promise<
     specRef,
     created: { assignment: createdAssignment, version: createdVersion, approved },
     retiredVersionId,
+    reportProfileCriteria: version.status === "RETIRED" ? null : reportProfile.criteria.length,
     samples,
   };
 }

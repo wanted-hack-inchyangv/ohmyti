@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 import {
   assertTransition,
   formatRubricVersion,
+  ReportProfileSchema,
   rubricContentForDigest,
   validateRubric,
   type AssignmentVersionStatus,
   type ExecutionContract,
+  type ReportProfile,
   type Rubric,
   type RubricValidationError,
 } from "@ohmyti/core";
@@ -325,6 +327,24 @@ export async function getAssignmentVersion(
     .from(assignmentVersions)
     .where(eq(assignmentVersions.id, id))
     .limit(1);
+  return row ?? null;
+}
+
+/**
+ * 채용 리포트 프로필을 저장한다 (T-705). 기준별 역량 보정과 영향 문장일 뿐 rubric 본문·rubricVersion·점수와 무관하므로
+ * 승인된 버전에도 넣을 수 있다 (불변 트리거의 대상 열이 아니다). `null`을 주면 프로필을 지운다.
+ */
+export async function setAssignmentVersionReportProfile(
+  db: Database,
+  id: string,
+  profile: ReportProfile | null,
+): Promise<AssignmentVersionRow | null> {
+  if (profile) ReportProfileSchema.parse(profile);
+  const [row] = await db
+    .update(assignmentVersions)
+    .set({ reportProfile: profile, updatedAt: new Date() })
+    .where(eq(assignmentVersions.id, id))
+    .returning();
   return row ?? null;
 }
 

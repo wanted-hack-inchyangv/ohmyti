@@ -26,7 +26,7 @@ import {
   InterviewQuestionSourceSchema,
   ObservationRefSchema,
 } from "./interview";
-import { StoredScoreSchema } from "./report";
+import { ApiErrorSchema, apiOkSchema, StoredScoreSchema } from "./report";
 
 export const HIRING_REPORT_SCHEMA_VERSION = 1;
 /** 핵심 관측의 강점·결함 각각의 상한 */
@@ -265,6 +265,15 @@ export const HiringReportSchema = z.strictObject({
 });
 export type HiringReport = z.infer<typeof HiringReportSchema>;
 
+/**
+ * `GET /api/evaluations/[id]/hiring-report` (T-705)의 응답 봉투. 조립은 저장된 값만 옮기므로 평가가 있으면 항상 만들어지고,
+ * 키트·맥락 연결·설계 신호가 없는 이전 평가도 해당 절만 "자료 없음"으로 채운다.
+ */
+export const HiringReportResponseSchema = z.union([
+  apiOkSchema(HiringReportSchema),
+  ApiErrorSchema,
+]);
+
 // ---------------------------------------------------------------------------
 // 키 이름 검사
 
@@ -277,6 +286,44 @@ export const JUDGEMENT_KEY_PATTERN =
   /score|grade|rank|recommend|hire|hiring|level|rating|percentile|decision|seniority|overall|accept|reject|^fit$/i;
 
 export const JUDGEMENT_KEY_ALLOWED_PATHS: readonly string[] = ["summary.score", "scorecard"];
+
+// ---------------------------------------------------------------------------
+// 금지 표현 검사 (본문)
+
+/**
+ * 리포트 본문에 쓸 수 없는 표현 (PRD 14.4, G-13): 합격·탈락 추천, 채용 등급·레벨 추정, 지원자 간 순위.
+ * 조립(T-705)은 LLM이 쓴 문장(REVIEW_WRITE 설계 검토 초안)에 이 표현이 있으면 그 문장을 버리고, 테스트는 출력 전체
+ * (JSON·Markdown)를 이 목록으로 검사한다.
+ */
+export const FORBIDDEN_REPORT_EXPRESSIONS: readonly string[] = [
+  "합격",
+  "불합격",
+  "탈락",
+  "추천",
+  "순위",
+  "등급",
+  "레벨",
+  "주니어",
+  "시니어",
+  "서열",
+];
+
+/**
+ * 금지 표현 검사에서 빼는 문구. 검사 전에 이 문구를 지운 뒤 나머지를 본다.
+ * - `우선순위`: 스코어카드의 테스트 설계 앵커 문장("테스트의 우선순위를 정하는 기준")에 있는 단어이며 지원자 간 순위가 아니다.
+ * 스코어카드의 빈 칸 라벨도 금지 표현과 겹치면 여기에 더한다 (사람이 적을 칸의 이름이며 시스템의 판단이 아니다).
+ */
+export const FORBIDDEN_EXPRESSION_ALLOWED_LABELS: readonly string[] = ["우선순위"];
+
+/** 본문에 남은 금지 표현 (중복 제거, 목록 순서) */
+export function findForbiddenReportExpressions(
+  text: string,
+  allowedLabels: readonly string[] = FORBIDDEN_EXPRESSION_ALLOWED_LABELS,
+): string[] {
+  let scanned = text;
+  for (const label of allowedLabels) scanned = scanned.split(label).join(" ");
+  return FORBIDDEN_REPORT_EXPRESSIONS.filter((term) => scanned.includes(term));
+}
 
 /** zod 스키마 트리의 모든 키 경로 (배열은 `[]`, 유니온은 모든 선택지) */
 export function collectSchemaKeyPaths(schema: z.ZodType, path: string[] = []): string[] {

@@ -39,6 +39,7 @@ function setup(status: VersionSetupView["version"]["status"]): VersionSetupView 
       },
       harnessVersion: "0.1.0+abc",
       validationResult: null,
+      reportProfile: null,
       approvedBy: status === "APPROVED" ? "홍길동" : null,
       approvedAt: status === "APPROVED" ? now : null,
       retiredAt: null,

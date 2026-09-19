@@ -20,6 +20,7 @@ import type {
   GitHubSources,
   ReviewEventKind,
   ExecutionContract,
+  ReportProfile,
   Rubric,
   RubricDraftFailureCode,
   RubricDraftStatus,
@@ -80,6 +81,11 @@ export const assignmentVersions = pgTable(
     harnessVersion: text("harness_version").notNull(),
     /** 채점기 사전 검증 결과 (T-405). 샘플별 기대 결과와 실제 결과의 비교 */
     validationResult: jsonb("validation_result"),
+    /**
+     * 채용 리포트 프로필 (T-705). 기준별 역량 보정과 비개발자가 읽는 영향 문장이며 rubric 본문·rubricVersion 해시와 무관하다.
+     * 승인 뒤에도 고칠 수 있도록 불변 트리거의 대상 열에 넣지 않는다 (점수·판정에 쓰이지 않는다).
+     */
+    reportProfile: jsonb("report_profile").$type<ReportProfile>(),
     approvedBy: text("approved_by"),
     approvedAt: timestamptz("approved_at"),
     retiredAt: timestamptz("retired_at"),
