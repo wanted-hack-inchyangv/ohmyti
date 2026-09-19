@@ -22,9 +22,9 @@ ohmyti(CodeGraph Reviewer)를 시험하기 위해 만든 가상 지원자 페르
 
 1. https://ohmyti.vercel.app/submissions/new 를 연다.
 2. "채용 과제"에서 이 네 페르소나가 공통으로 쓰는 과제 버전을 선택한다.
-3. "과제 저장소 URL"에 해당 페르소나의 과제 제출물 저장소(예: `https://github.com/wanted-hack-inchyangv/seojin-order-api`)를 입력한다.
-4. "커밋 SHA"에는 해당 페르소나 `persona.md`의 "입력값" 표에 있는 커밋 SHA를 입력한다. 비워 두면 입력 시점의 HEAD가 고정된다.
-5. "이력서 (PDF)"에 해당 페르소나의 `resume.pdf`를 업로드한다.
+3. "과제 저장소 URL"에 그 페르소나의 과제 제출물 저장소(예: `https://github.com/wanted-hack-inchyangv/seojin-order-api`)를 입력한다.
+4. "커밋 SHA"에는 그 페르소나 `persona.md`의 "입력값" 표에 있는 커밋 SHA를 입력한다. 비워 두면 입력 시점의 HEAD가 고정된다.
+5. "이력서 (PDF)"에 그 페르소나의 `resume.pdf`를 업로드한다.
 6. "GitHub 프로필 URL"에 `https://github.com/wanted-hack-inchyangv`를 입력한다.
 7. "분석 및 채점"을 누르면 제출이 저장되고 워커가 격리 환경에서 채점과 맥락 연결을 진행한다.
 
@@ -32,7 +32,7 @@ ohmyti(CodeGraph Reviewer)를 시험하기 위해 만든 가상 지원자 페르
 
 2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤, `pnpm gate:personas`가 네 페르소나를 https://ohmyti.vercel.app 의 웹 제출 폼으로 현재 HEAD SHA와 함께 제출했다(채점 기준 `v2-be07fb44`). 결과는 조회 API로 읽어 `expected-matrix.json`과 대조했고, 불일치는 0건이었다. 전체 대조 기록은 [`docs/gates/personas.md`](../../docs/gates/personas.md)에 있다.
 
-- 기준별 판정(R-01 ~ R-11, G1 ~ G3)과 점수 표시는 네 페르소나 모두 기대값과 일치했다. dohyun은 변이 M-01 ~ M-05가 모두 적용되어 SURVIVED였고 G1·G2·G3가 모두 FAIL이다(이전 제출에서는 M-03·M-05가 적용되지 않아 G3가 INCONCLUSIVE였다).
+- 기준별 판정(R-01 ~ R-11, G1 ~ G3)과 점수 표시는 네 페르소나 모두 기대값과 일치했다. dohyun은 변이 M-01 ~ M-05가 모두 적용되어 SURVIVED였고 G1·G2·G3가 모두 FAIL이다. 이전 제출에서는 M-03·M-05가 적용되지 않아 G3가 INCONCLUSIVE였다.
 - REVIEW_WRITE는 네 페르소나 모두 정상 완료(`llm: OK`)되었고 R-12 AI 초안이 생성되었다. 잠정 점수는 seojin 9/10, taeyun 7/10, gaeun 3/10, dohyun 3/10이다. gaeun은 이전 제출에서 출력 스키마 검증 실패로 초안이 없었다.
 - GitHub 근거: 네 페르소나 모두 이력서에 적힌 본인 포트폴리오 저장소 2개가 선택되었고, 제출 저장소와 다른 페르소나의 저장소는 선택되지 않았다. 선택된 저장소마다 커밋이 8 ~ 16개 수집되었다.
 - 후속 질문: taeyun의 결제 웹훅 멱등 처리 주장, gaeun의 동시성 제어·멱등성 설계 주장, dohyun의 클린 아키텍처·TDD 주장에 기대대로 후속 질문이 생성되었다.

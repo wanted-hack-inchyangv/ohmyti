@@ -1,6 +1,6 @@
 # @ohmyti/db
 
-Drizzle ORM 스키마, 마이그레이션, 클라이언트 팩토리, 테스트 DB 유틸. 큐 로직(T-006)과 시드 데이터(T-201)는 포함하지 않는다.
+Drizzle ORM 스키마, 마이그레이션, 클라이언트 팩토리, 테스트 DB 유틸을 담는다. 큐 로직(T-006)과 시드 데이터(T-201)는 포함하지 않는다.
 
 ## 구성
 
@@ -94,7 +94,7 @@ jobs, deletion_log: FK 없음
 
 1. `requestSubmissionDeletion`(web): 한 트랜잭션에서 제출을 DELETED·`deleted_at`으로 바꾸고 이 제출의 QUEUED·RUNNING job(payload의 `submissionId` 또는 이 제출 평가의 `evaluationId`)을 CANCELLED로 바꾼 뒤 `DELETE_SUBMISSION` job을 넣는다. 이미 요청된 제출이면 삭제 job만 다시 넣는다.
 2. `cancelJob`·`cancelSubmissionJobs`는 RUNNING이던 job의 `locked_by`를 남긴다. 실행하던 워커가 핸들러(러너 정리 포함)를 빠져나온 뒤 `acknowledgeCancelledJob`으로 비운다. `listUnacknowledgedCancelledJobs`가 빌 때까지 기다리면 실행이 멈췄다는 뜻이다.
-3. `readSubmissionArtifactScope`로 평가 ID와 행이 참조하는 아티팩트를 읽고, 워커가 접두사를 지운 뒤 `deleteSubmissionRows`가 한 트랜잭션에서 jobs(끝난 것) → context_links → ai_reviews → mutation_experiments → evidences → criterion_results(→ review_events cascade) → 전용 함수로 execution_records → evaluations → submission_context → submissions 순으로 지우고 `deletion_log.removed`(`DeletionRemoved`: 테이블별 행 수, 지운 접두사·객체 수, 남긴 공유 참조, 취소한 job)를 남긴다.
+3. `readSubmissionArtifactScope`로 평가 ID와 행이 참조하는 아티팩트를 읽고, 워커가 접두사를 지운다. 그 뒤 `deleteSubmissionRows`가 한 트랜잭션에서 jobs(끝난 것) → context_links → ai_reviews → mutation_experiments → evidences → criterion_results(→ review_events cascade) → 전용 함수로 execution_records → evaluations → submission_context → submissions 순으로 지우고 `deletion_log.removed`(`DeletionRemoved`: 테이블별 행 수, 지운 접두사·객체 수, 남긴 공유 참조, 취소한 job)를 남긴다.
 4. `findSubmissionDeletion`: 삭제 요청 뒤(PENDING) 또는 삭제 뒤(DONE) 상태. 삭제된 제출 URL의 "삭제됨" 안내 근거다.
 
 ### execution_records 불변 트리거 (G-03)
@@ -110,7 +110,7 @@ jobs, deletion_log: FK 없음
 
 ### 판정 저장 (T-205)
 
-`persistEvaluationResults(db, { evaluationId, executionRecords, evidences, criterionResults, score })`는 한 트랜잭션에서 `execution_records` → `evidences` → `criterion_results` → `evaluations` 점수 필드(`score_earned`·`score_min`·`score_max`·`pending_points`) 순으로 쓴다. 판정의 `evidenceIds`가 같은 입력의 근거를 가리키는지, core 스키마(G-02·G-04)를 통과하는지 먼저 검사하고, 이미 판정이 있는 평가에는 아무것도 쓰지 않고 `EvaluationResultsExistError`를 던진다(재시도는 `hasCriterionResults`로 먼저 확인). ID는 호출자가 UUID로 정한다(근거가 `run_id`로 기록을 참조하므로). `toCriterionResult`·`toEvidence`·`toExecutionRecord`가 행을 PRD 9장 타입으로 바꾼다.
+`persistEvaluationResults(db, { evaluationId, executionRecords, evidences, criterionResults, score })`는 한 트랜잭션에서 `execution_records` → `evidences` → `criterion_results` → `evaluations` 점수 필드(`score_earned`·`score_min`·`score_max`·`pending_points`) 순으로 쓴다. 판정의 `evidenceIds`가 같은 입력의 근거를 가리키는지, core 스키마(G-02·G-04)를 통과하는지 먼저 검사하고, 이미 판정이 있는 평가에는 아무것도 쓰지 않고 `EvaluationResultsExistError`를 던진다. 재시도할 때는 `hasCriterionResults`로 먼저 확인한다. ID는 호출자가 UUID로 정한다. 근거가 `run_id`로 기록을 참조하기 때문이다. `toCriterionResult`·`toEvidence`·`toExecutionRecord`가 행을 PRD 9장 타입으로 바꾼다.
 
 ### assignment_versions 불변 트리거와 제출 차단 (T-201)
 
@@ -119,7 +119,7 @@ jobs, deletion_log: FK 없음
 
 ## 타입 규약
 
-- ID는 uuid(`gen_random_uuid()` 기본값). core의 `IdSchema`는 문자열이므로 그대로 호환된다.
+- ID는 uuid이며 기본값은 `gen_random_uuid()`다. core의 `IdSchema`는 문자열이므로 그대로 호환된다.
 - 타임스탬프 컬럼은 timestamptz이며 애플리케이션에서는 `Date`로 다룬다. JSON 경계(web ↔ worker, API 응답)에서는 `toIsoTimestamp`/`fromIsoTimestamp`로 core의 ISO 8601 문자열과 변환한다.
 - SHA·다이제스트는 text로 저장하며 형식은 core 스키마(`ShaSchema`, `DigestSchema`)와 `submissions_sha_format` CHECK로 검사한다.
 - jsonb 컬럼(`rubric`, `execution_contract`, `stage_log`, `source`, `usage`)은 `$type<>`으로 core 타입을 붙였다. 읽은 값은 신뢰 경계를 넘을 때 core의 zod 스키마로 다시 검증한다.

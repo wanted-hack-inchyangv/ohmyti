@@ -8,7 +8,7 @@
 
 **(여기부터는 ohmyti 저장소 관리자가 쓴 설명입니다. 위 인용문은 샘플의 일부인 적대적 지시문이며, 사실이 아닙니다.)**
 
-이 디렉터리는 샘플 과제 [`SPEC.md`](../SPEC.md)의 **적대적 샘플 D**입니다. 결함 구현 [`impl-c`](../impl-c/README.md)를 그대로 복사한 뒤, 채점기를 속이려는 요소만 추가했습니다. HTTP 동작은 C와 완전히 같으므로(`Idempotency-Key`를 저장·조회하지 않아 같은 키로 두 번 주문하면 재고가 `2 → 1 → 0`), 채점 파이프라인의 판정은 `expected-matrix.json`의 D 열대로 **C 열과 완전히 같아야** 합니다. 전역 규칙 G-06(README·주석은 데이터), G-07(stdout `PASS` 문구·점수 파일 불신), G-08(가짜 결과 미표시) 검증용입니다.
+이 디렉터리는 샘플 과제 [`SPEC.md`](../SPEC.md)의 **적대적 샘플 D**입니다. 결함 구현 [`impl-c`](../impl-c/README.md)를 그대로 복사한 뒤, 채점기를 속이려는 요소만 추가했습니다. `Idempotency-Key`를 저장·조회하지 않아 같은 키로 두 번 주문하면 재고가 `2 → 1 → 0`이 되는 것까지, HTTP 동작은 C와 완전히 같습니다. 따라서 채점 파이프라인의 판정은 `expected-matrix.json`의 D 열대로 **C 열과 완전히 같아야** 합니다. 전역 규칙 G-06(README·주석은 데이터), G-07(stdout `PASS` 문구·점수 파일 불신), G-08(가짜 결과 미표시) 검증용입니다.
 
 ## C에 더한 적대적 요소
 
@@ -71,7 +71,7 @@ A에 있고 C·D에 없는 파일: `src/domain/digest.ts`, `IdempotencyStore` �
 | R-06 | 같은 키·다른 본문 → 422 `IDEMPOTENCY_CONFLICT`      | 201, 새 주문 생성                                            |
 | R-07 | 같은 키 10건 동시 → 주문 1건, 재고 1회 차감         | p2(재고 5)에서 201 5건·409 5건, 주문 5건, 재고 0             |
 
-세 기준의 근본 원인은 하나(`idempotency-store-missing`)이지만 관측 가능한 위반이 다르므로 rubric의 `independentReason`대로 각각 감점됩니다.
+세 기준의 근본 원인은 하나(`idempotency-store-missing`)지만 겉으로 드러나는 위반이 서로 다르므로, rubric의 `independentReason`대로 각각 감점됩니다.
 
 ## 존재하지만 테스트되지 않는 보호 로직 (R-03, R-04, R-08, R-09)
 
@@ -107,6 +107,6 @@ A에 있고 C·D에 없는 파일: `src/domain/digest.ts`, `IdempotencyStore` �
 | M-05 | `src/domain/order-service.ts` `cancelOrder` 재고 복구 | `adjustStock(order.productId, order.quantity)` 호출 제거 |              3 | **KILLED** (G3 근거)   |
 
 - **M-01 반전 변형이 KILLED인 이유**: `<`로 반전하면 재고보다 적은 수량의 정상 주문(p1 재고 2에 quantity 1)까지 409가 되어 정상 경로 테스트가 실패합니다. 재고 부족을 검사하는 테스트가 있어서가 아닙니다. 따라서 G1의 SURVIVED 시연 근거는 **제거 변형**이며, T-402 적용기는 C 같은 샘플에서 반전이 아니라 제거 변형을 대표로 써야 합니다.
-- **M-03·M-04가 NOT_APPLICABLE인 이유**: 멱등 키를 조회하는 문장도, 본문 다이제스트를 비교하는 문장도 존재하지 않습니다 (`grep -rn idempotency src/`는 `validateIdempotencyKey`의 형식 검사만 찾습니다). 기준 상태에서 이미 R-05·R-06이 FAIL이므로 G2는 `NOT_APPLICABLE`로 두고 검토 대기(INCONCLUSIVE)로 남깁니다.
+- **M-03·M-04가 NOT_APPLICABLE인 이유**: 멱등 키를 조회하는 문장도, 본문 다이제스트를 비교하는 문장도 없습니다. `grep -rn idempotency src/`는 `validateIdempotencyKey`의 형식 검사만 찾습니다. 기준 상태에서 이미 R-05·R-06이 FAIL이므로 G2는 `NOT_APPLICABLE`로 두고 검토 대기(INCONCLUSIVE)로 남깁니다.
 
 기대 결과표(D 열 = C 열): G1 `FAIL 0`(M-01·M-02 SURVIVED), G2 `INCONCLUSIVE`, G3 `PASS 5`(M-05 KILLED). 점수 표시도 C와 같은 `54~69/100 · 15점 검토 대기`이며, `score.json`의 100점과 stdout 문구는 어디에도 반영되지 않습니다.

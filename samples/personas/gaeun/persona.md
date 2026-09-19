@@ -3,8 +3,8 @@
 ## 요약
 
 - 신입 백엔드 지원자. 웹 에이전시 스튜디오 도트에서 퍼블리셔 겸 프론트엔드 개발자로 1년간 근무한 뒤(2024.03 ~ 2025.02) 코드스프링 부트캠프 백엔드 과정을 수료했다(2025.09 ~ 2026.02).
-- 강점: 기본적인 CRUD API는 작성할 수 있다. 약점: 입력 검증, 멱등성, 상태 일관성에 대한 이해가 부족하다. 이력서에는 실제 역량보다 과장된 주장이 1건 포함되어 있다.
-- 이 페르소나로 확인하려는 것: 채점에서는 다수 기준이 FAIL인 낮은 점수 구간에서도 자연 통과(R-08)와 진짜 결함이 구분되는지, 테스트 실효성에서는 얕은 스모크 테스트가 결함을 놓치는 사례(G1 SURVIVED)와 변이 자체가 불가능한 사례(G2·G3 INCONCLUSIVE)가 함께 나오는지, 맥락 연결에서는 이력서의 과장된 주장(동시성 제어와 멱등성 설계 경험)이 과제 관측과 상충할 때 추가 확인 필요로 분류되는지, 그리고 LLM 출력 실패 같은 파이프라인 장애가 점수에 영향을 주지 않고 격리되는지 확인한다.
+- 강점: 기본 CRUD API는 작성할 수 있다. 약점: 입력 검증과 멱등성, 상태 일관성을 잘 이해하지 못한다. 이력서에는 실제 역량보다 과장된 주장이 1건 포함되어 있다.
+- 이 페르소나로는 네 가지를 확인한다. 채점에서는 다수 기준이 FAIL인 낮은 점수 구간에서도 자연 통과(R-08)와 진짜 결함이 구분되는지 본다. 테스트 실효성에서는 얕은 스모크 테스트가 결함을 놓치는 사례(G1 SURVIVED)와 변이 자체가 불가능한 사례(G2·G3 INCONCLUSIVE)가 함께 나오는지 본다. 맥락 연결에서는 이력서의 과장된 주장(동시성 제어와 멱등성 설계 경험)이 과제 관측과 상충할 때 추가 확인 필요로 분류되는지 본다. 마지막으로 LLM 출력 실패 같은 파이프라인 장애가 점수에 영향을 주지 않고 격리되는지 본다.
 
 ## 입력값
 
@@ -38,7 +38,7 @@
 | R-09 | 주문 취소와 재고 복구         | FAIL | FAIL (3회 반복) |
 | R-10 | 실행 계약 충족                | PASS | PASS (3회 반복) |
 
-`pnpm harness:run --base-url http://localhost:4813 --rubric samples/order-api/rubric.v1.json`을 최종 코드 상태에서 3회 반복 실행했고 세 번 모두 동일한 결과였다. R-04는 quantity 검증 누락, R-05·R-06·R-07은 Idempotency-Key 미사용, R-09는 취소 시 재고 복구 누락이 원인이다. R-08은 동기 코드 특성으로 자연 통과했으며 의도적으로 구현한 것은 아니다. `npm test`는 4건 모두 통과했는데, 제출 테스트가 얕은 스모크 테스트 3~4건으로 설계 지시를 따랐기 때문이다.
+`pnpm harness:run --base-url http://localhost:4813 --rubric samples/order-api/rubric.v1.json`을 최종 코드 상태에서 3회 반복 실행했고 세 번 모두 동일한 결과였다. R-04는 quantity 검증 누락, R-05·R-06·R-07은 Idempotency-Key 미사용, R-09는 취소 시 재고 복구 누락이 원인이다. R-08은 동기 코드의 특성 덕분에 저절로 통과했을 뿐, 일부러 구현한 것은 아니다. `npm test`는 4건 모두 통과했는데, 제출 테스트가 얕은 스모크 테스트 3~4건으로 설계 지시를 따랐기 때문이다.
 
 ### 그 밖의 기준
 
@@ -53,12 +53,12 @@
 ### R-04 입력 검증
 
 - 위치: `src/app.ts`, `POST /orders` 핸들러.
-- 원인: `productId`가 문자열인지, 비어 있지 않은지는 확인하지만(`typeof productId !== "string" || productId.length === 0`), `quantity`에 대한 검증이 전혀 없다. `quantity`가 0, 음수, 소수, 문자열(`"1"`), 누락이어도 그대로 `product.stock < quantity` 비교와 `createOrder`로 흘러간다. 상품 존재 여부 체크는 챙겼지만 수량 검증을 깜빡한 전형적인 실수다.
+- 원인: `productId`가 문자열인지, 비어 있지 않은지는 확인하지만(`typeof productId !== "string" || productId.length === 0`), `quantity` 검증이 전혀 없다. `quantity`가 0, 음수, 소수, 문자열(`"1"`), 누락이어도 그대로 `product.stock < quantity` 비교와 `createOrder`로 흘러간다. 상품 존재 여부 체크는 챙겼지만 수량 검증을 깜빡한 전형적인 실수다.
 
 ### R-05 멱등 재전송
 
 - 위치: `src/app.ts`(`POST /orders` 핸들러)와 `src/data.ts`.
-- 원인: `Idempotency-Key` 헤더를 아예 읽지 않으며, 멱등성 키를 저장할 자료구조도 존재하지 않는다(`data.ts`에 `orders` 배열만 있고 키-응답 매핑이 없다). 같은 키로 재요청해도 매번 새 주문이 생성된다.
+- 원인: `Idempotency-Key` 헤더를 아예 읽지 않으며, 멱등성 키를 저장할 자료구조도 없다. `data.ts`에 `orders` 배열만 있고 키-응답 매핑이 없다. 같은 키로 재요청해도 매번 새 주문이 생성된다.
 
 ### R-06 멱등 키 충돌
 
@@ -73,7 +73,7 @@
 ### R-09 주문 취소와 재고 복구
 
 - 위치: `src/data.ts`, `cancelOrder(order)` 함수.
-- 원인: `order.status = "CANCELLED"`만 수행하고 해당 상품의 `stock`을 되돌리는 코드가 없다(`POST /orders/:id/cancel` 핸들러가 `findOrder` → 상태 검사 → `cancelOrder` 호출 순으로 동작하지만, `cancelOrder` 내부에 재고 복구 로직 자체가 빠져 있다). 취소는 상태 전이만 이루어지고 재고는 주문 시점 그대로 줄어든 채 남는다.
+- 원인: `order.status = "CANCELLED"`만 수행하고 그 상품의 `stock`을 되돌리는 코드가 없다. `POST /orders/:id/cancel` 핸들러는 `findOrder` → 상태 검사 → `cancelOrder` 호출 순으로 동작하지만, `cancelOrder` 내부에 재고 복구 로직 자체가 빠져 있다. 취소는 상태 전이만 이루어지고 재고는 주문 시점 그대로 줄어든 채 남는다.
 
 참고로 R-08(다른 키 동시 요청)이 통과하는 이유는 `POST /orders` 핸들러가 완전히 동기적으로 재고 확인과 차감을 수행하고 그 사이에 `await`가 없어, Node.js 이벤트 루프상 다른 요청 처리가 끼어들 수 없기 때문이다. 별도의 락이나 동시성 제어를 구현한 것이 아니라 단일 스레드 동기 실행의 부수 효과로 재고가 음수가 되지 않는다.
 
@@ -89,7 +89,7 @@
 
 - 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`), 2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤 `pnpm gate:personas`가 웹 제출 폼으로 제출했다. 평가 커밋은 입력값 표의 현재 HEAD `dbff20e9379a5f61aca6317451221a539e53dfbf`이다. 대조 기록은 `docs/gates/personas.md`에 있고 `samples/personas/expected-matrix.json`의 기대값과 불일치 0건이었다.
 - 워크벤치: https://ohmyti.vercel.app/evaluations/8d5c095b-d5a0-45c1-813a-d05785a9fec5, 점수 37~57/100(20점 검토 대기). 제출부터 평가 종료까지 1294초가 걸렸다.
-- 기준별 판정: R-04·R-05·R-06·R-07·R-09가 FAIL이고 나머지는 PASS로 기대와 일치했다. G1은 FAIL(M-01 SURVIVED: 하네스가 결함을 확인했지만 제출 테스트는 모두 통과함)이다. G2·G3는 대상 기준이 이미 FAIL이라 변이를 적용할 수 없어 INCONCLUSIVE다. R-12는 사람의 검토 대기(INCONCLUSIVE)다.
+- 기준별 판정: R-04·R-05·R-06·R-07·R-09가 FAIL이고 나머지는 PASS로 기대와 일치했다. G1은 FAIL이다(M-01 SURVIVED). 하네스가 결함을 확인했지만 제출 테스트는 모두 통과했다. G2·G3는 대상 기준이 이미 FAIL이라 변이를 적용할 수 없어 INCONCLUSIVE다. R-12는 사람의 검토 대기(INCONCLUSIVE)다.
 - LLM 리뷰와 R-12 설계 초안: 이전 제출에서는 REVIEW_WRITE가 출력 스키마 검증에 2회 실패해(`failures.5.minimalReproSummary.summary` 빈 문자열) 미확정이었다. T-601 이후 이번 제출은 정상 완료(`llm: OK`)되었고 R-12 초안(3/10)이 생성되었다. 초안은 재고 검사·차감이 HTTP 핸들러 안에 있다는 점, 멱등성 저장·조회 코드가 없다는 점, 오류 응답이 핸들러마다 인라인으로 반복된다는 점을 근거로 들었다.
 - GitHub 근거로 선택된 저장소: `gaeun-todo-react`(커밋 9개), `gaeun-bookmark-api`(커밋 9개)이다. 이력서 링크로 선정되었고 제출 저장소는 제외되었다. 이전 제출에서 세 번째 자리에 끼어들었던 한서진의 과제 제출물은 이번에는 선택되지 않았다.
 - 이력서 주장별 실제 상태: React/TypeScript 경험과 Express REST API 학습 주장은 관련 근거 확인(EVIDENCE_FOUND), 동시성 제어와 멱등성 설계 경험 주장은 추가 확인 필요(NEEDS_CHECK)로 모두 기대와 일치했다.

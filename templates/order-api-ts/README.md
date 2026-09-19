@@ -42,7 +42,7 @@ pnpm samples:link       # samples/order-api/impl-*/node_modules → 템플릿 no
 
 ## 워커 이미지
 
-`apps/worker/Dockerfile`의 `template` 단계가 `package.json`·`package-lock.json`·`template.json`만 복사해 `npm ci`를 실행하고, 설치된 버전이 `allowedDependencies`와 같은지 확인한 뒤 `/opt/templates/order-api-ts`로 복사합니다. 디렉터리는 root 소유이므로 워커 사용자 `runner`는 읽고 실행만 할 수 있습니다.
+`apps/worker/Dockerfile`의 `template` 단계는 `package.json`·`package-lock.json`·`template.json`만 복사해 `npm ci`를 실행합니다. 그 뒤 설치된 버전이 `allowedDependencies`와 같은지 확인하고 `/opt/templates/order-api-ts`로 복사합니다. 디렉터리는 root 소유이므로 워커 사용자 `runner`는 읽고 실행만 할 수 있습니다.
 
 ```bash
 docker build -f apps/worker/Dockerfile -t ohmyti-worker .

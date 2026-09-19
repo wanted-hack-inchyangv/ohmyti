@@ -89,7 +89,7 @@ flowchart LR
     E --> F["맥락 연결<br/><sub>이력서 · GitHub · 후속 질문</sub>"]
 ```
 
-- 점수는 **요구사항 검증**과 **테스트 실효성** 단계에서만 만들어집니다. 뒤의 두 단계는 점수 열을 읽지 않습니다(`pnpm context:isolation-check`가 AST로 확인합니다).
+- 점수는 **요구사항 검증**과 **테스트 실효성** 단계에서만 만들어집니다. 뒤의 두 단계는 점수 열을 읽지 않습니다. `pnpm context:isolation-check`가 이를 AST로 확인합니다.
 - 채점 기준은 사람이 승인한 버전만 쓰며, 승인된 기준은 바꿀 수 없습니다. 기준을 승인하기 전에 정답 구현·대안 구현·결함 구현·적대적 샘플로 채점기 자체를 먼저 검증합니다.
 - 적대적 샘플 D는 결함 구현 C에 README·주석 지시문, 가짜 `score.json`, stdout `PASS` 문구, 항상 통과하는 테스트를 넣은 저장소입니다. D의 판정은 C와 같게 나옵니다.
 
@@ -106,7 +106,7 @@ flowchart LR
     WK & W -- "실행 기록 · 스냅샷" --> S[("Artifact Store<br/>Vercel Blob")]
 ```
 
-- 웹은 제출 코드를 실행하지 않습니다. 코드를 실행하는 주체는 워커 하나뿐이며, 웹이 러너·하네스·LLM 패키지에 의존하지 않는다는 규칙을 `pnpm deps:boundary-check`가 검사합니다.
+- 웹은 제출 코드를 실행하지 않습니다. 코드를 실행하는 주체는 워커 하나뿐이며, 웹은 러너·하네스·LLM 패키지에 의존하지 않습니다. 이 규칙은 `pnpm deps:boundary-check`가 검사합니다.
 - 모노레포 구성은 다음과 같습니다.
 
 ```
@@ -253,7 +253,7 @@ pnpm format      # Prettier
 
 Railway(워커·PostgreSQL)와 Vercel(웹·Blob)에 배포합니다. 절차와 변수는 [`docs/deploy.md`](docs/deploy.md)에 있습니다.
 
-- 웹: https://ohmyti.vercel.app (`/api/health`가 DB 연결을 확인합니다). 로그인 없이 누구나 접속할 수 있는 공개 배포입니다(`APP_ACCESS_MODE=public`). 비공개로 운영하려면 이 값을 빼고 `APP_ACCESS_PASSWORD`를 설정합니다 (`docs/deploy.md` 9절).
+- 웹은 https://ohmyti.vercel.app 에서 서비스합니다. `/api/health`가 DB 연결을 확인합니다. 로그인 없이 누구나 접속할 수 있는 공개 배포입니다(`APP_ACCESS_MODE=public`). 비공개로 운영하려면 이 값을 빼고 `APP_ACCESS_PASSWORD`를 설정합니다 (`docs/deploy.md` 9절).
 - 워커: Railway 서비스 `worker` (`railway up --service worker`). 서비스 설정은 `.railway/railway.ts`에 있습니다.
 - CI: `.github/workflows/ci.yml`
 

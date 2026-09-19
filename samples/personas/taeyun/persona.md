@@ -3,8 +3,8 @@
 ## 요약
 
 - 3년차 백엔드 엔지니어, 주니어. 모아북스 독서 모임 예약 플랫폼팀 백엔드 엔지니어로 재직 중이며(2023.07 ~ 현재), 데브브릿지 백엔드 인턴 경력이 있다(2023.01 ~ 2023.06).
-- 강점: 기본적인 REST API 설계·검증·계층 분리는 안정적으로 해낸다. 약점: 동시성과 멱등성의 세부 조건(멱등 키 충돌 감지, 동시 요청 직렬화)에 대한 이해가 아직 부족하다.
-- 이 페르소나로 확인하려는 것: 채점에서는 "재고 초과 판매는 막았지만 멱등성 경합은 놓친" 특성이 정확히 R-06·R-07 실패로 드러나는지, 테스트 실효성에서는 이미 실패한 기준을 대상으로 한 변이가 NOT_APPLICABLE로 처리되면서도 그룹 판정에는 영향을 주지 않는지, 맥락 연결에서는 이력서의 과장(결제 웹훅 멱등 처리, 팀 생산성 CLI)이 실제로는 기대와 다른 방향으로 재분류되는지 확인한다.
+- 강점: 기본 REST API 설계·검증·계층 분리는 안정적으로 해낸다. 약점: 동시성과 멱등성의 세부 조건(멱등 키 충돌 감지, 동시 요청 직렬화)을 아직 잘 이해하지 못한다.
+- 이 페르소나로는 세 가지를 확인한다. 채점에서는 "재고 초과 판매는 막았지만 멱등성 경합은 놓친" 특성이 정확히 R-06·R-07 실패로 드러나는지 본다. 테스트 실효성에서는 이미 실패한 기준을 대상으로 한 변이가 NOT_APPLICABLE로 처리되면서도 그룹 판정에는 영향을 주지 않는지 본다. 맥락 연결에서는 이력서의 과장(결제 웹훅 멱등 처리, 팀 생산성 CLI)이 실제로는 기대와 다른 방향으로 재분류되는지 본다.
 
 ## 입력값
 
@@ -44,15 +44,15 @@
 
 - R-11(README, STATIC): README.md에 실행 방법(`npm start`)과 포트 설정(`PORT`)이 명시되어 있어 충족을 기대한다.
 - R-12(설계·변경 용이성, HUMAN_REVIEW): 사람 확인 대기이지만, README의 "구조" 절에서 라우트(HTTP)와 서비스(도메인 규칙)를 분리하고 저장소를 인터페이스 뒤에 숨겼다고 설명하므로 부분적인 충족을 기대한다. 다만 README의 "아쉬운 점"에서 동시성 테스트 부족을 스스로 밝히고 있어 완전한 충족은 기대하지 않는다.
-- G1 ~ G3(테스트 실효성, MUTATION): rubric의 `independentReasons`에 따라 R-06이 기준 상태에서 이미 FAIL이므로, G2 대상 변이 M-04(R-06 대상)는 NOT_APPLICABLE로 예상되지만 같은 그룹의 M-03(R-05 대상)이 KILLED되면 G2는 PASS로 집계될 것으로 기대한다. G1(M-01은 R-03 대상, M-02는 R-04 대상)과 G3(M-05는 R-09 대상)은 대상 로직이 정상 동작하는 기준이므로 KILLED를 기대한다.
+- G1 ~ G3(테스트 실효성, MUTATION): rubric의 `independentReasons`에 따라 R-06이 기준 상태에서 이미 FAIL이므로, G2 대상 변이 M-04(R-06 대상)는 NOT_APPLICABLE로 예상된다. 다만 같은 그룹의 M-03(R-05 대상)이 KILLED되면 G2는 PASS로 집계될 것으로 기대한다. G1(M-01은 R-03 대상, M-02는 R-04 대상)과 G3(M-05는 R-09 대상)은 대상 로직이 정상 동작하는 기준이므로 KILLED를 기대한다.
 
 ## 구현 특징과 결함
 
-결함이 있는 페르소나다. 기본적인 재고 초과 판매 방지는 구현했지만 멱등성 경합에서 두 기준이 실패한다.
+결함이 있는 페르소나다. 기본 재고 초과 판매 방지는 구현했지만 멱등성 경합에서 두 기준이 실패한다.
 
 ### R-06 멱등 키 충돌
 
-- 위치: `src/repositories/idempotency-repository.ts`의 `InMemoryIdempotencyRepository`(키 → `Order` 응답만 저장하고 요청 본문은 저장하지 않음), 그리고 이를 사용하는 `src/services/order-service.ts`의 `OrderService.createOrder()`.
+- 위치: `src/repositories/idempotency-repository.ts`의 `InMemoryIdempotencyRepository`, 그리고 이를 사용하는 `src/services/order-service.ts`의 `OrderService.createOrder()`. `InMemoryIdempotencyRepository`는 키 → `Order` 응답만 저장하고 요청 본문은 저장하지 않는다.
 - 원인: `createOrder()`는 `const existing = await this.idempotency.get(key)`로 기존 기록을 찾으면 본문이 같은지 다른지 비교하지 않고 곧바로 `return existing`으로 원래 응답을 재생한다. 같은 키로 다른 `productId`/`quantity`를 보내도 422 `IDEMPOTENCY_CONFLICT`가 아니라 처음 응답과 같은 201이 돌아온다.
 
 ### R-07 같은 키 동시 요청
@@ -74,7 +74,7 @@
 
 - 제출 환경: https://ohmyti.vercel.app (채점 기준 `v2-be07fb44`), 2026-09-19 17:08 UTC에 6단계(T-601 ~ T-605) 수정을 배포한 뒤 `pnpm gate:personas`가 웹 제출 폼으로 제출했다. 평가 커밋은 입력값 표의 현재 HEAD `4c595e36efb5489dd0234d834cfdb583048ccfc1`이다. 대조 기록은 `docs/gates/personas.md`에 있고 `samples/personas/expected-matrix.json`의 기대값과 불일치 0건이었다.
 - 워크벤치: https://ohmyti.vercel.app/evaluations/009b7afb-a8ef-4187-b60a-874a56f3bd76, 점수 78~88/100(10점 검토 대기). 제출부터 평가 종료까지 1192초가 걸렸다.
-- 기준별 판정: R-06·R-07이 FAIL이고 나머지 R-01 ~ R-11은 PASS로 기대와 일치했다. G1 ~ G3는 PASS다. G2의 M-04는 대상 기준 R-06이 이미 FAIL이어서 NOT_APPLICABLE이지만 같은 그룹의 M-03이 KILLED여서 PASS로 집계되었다. R-12는 사람의 검토 대기(INCONCLUSIVE)다.
+- 기준별 판정: R-06·R-07이 FAIL이고 나머지 R-01 ~ R-11은 PASS로 기대와 일치했다. G1 ~ G3는 PASS다. G2의 M-04는 대상 기준 R-06이 이미 FAIL이어서 NOT_APPLICABLE이다. 다만 같은 그룹의 M-03이 KILLED여서 PASS로 집계되었다. R-12는 사람의 검토 대기(INCONCLUSIVE)다.
 - LLM 리뷰와 R-12 설계 초안: REVIEW_WRITE가 정상 완료(`llm: OK`)되었고 R-12 초안은 7/10이다. 계층 분리와 멱등성 저장소 추상화는 충족으로 보았지만, 저장 값이 주문뿐이라 본문 비교(R-06)를 넣으려면 저장 구조를 바꿔야 한다는 점을 감점 요인으로 들었다.
 - GitHub 근거로 선택된 저장소: `taeyun-til-cli`(커밋 12개), `taeyun-room-booking`(커밋 12개)이다. 이력서 링크로 선정되었고 제출 저장소는 제외되었다. 이전 제출에서 세 번째 자리에 끼어들었던 `gaeun-bookmark-api`는 이번에는 선택되지 않았다.
 - 이력서 주장별 실제 상태: 시간대 중복 예약 방지 주장은 기대대로 관련 근거 확인(EVIDENCE_FOUND)이다. 결제 웹훅 멱등 처리 주장은 기대(자료 없음)와 달리 추가 확인 필요(NEEDS_CHECK)로, 팀 생산성 CLI 주장은 기대(추가 확인 필요)와 달리 관련 근거 확인으로 분류되었다. 두 건은 LLM 판단 차이라 경고로만 기록했다.

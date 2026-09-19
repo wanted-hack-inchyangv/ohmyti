@@ -36,7 +36,7 @@ pnpm harness:coverage                       # rubric의 모든 EXECUTION 기준�
 pnpm harness:run --base-url http://localhost:3001 --rubric samples/order-api/rubric.v1.json --out /tmp/a.json [--case R-05-idempotent-resend] [--timeout-ms 5000]
 ```
 
-`harness:run`은 판정과 무관하게 실행이 끝나면 0으로 종료한다(판정은 보고서 JSON에 있다). 인자 오류·rubric 검증 실패·커버리지 실패는 1이다.
+`harness:run`은 판정과 무관하게 실행이 끝나면 0으로 종료한다. 판정은 보고서 JSON에 있다. 인자 오류·rubric 검증 실패·커버리지 실패는 1이다.
 
 ## 케이스 (order-api v1)
 

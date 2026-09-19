@@ -56,7 +56,7 @@ if (outcome.status !== "OK") {
 - 기록: 성공은 검증된 출력을, 실패는 `{ error: { name, message } }`와 과금된 사용량을 `ai_reviews`에 남긴다. 예산 초과와 금지 키 스키마는 API를 호출하지 않았으므로 남기지 않는다.
 - `input_digest`: 용도·프롬프트 버전·시스템 프롬프트·입력·출력 JSON Schema·예시의 정규화 JSON(`canonicalJson`) sha256. 모델과 `max_tokens`는 제외한다.
 - 예산: 호출 수는 `complete()` 단위(재요청 포함 1회)로 세고, 비용은 실패한 호출도 더한다. 비용은 호출 후에만 알 수 있어 상한을 넘긴 다음 호출부터 막는다.
-- 비용: 캐시 적중·미적중 입력과 출력을 따로 계산하고 피크 시간(평일 UTC 01–04시, 06–10시) 외에는 50%를 적용한다. 가격표에 없는 모델은 가장 비싼 피크 단가로 계산한다(과대 계산 쪽으로 틀린다).
+- 비용: 캐시 적중·미적중 입력과 출력을 따로 계산하고 피크 시간(평일 UTC 01–04시, 06–10시) 외에는 50%를 적용한다. 가격표에 없는 모델은 가장 비싼 피크 단가로 계산한다. 과대 계산 쪽으로 틀린다.
 - API 오류 메시지에는 상태 코드와 오류 유형만 남기고 응답 본문을 넣지 않는다.
 
 ## 확인한 공식 문서 (2026-09-19)
@@ -64,7 +64,7 @@ if (outcome.status !== "OK") {
 - https://api-docs.deepseek.com/quick_start/pricing : 모델 `deepseek-flash`(V4.1-Flash), `deepseek-v4-pro`, 단가, 피크 시간, 오프피크 50%
 - https://api-docs.deepseek.com/guides/json_mode : `response_format`, 프롬프트에 `json`과 예시 필요, 빈 응답 가능성, `max_tokens`로 잘림 방지
 - https://api-docs.deepseek.com/api/create-chat-completion : `thinking`(기본 enabled, 사고 모드에서 temperature 무시), `max_tokens` 기본 8K(비사고), `finish_reason` 값, `usage.prompt_cache_hit_tokens`
-- `GET /models` 실제 조회 결과는 `deepseek-flash`, `deepseek-v4-pro` 두 개다. 기본 모델 `deepseek-chat`은 목록에 없지만 여전히 받아들여지고 `deepseek-flash`가 응답한다(실제 호출로 확인).
+- `GET /models` 실제 조회 결과는 `deepseek-flash`, `deepseek-v4-pro` 두 개다. 기본 모델 `deepseek-chat`은 목록에 없지만 여전히 받아들여지고 `deepseek-flash`가 응답한다. 실제 호출로 확인했다.
 
 ## 테스트
 

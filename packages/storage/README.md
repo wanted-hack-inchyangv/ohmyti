@@ -31,8 +31,8 @@ evaluations/<id>/mutations/<mutationId>/diff.patch
 
 - `put`은 `contentType`(`type/subtype`)이 필수이고 같은 키를 덮어쓴다. 불변이어야 하는 레코드(G-03)는 호출자가 새 키를 만든다.
 - 크기 상한은 스토어 단위(`maxBytes`, 기본 64 MiB)이며 `put` 옵션의 `maxBytes`로 호출별로 더 줄일 수 있다. 넘으면 `ArtifactTooLargeError`이고 저장하지 않는다.
-- `get`·`getStream`은 없는 키에 `null`, `delete`는 없는 키에도 성공, `deletePrefix`는 지운 개수를 돌려준다.
-- Blob 스토어는 이력서 원본이 들어가므로 `private`이 기본이다. Vercel Blob의 `list`는 최종적 일관성을 가지므로 `deletePrefix` 직후 조회에 남은 항목이 보일 수 있다.
+- `get`·`getStream`은 없는 키에 `null`을 돌려주고 `delete`는 없는 키에도 성공하며 `deletePrefix`는 지운 개수를 돌려준다.
+- Blob 스토어는 이력서 원본이 들어가므로 `private`이 기본이다. Vercel Blob의 `list`는 최종적 일관성이 있으므로 `deletePrefix` 직후 조회에 남은 항목이 보일 수 있다.
 
 ## 테스트
 

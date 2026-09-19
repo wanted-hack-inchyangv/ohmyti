@@ -23,22 +23,22 @@ Railway에서 도는 평가 워커. PostgreSQL 작업 큐(`@ohmyti/db`의 `queue
 
 ## job 타입과 핸들러
 
-`EVALUATE_SUBMISSION`(T-204, `src/pipeline/`), `RERUN_EXECUTION`(T-307), `VALIDATE_RUBRIC`·`REEVALUATE_ASSIGNMENT_VERSION`(T-405), `DELETE_SUBMISSION`(T-506). 아직 핸들러가 없는 타입은 `NonRetryableJobError`로 즉시 FAILED가 된다(처리한 척하지 않는다, G-09). `main.ts`의 `createProductionRegistry()`가 기본 레지스트리 위에 `EVALUATE_SUBMISSION`(`registerEvaluateSubmission`), `RERUN_EXECUTION`(`registerRerunExecution`, `src/rerun/`), `VALIDATE_RUBRIC`·`REEVALUATE_ASSIGNMENT_VERSION`(`registerRubricValidation`, `src/validate-rubric/`), `DRAFT_RUBRIC`, `DELETE_SUBMISSION`(`registerDeleteSubmission`, `src/delete/`)을 얹는다(`TEMPLATE_ROOT` 필수). 핸들러들은 러너·파이프라인 설정을 공유한다(`createProductionRuntime`).
+`EVALUATE_SUBMISSION`(T-204, `src/pipeline/`), `RERUN_EXECUTION`(T-307), `VALIDATE_RUBRIC`·`REEVALUATE_ASSIGNMENT_VERSION`(T-405), `DELETE_SUBMISSION`(T-506). 아직 핸들러가 없는 타입은 `NonRetryableJobError`를 던져 곧바로 FAILED가 된다. 처리한 척하지 않는다(G-09). `main.ts`의 `createProductionRegistry()`가 기본 레지스트리 위에 `EVALUATE_SUBMISSION`(`registerEvaluateSubmission`), `RERUN_EXECUTION`(`registerRerunExecution`, `src/rerun/`), `VALIDATE_RUBRIC`·`REEVALUATE_ASSIGNMENT_VERSION`(`registerRubricValidation`, `src/validate-rubric/`), `DRAFT_RUBRIC`, `DELETE_SUBMISSION`(`registerDeleteSubmission`, `src/delete/`)을 얹는다(`TEMPLATE_ROOT` 필수). 핸들러들은 러너·파이프라인 설정을 공유한다(`createProductionRuntime`).
 
-`VALIDATE_RUBRIC { assignmentVersionId }`(T-405)는 VALIDATING 버전의 검증 샘플마다 검증 제출(`is_sample`, `validation_sample_id`)을 만들어 전체 파이프라인을 돌리고(REPO_CHECK는 샘플 스냅샷 복사), 기준별 판정·mutation 결과·제출 테스트를 기대 결과표와 대조해 `validation_result { perSample, mismatches[], pass }`를 남긴다. pass면 버전은 VALIDATING에서 사람 승인을 기다리고 불일치면 DRAFT로 돌아간다. `REEVALUATE_ASSIGNMENT_VERSION { assignmentVersionId }`는 새 승인 버전의 재평가 대상 제출마다 `EVALUATE_SUBMISSION { submissionId, assignmentVersionId }`를 넣는다. 재평가 모드의 파이프라인은 새 evaluation만 만들고 제출 상태와 이전 evaluation을 바꾸지 않는다.
+`VALIDATE_RUBRIC { assignmentVersionId }`(T-405)는 VALIDATING 버전의 검증 샘플마다 검증 제출(`is_sample`, `validation_sample_id`)을 만들어 전체 파이프라인을 돌린다. 이때 REPO_CHECK는 샘플 스냅샷을 복사한다. 그 뒤 기준별 판정·mutation 결과·제출 테스트를 기대 결과표와 대조해 `validation_result { perSample, mismatches[], pass }`를 남긴다. pass면 버전은 VALIDATING에서 사람 승인을 기다리고 불일치면 DRAFT로 돌아간다. `REEVALUATE_ASSIGNMENT_VERSION { assignmentVersionId }`는 새 승인 버전의 재평가 대상 제출마다 `EVALUATE_SUBMISSION { submissionId, assignmentVersionId }`를 넣는다. 재평가 모드의 파이프라인은 새 evaluation만 만들고 제출 상태와 이전 evaluation을 바꾸지 않는다.
 
-`RERUN_EXECUTION { evaluationId, caseId }`(T-307)는 평가의 하네스 케이스 하나를 같은 SHA·기준·환경에서 다시 실행해 `execution_records`(kind RERUN)와 근거를 추가하고 케이스를 참조하는 기준의 `evidence_ids` 뒤에 붙인다. 기존 기록·판정·점수는 바꾸지 않는다(G-03). 기준 버전·하네스 버전·환경 digest·스냅샷 SHA/digest가 평가와 다르면 `NonRetryableJobError`(`ENVIRONMENT_DIGEST_MISMATCH:` 등)로 즉시 FAILED이며 화면은 `last_error`를 "재실행 거부" 사유로 보인다. 재실행 결과는 원본 `actual.json`과 대조해 `actual.json`의 `rerun`(core `RerunComparison`)에 남긴다. 상한은 `RERUN_LIMIT_PER_EVALUATION`(20).
+`RERUN_EXECUTION { evaluationId, caseId }`(T-307)는 평가의 하네스 케이스 하나를 같은 SHA·기준·환경에서 다시 실행해 `execution_records`(kind RERUN)와 근거를 추가하고 케이스를 참조하는 기준의 `evidence_ids` 뒤에 붙인다. 기존 기록·판정·점수는 바꾸지 않는다(G-03). 기준 버전·하네스 버전·환경 digest·스냅샷 SHA/digest가 평가와 다르면 `NonRetryableJobError`(`ENVIRONMENT_DIGEST_MISMATCH:` 등)로 즉시 FAILED이며 화면은 `last_error`를 "재실행 거부" 사유로 보인다. 재실행 결과는 원본 `actual.json`과 대조해 `actual.json`의 `rerun`(core `RerunComparison`)에 남긴다. 상한은 `RERUN_LIMIT_PER_EVALUATION`(20)이다.
 
-`DELETE_SUBMISSION { submissionId, requestedBy }`(T-506)는 web의 삭제 요청(`requestSubmissionDeletion`)으로만 시작한다. 이 제출의 진행 중 job을 다시 취소하고 취소된 job을 실행하던 워커가 빠져나오기를 최대 `WORKER_STALE_MS`까지 기다린 뒤, `submissions/<id>/`·`evaluations/<id>/` 접두사를 지우고 다시 지워 0개인지 확인한다(Blob 목록 지연 대비, 비지 않으면 재시도). 그 뒤 `deleteSubmissionRows`가 관련 행을 지우고 `deletion_log`를 남긴다. 접두사 밖의 공유 아티팩트(샘플 스냅샷)는 지우지 않고 기록만 한다. 삭제 요청이 없는 제출이면 `NonRetryableJobError`다.
+`DELETE_SUBMISSION { submissionId, requestedBy }`(T-506)는 web의 삭제 요청(`requestSubmissionDeletion`)으로만 시작한다. 이 제출의 진행 중 job을 다시 취소한다. 취소된 job을 실행하던 워커가 빠져나오기를 최대 `WORKER_STALE_MS`까지 기다린 뒤 `submissions/<id>/`·`evaluations/<id>/` 접두사를 지운다. 이때 Blob 목록 지연에 대비해 다시 지워 0개인지 확인하고 비지 않으면 재시도한다. 그 뒤 `deleteSubmissionRows`가 관련 행을 지우고 `deletion_log`를 남긴다. 접두사 밖의 공유 아티팩트(샘플 스냅샷)는 지우지 않고 기록만 한다. 삭제 요청이 없는 제출이면 `NonRetryableJobError`다.
 
-핸들러 시그니처는 `(job, ctx) => Promise<void>`다. `ctx`에는 job 식별자가 붙은 마스킹 로거, `db`, `store`, `heartbeat()`, `signal`(종료 중이거나 소유권을 잃으면 abort), `workerId`가 있다. 오래 걸리는 단계 사이에서 `await ctx.heartbeat()`를 호출한다. 소유권을 잃었으면(회수·취소) `JobLostError`가 던져지므로 정리만 하고 빠져나온다. 요구사항 검증·mutation 검증 단계는 `signal`이 abort되면 하네스를 기다리지 않고 서비스를 곧바로 멈춘다. 핸들러가 끝나면 워커는 그 사이 취소된 job의 `locked_by`를 비워(`acknowledgeCancelledJob`) 실행이 멈췄음을 알린다.
+핸들러 시그니처는 `(job, ctx) => Promise<void>`다. `ctx`에는 job 식별자가 붙은 마스킹 로거, `db`, `store`, `heartbeat()`, `signal`(종료 중이거나 소유권을 잃으면 abort), `workerId`가 있다. 오래 걸리는 단계 사이에서 `await ctx.heartbeat()`를 호출한다. 회수나 취소로 소유권을 잃었으면 `JobLostError`가 던져지므로, 정리만 하고 빠져나온다. 요구사항 검증·mutation 검증 단계는 `signal`이 abort되면 하네스를 기다리지 않고 서비스를 곧바로 멈춘다. 핸들러가 끝나면 워커는 그 사이 취소된 job의 `locked_by`를 비워(`acknowledgeCancelledJob`) 실행이 멈췄음을 알린다.
 
 ## 실행 의미론
 
-- 유휴 상태에서도 폴링 기록을 남긴다: 매 폴링은 debug(`폴링`), 1분에 한 번 info(`폴링 중`, 처리 카운터 포함). 배포 로그에서 루프가 살아 있는지 확인하는 용도다.
+- 유휴 상태에서도 폴링 기록을 남긴다: 매 폴링마다 debug 레벨로 `폴링`을 남기고 1분에 한 번은 info 레벨로 `폴링 중`(처리 카운터 포함)을 남긴다. 배포 로그에서 루프가 살아 있는지 확인하는 용도다.
 - claim은 `FOR UPDATE SKIP LOCKED`라 워커 여러 개가 같은 job을 잡지 않는다. 자동 heartbeat(`WORKER_STALE_MS / 3`)가 도는 한 정확히 한 번 실행된다.
 - 핸들러가 예외를 던지면 `attempts`가 남아 있는 동안 지수 백오프 후 재시도하고 `max_attempts`에 닿으면 FAILED와 `last_error`를 남긴다.
-- heartbeat가 `WORKER_STALE_MS`를 넘긴 RUNNING job은 어느 워커든 QUEUED로 되돌린다(시도 횟수를 다 썼으면 FAILED).
+- heartbeat가 `WORKER_STALE_MS`를 넘긴 RUNNING job은 어느 워커든 QUEUED로 되돌린다. 시도 횟수를 다 썼으면 FAILED로 남긴다.
 - SIGTERM·SIGINT: 새 job을 받지 않고 진행 중 job이 끝나기를 `WORKER_SHUTDOWN_GRACE_MS`(기본 25초)까지 기다린다. 넘기면 QUEUED로 반납(`attempts` 원복)하고 abort 신호를 보낸 뒤 종료한다.
 
 ## 환경변수
@@ -47,11 +47,11 @@ Railway에서 도는 평가 워커. PostgreSQL 작업 큐(`@ohmyti/db`의 `queue
 
 ## 저장소 수집 (REPO_CHECK)
 
-`runRepoCheckStage(submissionId, deps)`는 제출의 GitHub URL(`https://github.com/<owner>/<repo>[.git][/tree/<ref>]`)과 `repo_ref`로 커밋 SHA를 고정하고 tarball을 받아 `.git`·심볼릭 링크를 뺀 정규화 스냅샷을 `submissions/<id>/snapshot.tar.gz`에, 파일 목록·digest를 `snapshot-manifest.json`에 저장한다. 비공개·미존재 저장소는 `REPO_NOT_ACCESSIBLE`, 파일 500개·20 MiB 초과는 `LIMIT_EXCEEDED`로 제출을 UNSUPPORTED로 바꾸고 정상 반환한다. 속도 제한(429, 403)·5xx·네트워크 오류는 `RepoEnvironmentError`를 던져 job이 재시도한다. 이미 고정된 SHA가 있으면 브랜치를 다시 해석하지 않는다. 실제 GitHub 통합 테스트는 `GITHUB_INTEGRATION=1`일 때만 돈다.
+`runRepoCheckStage(submissionId, deps)`는 제출의 GitHub URL(`https://github.com/<owner>/<repo>[.git][/tree/<ref>]`)과 `repo_ref`로 커밋 SHA를 고정하고 tarball을 받아 `.git`·심볼릭 링크를 뺀 정규화 스냅샷을 `submissions/<id>/snapshot.tar.gz`에, 파일 목록·digest를 `snapshot-manifest.json`에 저장한다. 비공개·미존재 저장소는 `REPO_NOT_ACCESSIBLE`로, 파일 500개·20 MiB 초과는 `LIMIT_EXCEEDED`로 제출을 UNSUPPORTED로 바꾸고 정상 반환한다. 속도 제한(429, 403)·5xx·네트워크 오류는 `RepoEnvironmentError`를 던져 job이 재시도한다. 이미 고정된 SHA가 있으면 브랜치를 다시 해석하지 않는다. 실제 GitHub 통합 테스트는 `GITHUB_INTEGRATION=1`일 때만 돈다.
 
 ## 지원 여부 판정 (ENV_PREP 앞부분)
 
-`runSupportCheckStage({ evaluationId, submissionId, snapshotRef, templateName }, deps)`는 스냅샷을 풀지 않고 `package.json`과 파일 목록만 읽어 승인 템플릿으로 실행할 수 있는지 판정한다. 검사 항목: `package.json` 존재(`MISSING_PACKAGE_JSON`), `scripts.start`(`MISSING_START_SCRIPT`), 템플릿 허용 목록·설치 버전(`DISALLOWED_DEPENDENCY`·`DEPENDENCY_VERSION_MISMATCH`, T-102 `checkDependencies`), TypeScript·JavaScript 소스와 Node 런타임 시작 명령(`UNSUPPORTED_LANGUAGE`). 테스트 프레임워크(T-109 감지)와 HTTP 프레임워크(express·hono)는 정보로만 남긴다. 결과 `SupportReport`는 `evaluations.stage_log`의 ENV_PREP `detail`에 저장된다. 지원하면 ENV_PREP는 RUNNING으로 남고(러너 `prepare` 뒤 T-204가 DONE), 지원하지 않으면 ENV_PREP UNSUPPORTED · 뒤 단계 SKIPPED · 제출 UNSUPPORTED(`unsupported_reason = <CODE>: <detail>; …`)로 기록하며 아무것도 실행하지 않는다. README 문구는 판정에 쓰지 않는다 (G-06).
+`runSupportCheckStage({ evaluationId, submissionId, snapshotRef, templateName }, deps)`는 스냅샷을 풀지 않고 `package.json`과 파일 목록만 읽어 승인 템플릿으로 실행할 수 있는지 판정한다. 검사 항목: `package.json` 존재(`MISSING_PACKAGE_JSON`), `scripts.start`(`MISSING_START_SCRIPT`), 템플릿 허용 목록·설치 버전(`DISALLOWED_DEPENDENCY`·`DEPENDENCY_VERSION_MISMATCH`, T-102 `checkDependencies`), TypeScript·JavaScript 소스와 Node 런타임 시작 명령(`UNSUPPORTED_LANGUAGE`). 테스트 프레임워크(T-109 감지)와 HTTP 프레임워크(express·hono)는 정보로만 남긴다. 결과 `SupportReport`는 `evaluations.stage_log`의 ENV_PREP `detail`에 저장된다. 지원하면 ENV_PREP는 RUNNING으로 남는다. 러너 `prepare` 이후 T-204가 DONE이 된다. 지원하지 않으면 ENV_PREP UNSUPPORTED · 뒤 단계 SKIPPED · 제출 UNSUPPORTED(`unsupported_reason = <CODE>: <detail>; …`)로 기록하며 아무것도 실행하지 않는다. README 문구는 판정에 쓰지 않는다 (G-06).
 
 ## 평가 파이프라인 (EVALUATE_SUBMISSION)
 
@@ -75,12 +75,12 @@ payload는 `{ submissionId }`(`EvaluateSubmissionPayloadSchema`, `@ohmyti/core`)
 
 `src/results/`가 단계 원문을 PRD 9장 데이터 계약으로 옮긴다. LLM은 관여하지 않는다 (G-01).
 
-- **ExecutionRecord**(`execution_records`, 불변): 기동 관측 1건 + 하네스 케이스마다 1건(kind `HARNESS`), 제출 테스트 1건(kind `SUBMITTED_TESTS`). 본문은 `evaluations/<id>/runs/<runId>/{input,expected,actual,timeline}.json`(`artifactKeys.runRecord`). `exit_code`는 서비스가 스스로 끝났을 때(크래시·수명 제한)만 남고 러너가 정상 종료했으면 null. `failure_kind`는 케이스·테스트 결과의 값 그대로.
+- **ExecutionRecord**(`execution_records`, 불변): 기동 관측 1건 + 하네스 케이스마다 1건(kind `HARNESS`), 제출 테스트 1건(kind `SUBMITTED_TESTS`). 본문은 `evaluations/<id>/runs/<runId>/{input,expected,actual,timeline}.json`(`artifactKeys.runRecord`). `exit_code`는 서비스가 스스로 끝났을 때(크래시·수명 제한)만 남고 러너가 정상 종료했으면 null이다. `failure_kind`는 케이스·테스트 결과의 값을 그대로 따른다.
 - **Evidence**(`evidences`): 기록마다 1건(`run_id`, `test_id` = caseId, `artifact_refs` = 기록 본문 + 단계 원문 + 서비스·테스트 로그). R-11 근거는 README의 `source { path, startLine, endLine }`와 `snippet`.
-- **CriterionResult**(`criterion_results`): EXECUTION은 `deriveCriteria` 판정(FAIL 하나라도 있으면 FAIL, 아니면 INCONCLUSIVE, 모두 PASS면 PASS)에 케이스 근거를 붙이고 실행 계약 기준(R-10, 영역 `REPRODUCIBILITY_AND_DOCS`)과 기동 실패 시 모든 기준은 기동 근거도 참조한다. STATIC(R-11)은 `checkReadme`(루트 README 존재·비어 있지 않음·시작 명령·`PORT` 언급, 정규식만), MUTATION(G1~G3)은 INCONCLUSIVE + `테스트 실효성 미구현(4단계)`, HUMAN_REVIEW(R-12)는 INCONCLUSIVE·`review_state = PENDING`. `observation`은 데이터에서 만든 문장, `interpretation`은 null. `issue_id`는 FAIL 기준의 실패 케이스 ID(`case:<id>`, 여러 개면 정렬·`+`), 기동 실패는 `service-startup`, README는 `readme`. STATIC 기준에 `staticChecks`(T-405, `DEPENDENCY_DECLARED`)가 있으면 루트 `package.json` 선언도 확인하며 실패하면 `static:<기준 ID>`다.
-- **점수**: `aggregateScore()` 결과를 `evaluations.score_earned·score_min·score_max·pending_points`에 쓴다. 2단계 시점 표시는 A `75~100/100 · 25점 검토 대기`, C·D `49~74/100 · 25점 검토 대기`.
-- **관련 함수 그래프 (T-304)**: 판정 저장 직전에 `@ohmyti/analysis`로 스냅샷을 분석한다(하네스 케이스 timeline의 요청이 케이스별 입력, 템플릿 `node_modules` 참조). 분석은 자식 프로세스(`dist/analysis-child.js`, 개발·테스트는 `packages/analysis/src/child.ts` + tsx)에서 돌아 워커의 heartbeat·`/healthz`를 막지 않으며 `ANALYSIS_TIMEOUT_MS`를 넘기면 죽이고 "분석 불가"로 기록한다. 결과는 상태와 무관하게 `evaluations/<id>/analysis/function-graph.json`(`artifactKeys.functionGraph`)에 저장하고 요약은 `stage_log.detail.results.functionGraph`에 남긴다. 분석 실패(문법 오류·한도·예외)는 단계 실패가 아니라 `status: "unavailable"` + 사유다. 케이스 루트 라우트의 핸들러 위치는 `kind = STATIC_RELATION` 근거(`run_id` = 케이스 기록, `source`·`snippet` = 핸들러, `artifact_refs` = 그래프 아티팩트)로 그 케이스를 참조하는 EXECUTION 기준의 `evidence_ids` 뒤에 붙는다. 판정·점수에는 영향이 없다.
-- **멱등성**: 저장은 단계 기록이 DONE·FAILED로 닫힌 뒤 한 트랜잭션으로 한다. 재시도에서 단계는 끝났지만 판정이 없으면 단계 원문 아티팩트에서 입력을 되살려 저장만 다시 하고(`loadRequirementResultsSource`), 판정이 이미 있으면 건너뛴다. 저장 요약은 `stage_log.detail.results`.
+- **CriterionResult**(`criterion_results`): EXECUTION은 `deriveCriteria` 판정(FAIL 하나라도 있으면 FAIL, 아니면 INCONCLUSIVE, 모두 PASS면 PASS)에 케이스 근거를 붙이고 실행 계약 기준(R-10, 영역 `REPRODUCIBILITY_AND_DOCS`)과 기동 실패 시 모든 기준은 기동 근거도 참조한다. STATIC(R-11)은 `checkReadme`(루트 README 존재·비어 있지 않음·시작 명령·`PORT` 언급, 정규식만), MUTATION(G1~G3)은 INCONCLUSIVE + `테스트 실효성 미구현(4단계)`, HUMAN_REVIEW(R-12)는 INCONCLUSIVE·`review_state = PENDING`이다. `observation`은 데이터에서 만든 문장이고 `interpretation`은 null이다. `issue_id`는 FAIL 기준의 실패 케이스 ID(`case:<id>`, 여러 개면 정렬·`+`), 기동 실패는 `service-startup`, README는 `readme`다. STATIC 기준에 `staticChecks`(T-405, `DEPENDENCY_DECLARED`)가 있으면 루트 `package.json` 선언도 확인하며 실패하면 `static:<기준 ID>`다.
+- **점수**: `aggregateScore()` 결과를 `evaluations.score_earned·score_min·score_max·pending_points`에 쓴다. 2단계 시점 표시는 A `75~100/100 · 25점 검토 대기`, C·D `49~74/100 · 25점 검토 대기`이다.
+- **관련 함수 그래프 (T-304)**: 판정 저장 직전에 `@ohmyti/analysis`로 스냅샷을 분석한다(하네스 케이스 timeline의 요청이 케이스별 입력, 템플릿 `node_modules` 참조). 분석은 자식 프로세스(`dist/analysis-child.js`, 개발·테스트는 `packages/analysis/src/child.ts` + tsx)에서 돌아 워커의 heartbeat·`/healthz`를 막지 않는다. `ANALYSIS_TIMEOUT_MS`를 넘기면 죽이고 "분석 불가"로 기록한다. 결과는 상태와 무관하게 `evaluations/<id>/analysis/function-graph.json`(`artifactKeys.functionGraph`)에 저장하고 요약은 `stage_log.detail.results.functionGraph`에 남긴다. 분석 실패(문법 오류·한도·예외)는 단계 실패가 아니라 `status: "unavailable"` + 사유다. 케이스 루트 라우트의 핸들러 위치는 `kind = STATIC_RELATION` 근거(`run_id` = 케이스 기록, `source`·`snippet` = 핸들러, `artifact_refs` = 그래프 아티팩트)로 그 케이스를 참조하는 EXECUTION 기준의 `evidence_ids` 뒤에 붙는다. 판정·점수에는 영향이 없다.
+- **멱등성**: 저장은 단계 기록이 DONE·FAILED로 닫힌 뒤 한 트랜잭션으로 한다. 재시도에서 단계는 끝났지만 판정이 없으면 단계 원문 아티팩트에서 입력을 되살려 저장만 다시 하고(`loadRequirementResultsSource`), 판정이 이미 있으면 건너뛴다. 저장 요약은 `stage_log.detail.results`에 남는다.
 
 ## 명령
 
@@ -93,7 +93,7 @@ docker build -f apps/worker/Dockerfile -t ohmyti-worker .   # 이미지 (docs/de
 pnpm --filter @ohmyti/worker test    # 단위 + 통합(DATABASE_URL_TEST 필요)
 ```
 
-통합 테스트는 워커 2개 × job 100개 정확히 한 번 처리, 재시도·FAILED, 회수, `stop()`, 실제 자식 프로세스에 SIGTERM을 보내는 시나리오(`src/testing/sigterm-entry.ts`)를 포함한다. 파이프라인 테스트(`src/pipeline/pipeline.test.ts`)는 가짜 GitHub로 샘플 A를 제출해 워커가 끝까지 처리하는 경로, 미지원(axios) 제출, 하네스 도중 죽는 픽스처, 회수 후 DONE 단계 생략, 환경 장애의 재시도·최종 실패, 단계 시간 초과를 실제 러너·하네스로 돌린다(`templates/order-api-ts/node_modules`가 필요하다).
+통합 테스트는 워커 2개가 job 100개를 정확히 한 번씩 처리하는 시나리오, 재시도·FAILED, 회수, `stop()`, 실제 자식 프로세스에 SIGTERM을 보내는 시나리오(`src/testing/sigterm-entry.ts`)를 포함한다. 파이프라인 테스트(`src/pipeline/pipeline.test.ts`)는 가짜 GitHub로 샘플 A를 제출해 워커가 끝까지 처리하는 경로, 미지원(axios) 제출, 하네스 도중 죽는 픽스처, 회수 후 DONE 단계 생략, 환경 장애의 재시도·최종 실패, 단계 시간 초과를 실제 러너·하네스로 돌린다. `templates/order-api-ts/node_modules`가 필요하다.
 
 ## LLM 근거 탐색·리뷰 (REVIEW_WRITE, T-407)
 

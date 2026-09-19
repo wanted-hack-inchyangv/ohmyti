@@ -1,6 +1,6 @@
 # @ohmyti/core
 
-도메인 타입, zod 스키마, 상태 머신, 기준 검증, 점수 집계, 마스킹 유틸리티. DB 코드는 포함하지 않는다.
+도메인 타입, zod 스키마, 상태 머신, 기준 검증, 점수 집계, 마스킹 유틸리티를 담는다. DB 코드는 포함하지 않는다.
 
 ## 구성
 
@@ -24,14 +24,14 @@
 - 기준 ID와 그룹 ID는 유일해야 한다.
 - `allowPartial: true`인 기준은 `partialRules`에 하위 기준을 1개 이상 명시해야 하고, 하위 배점 합은 `maxPoints` 이하여야 한다. PARTIAL을 허용하지 않는 기준에 PARTIAL 규칙이 있어도 오류다.
 - 그룹, 독립 감점 사유(`independentReasons`), PARTIAL 규칙은 존재하는 기준만 참조해야 한다. 기준의 `groupId`는 존재하는 그룹이어야 한다.
-- 판정 조건(`condition`)에 `FORBIDDEN_LIBRARY_TERMS`의 라이브러리 이름을 쓸 수 없다. 기준은 관측 가능한 동작에 배점한다.
+- 판정 조건(`condition`)에 `FORBIDDEN_LIBRARY_TERMS`의 라이브러리 이름을 쓸 수 없다. 기준은 겉으로 드러나는 동작에 배점한다.
 
 ## 점수 집계 (`aggregateScore`)
 
 부록 C의 표기 규칙을 순수 함수로 구현했다. LLM·DB·UI에 의존하지 않는다 (G-01).
 
-- 확정 점수 `earned` = `earnedPoints`가 null이 아닌 기준의 합. `min`은 `earned`, `max`는 `earned + pendingPoints`, `total`은 rubric 배점 합(100)이다.
-- 미확정 배점 `pendingPoints` = `earnedPoints`가 null인 기준(`INCONCLUSIVE`, 검토 대기)과 결과가 아직 없는 기준(`NOT_EVALUATED`)의 `maxPoints` 합. `pendingCriteria`에 사유와 함께 나열한다. 미확정 배점을 제외하고 재환산하지 않는다 (G-04).
+- 확정 점수 `earned` = `earnedPoints`가 null이 아닌 기준의 합이다. `min`은 `earned`, `max`는 `earned + pendingPoints`, `total`은 rubric 배점 합(100)이다.
+- 미확정 배점 `pendingPoints` = `earnedPoints`가 null인 기준(`INCONCLUSIVE`, 검토 대기)과 결과가 아직 없는 기준(`NOT_EVALUATED`)의 `maxPoints` 합이다. `pendingCriteria`에 사유와 함께 나열한다. 미확정 배점을 제외하고 재환산하지 않는다 (G-04).
 - `display`: 미확정이 없으면 `87/100`, 있으면 `54~69/100 · 15점 검토 대기`.
 - `byArea`: `RubricArea` 열거 순서로 영역별 `earned`/`min`/`max`/`pendingPoints`/`total`. 영역 소계의 합은 전체와 같다.
 - PARTIAL은 `CriterionResult.satisfiedSubCriterionIds`가 가리키는 rubric 하위 기준 배점 합으로만 계산한다. 하위 기준이 rubric에 없으면 `UnknownSubCriterionError`, 기준이 PARTIAL을 허용하지 않으면 `PARTIAL_NOT_ALLOWED`, 결과의 `earnedPoints`가 하위 합과 다르면 `PARTIAL_POINTS_MISMATCH`다.
@@ -79,7 +79,7 @@
 단계 순서와 파급 규칙(표 밖의 오케스트레이션 규칙, T-204에서 구현):
 
 - 단계 순서는 `EVALUATION_STAGE_ORDER` = REPO_CHECK → ENV_PREP → REQUIREMENT_VERIFY → TEST_EFFECTIVENESS → REVIEW_WRITE → CONTEXT_LINK.
-- 앞 단계가 UNSUPPORTED면 뒤 단계는 모두 SKIPPED.
+- 앞 단계가 UNSUPPORTED면 뒤 단계는 모두 SKIPPED가 된다.
 - REQUIREMENT_VERIFY가 FAILED여도 REVIEW_WRITE와 CONTEXT_LINK는 가능한 범위에서 실행한다.
 - `job`의 RUNNING → QUEUED는 stale 회수·재시도다.
 - `reviewState`의 NOT_REQUIRED → CONFIRMED는 자동 판정을 사람이 수정한 경우다. 원래 값은 `ReviewEvent`에 남는다.

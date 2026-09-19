@@ -15,11 +15,11 @@
 
 - `collectGitHubSources({ login, resumeText, jdText }, options)`: 공개 저장소 목록(최근 push 순 첫 100개, 포크·비공개 제외) → 이력서·JD 키워드와 저장소 이름·설명·토픽·주 언어의 토큰 겹침 점수로 최대 `MAX_PROFILE_REPOS`(기본 3, 1~10)개 선정. 동점은 최근 push → 이름 순. 던지지 않는다.
   - 키워드가 없으면(이력서 없음) 최근 push 순(`selection: RECENT_PUSH`). 키워드가 있는데 겹치는 저장소가 없으면 `NO_DATA`(`NO_RELATED_REPOS`).
-  - 저장소별: README 앞 4 KiB(`application/vnd.github.raw+json`, 잘린 UTF-8 조각 제거), 언어, 최상위 파일(100개), 해당 사용자의 기본 브랜치 커밋 20개(`?author=`), 해당 사용자의 병합 PR 제목 10개(검색 API). 텍스트는 `maskSensitive`로 가린다.
+  - 저장소별: README 앞 4 KiB(`application/vnd.github.raw+json`, 잘린 UTF-8 조각 제거), 언어, 최상위 파일(100개), 그 사용자의 기본 브랜치 커밋 20개(`?author=`), 그 사용자의 병합 PR 제목 10개(검색 API). 텍스트는 `maskSensitive`로 가린다.
   - **요청 수 상한: `1 + 5 × maxRepos`(기본 16)**. 상한에 닿거나 속도 제한(403 + `x-ratelimit-remaining: 0`·`retry-after`, 429)을 한 번 받으면 더 보내지 않는다.
   - 상태: `COLLECTED` / `PARTIAL`(일부 항목 `missing`) / `NO_DATA`. 사유는 `<CODE>: <설명>`이며 코드는 `NO_PROFILE`·`PROFILE_NOT_FOUND`·`RATE_LIMITED`·`GITHUB_UNAVAILABLE`·`NO_PUBLIC_REPOS`·`NO_RELATED_REPOS`·`REQUEST_LIMIT_REACHED`.
   - 스타·팔로워·포크 수는 읽지 않는다. 결과 스키마(`GitHubSourcesSchema`, `@ohmyti/core`)는 모든 객체가 strict다.
-- `runGitHubSourcesCollection({ db, collect }, submissionId)`: `submission_context.github_login`·이력서 텍스트(EXTRACTED·MANUAL) → 수집 → `submission_context.github_sources`. 기록이 이미 있으면 다시 조회하지 않는다(일시적 실패 `RATE_LIMITED`·`GITHUB_UNAVAILABLE`로 끝난 NO_DATA만 다시 조회). 반환 요약(`GitHubSourcesSummary`)에는 README·커밋 본문이 없다.
+- `runGitHubSourcesCollection({ db, collect }, submissionId)`: `submission_context.github_login`·이력서 텍스트(EXTRACTED·MANUAL) → 수집 → `submission_context.github_sources`. 기록이 이미 있으면 다시 조회하지 않는다. 일시적 실패 `RATE_LIMITED`·`GITHUB_UNAVAILABLE`로 끝난 NO_DATA만 다시 조회한다. 반환 요약(`GitHubSourcesSummary`)에는 README·커밋 본문이 없다.
 - 워커는 CONTEXT_LINK 단계에서 이력서 추출 다음에 호출한다. 실패해도 파이프라인은 계속된다.
 
 ```bash

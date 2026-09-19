@@ -44,7 +44,7 @@ railway tcp-proxy list --service Postgres --json          # endpoint(호스트:�
 
 ### 2. Railway: 워커 서비스 설정 (Infrastructure as Code)
 
-Railway는 `railway.json`(Config as Code)을 폐기했으므로 서비스 설정은 `.railway/railway.ts`에 둔다. 빌더 `DOCKERFILE`, `dockerfilePath: apps/worker/Dockerfile`(빌드 컨텍스트는 저장소 루트), `preDeployCommand: node dist/migrate.js`, `startCommand: node dist/index.js`, `healthcheckPath: /healthz`, 재시작 `ON_FAILURE` 10회, `drainingSeconds: 30`.
+Railway는 `railway.json`(Config as Code)을 폐기했으므로 서비스 설정은 `.railway/railway.ts`에 둔다. 빌더는 `DOCKERFILE`, `dockerfilePath`는 `apps/worker/Dockerfile`(빌드 컨텍스트는 저장소 루트), `preDeployCommand`는 `node dist/migrate.js`, `startCommand`는 `node dist/index.js`, `healthcheckPath`는 `/healthz`, 재시작은 `ON_FAILURE` 10회, `drainingSeconds`는 30으로 둔다.
 
 ```bash
 pnpm install                      # 루트 devDependency railway(SDK)가 필요하다
@@ -52,7 +52,7 @@ railway config plan               # 변경 미리보기
 railway config apply --yes        # 적용 (변수의 preserve()는 기존 값을 유지한다)
 ```
 
-주의: Dockerfile에 `# syntax=` 지시자나 `RUN --mount=type=cache`가 있으면 Railway 빌더가 로그 없이 실패했다. 현재 Dockerfile은 둘 다 쓰지 않는다. `watchPatterns`도 두지 않는다(CLI 업로드가 `SKIPPED`가 된다).
+주의: Dockerfile에 `# syntax=` 지시자나 `RUN --mount=type=cache`가 있으면 Railway 빌더가 로그 없이 실패했다. 현재 Dockerfile은 둘 다 쓰지 않는다. `watchPatterns`도 두지 않는다. 두면 CLI 업로드가 `SKIPPED`가 된다.
 
 ### 3. Railway: 워커 변수
 
@@ -92,7 +92,7 @@ GitHub 자동 배포는 연결하지 않았다. 필요하면 `railway service so
 
 ### 5. Vercel: 프로젝트 설정
 
-프로젝트 `ohmyti`(팀 `<vercel-team>`)는 T-005에서 Blob 스토어를 연결하기 위해 만들었다. 설정은 REST API로 맞춘다 (`vercel project` 명령에는 루트 디렉터리 옵션이 없다).
+프로젝트 `ohmyti`(팀 `<vercel-team>`)는 T-005에서 Blob 스토어를 연결하기 위해 만들었다. 설정은 REST API로 맞춘다. `vercel project` 명령에는 루트 디렉터리 옵션이 없다.
 
 ```bash
 vercel link --yes --scope <vercel-team> --project ohmyti     # .vercel/ 생성 (gitignore)
@@ -100,7 +100,7 @@ vercel api "/v9/projects/<projectId>?teamId=<teamId>" -X PATCH \
   -f rootDirectory=apps/web -f nodeVersion=22.x -f framework=nextjs
 ```
 
-- 루트 디렉터리 `apps/web`, Node 22.x(`apps/web/package.json`의 `engines.node`도 `22.x`), 프레임워크 Next.js. Vercel이 상위의 `pnpm-workspace.yaml`을 감지해 모노레포 루트에서 `pnpm install`을 실행한다.
+- 루트 디렉터리는 `apps/web`, Node는 22.x(`apps/web/package.json`의 `engines.node`도 `22.x`), 프레임워크는 Next.js다. Vercel이 상위의 `pnpm-workspace.yaml`을 감지해 모노레포 루트에서 `pnpm install`을 실행한다.
 - Vercel Authentication(배포 보호)은 껐다(`ssoProtection: null`). 접근 보호는 T-008의 비밀번호 proxy(`apps/web/proxy.ts`)가 맡는다. 아래 9절 참고.
 
 ### 6. Vercel: 환경변수 (Production, Preview)
@@ -141,7 +141,7 @@ git push -u origin main
 
 - `verify`: PostgreSQL 16 서비스 컨테이너, `pnpm install --frozen-lockfile`, `env:check`·`deps:check`·`deps:boundary-check`·`format:check`, `typecheck`, `lint`, `db:migrate`, `test`(`DATABASE_URL_TEST`로 통합 테스트 포함), `build`.
 - `worker-image`: `apps/worker/Dockerfile` 빌드 후 컨테이너에서 `node dist/migrate.js`와 `/healthz` 200을 확인.
-- `e2e`(T-308): PostgreSQL 서비스 컨테이너 + Playwright chromium. `template:build` → `db:migrate` → `pnpm e2e`. chromium 프로젝트(워커 없음)가 끝나면 stack 프로젝트가 워커를 직접 띄워 샘플 C(`sample-repos.json`, 공개 저장소·SHA 고정)를 제출·채점하고 감점 클릭 → 근거 → 재실행 → R-12 승인을 검증한다. `test-results/`(단계별 스크린샷 `phase3-screenshots/`, 워커 로그 `stack-worker.log`, 실패 시 trace)와 `playwright-report/`를 아티팩트 `playwright-phase3`로 올린다. 결과 기록은 `docs/gates/phase3.md`.
+- `e2e`(T-308): PostgreSQL 서비스 컨테이너 + Playwright chromium. `template:build` → `db:migrate` → `pnpm e2e`. chromium 프로젝트(워커 없음)가 끝나면 stack 프로젝트가 워커를 직접 띄운다. 이 프로젝트는 샘플 C(`sample-repos.json`, 공개 저장소·SHA 고정)를 제출·채점하고 감점 클릭 → 근거 → 재실행 → R-12 승인을 검증한다. `test-results/`(단계별 스크린샷 `phase3-screenshots/`, 워커 로그 `stack-worker.log`, 실패 시 trace)와 `playwright-report/`를 아티팩트 `playwright-phase3`로 올린다. 결과 기록은 `docs/gates/phase3.md`.
 
 Vercel Git 연동과 Railway GitHub 자동 배포는 쓰지 않는다. 배포는 위 CLI 명령으로 한다.
 
@@ -149,8 +149,8 @@ Vercel Git 연동과 Railway GitHub 자동 배포는 쓰지 않는다. 배포는
 
 `apps/web/proxy.ts`가 `APP_ACCESS_PASSWORD`가 설정된 환경에서 `/login`, `/api/login`, `/api/health`, `/robots.txt`, `/favicon.ico`, `/_next/*` 외 모든 경로에 서명 쿠키(`ohmyti_access`, HMAC-SHA256, 7일, HttpOnly, SameSite=Lax)를 요구한다.
 
-- 쿠키가 없거나 서명·만료가 잘못된 HTML 탐색은 `/login?next=<원래 경로>`로 307, API·비HTML 요청은 401 JSON.
-- `POST /api/login`(JSON `{password, next}` 또는 form)이 비밀번호를 확인하고 200에 쿠키를 발급한다. 틀리면 401. `next`는 같은 사이트의 절대 경로만 허용한다.
+- 쿠키가 없거나 서명·만료가 잘못된 HTML 탐색은 `/login?next=<원래 경로>`로 307을 반환하고 API·비HTML 요청은 401 JSON을 반환한다.
+- `POST /api/login`(JSON `{password, next}` 또는 form)이 비밀번호를 확인하고 200에 쿠키를 발급한다. 틀리면 401을 반환한다. `next`는 같은 사이트의 절대 경로만 허용한다.
 - `APP_ACCESS_PASSWORD`가 없으면 `next dev`에서는 보호가 꺼지고 production(`next start`, Vercel)에서는 `instrumentation.ts`가 오류를 남기고 종료한다. `SESSION_SECRET`은 32자 이상이어야 한다.
 - `robots.txt`는 전체 차단(`Disallow: /`).
 - 공개 데모 배포는 `APP_ACCESS_MODE=public`으로 보호를 끈다. 이 값이 있으면 비밀번호 설정과 상관없이 모든 경로가 열리고 production에서도 비밀번호 없이 기동하며 `robots.txt`는 `Allow: /`가 된다. 현재 https://ohmyti.vercel.app 은 이 모드로 운영한다.
@@ -163,22 +163,22 @@ curl -i -b jar https://ohmyti.vercel.app/                                  # 200
 
 ## 비용 절감 구성 (2026-09-20)
 
-실측(2026-09-18 ~ 09-19)으로 이 프로젝트의 비용은 Vercel은 빌드 CPU 시간이 98%, Railway는 유휴 워커의 메모리 점유가 약 70%였다. 아래 구성이 둘을 없앤다.
+2026-09-18 ~ 09-19에 실측한 결과, 이 프로젝트의 비용은 Vercel에서는 빌드 CPU 시간이 98%를, Railway에서는 유휴 워커의 메모리 점유가 약 70%를 차지했다. 아래 구성은 이 두 가지를 없앤다.
 
 **Vercel**
 
-- 빌드 머신 `turbo`(30 vCPU) → `standard`(4 vCPU). 빌드는 `빌드 시간 × vCPU 수`로 과금되므로 분당 단가가 7.5배 낮다. 프로젝트 설정 `resourceConfig.buildMachineType`이며 REST API(`PATCH /v9/projects/<projectId>`)로 바꾼다.
+- 빌드 머신 `turbo`(30 vCPU) → `standard`(4 vCPU). 빌드는 빌드 시간에 vCPU 수를 곱해 과금되므로 분당 단가가 7.5배 낮다. 이 설정은 `resourceConfig.buildMachineType`이며 REST API(`PATCH /v9/projects/<projectId>`)로 바꾼다.
 - 프로덕션 배포는 `pnpm deploy:web`(prebuilt)이라 Vercel 빌드 머신을 쓰지 않는다.
-- 함수 기본 제한 시간 300초 → 60초(`resourceConfig.functionDefaultTimeout`). DB 연결이 멈춘 요청이 5분 동안 과금되는 것을 막는다. 웹에는 60초를 넘는 요청이 없다(오래 걸리는 일은 모두 워커 job이다).
+- 함수 기본 제한 시간 300초 → 60초(`resourceConfig.functionDefaultTimeout`). DB 연결이 멈춘 요청이 5분 동안 과금되는 것을 막는다. 웹에는 60초를 넘는 요청이 없다. 오래 걸리는 일은 모두 워커 job이다.
 
 **Railway: 워커 절전 (Serverless)**
 
-- `.railway/railway.ts`의 `deploy.sleepApplication: true`. Railway는 서비스가 나가는 패킷을 5~10분 동안 보내지 않으면 컨테이너를 재우고 그동안 CPU·메모리를 과금하지 않는다. 들어오는 요청이 오면 다시 띄운다.
+- `.railway/railway.ts`에서 `deploy.sleepApplication`을 `true`로 둔다. Railway는 서비스가 나가는 패킷을 5~10분 동안 보내지 않으면 컨테이너를 재우고 그동안 CPU·메모리를 과금하지 않는다. 들어오는 요청이 오면 다시 띄운다.
 - 워커는 큐가 `WORKER_IDLE_STOP_MS`(2분) 동안 비어 있고 끝나지 않은 job(재시도 대기 포함)이 하나도 없으면 폴링을 멈춘다. DB 풀은 유휴 30초 뒤 연결을 닫으므로 나가는 트래픽이 없어진다. 유휴 대기 중 `/healthz`는 DB를 확인하지 않는다(`"dormant":true,"db":"skipped"`).
-- 깨우기: `@ohmyti/db`의 `enqueue`가 새 job을 만들 때마다 `WORKER_WAKE_URL`로 `POST /wake`를 보낸다(web은 `apps/web/lib/db.ts`에서 Next.js `after`로 응답 뒤에 전송, `pnpm demo:seed --external-worker`도 같은 훅을 건다). 재운 서비스의 첫 요청은 502일 수 있어 3번까지 다시 시도한다. 보완으로 제출 상태·샘플 실행 상태 폴링 API가 끝나지 않은 job을 보는 동안 30초에 한 번 다시 깨운다.
+- 깨우기: `@ohmyti/db`의 `enqueue`가 새 job을 만들 때마다 `WORKER_WAKE_URL`로 `POST /wake`를 보낸다. web은 `apps/web/lib/db.ts`에서 Next.js `after`로 응답 뒤에 전송하며 `pnpm demo:seed --external-worker`도 같은 훅을 건다. 재워 둔 서비스에 보내는 첫 요청은 502로 실패할 수 있으므로 3번까지 다시 시도한다. 보완으로 제출 상태·샘플 실행 상태 폴링 API가 끝나지 않은 job을 보는 동안 30초에 한 번 다시 깨운다.
 - 컨테이너가 재워졌다 깨어나면 프로세스가 새로 뜨고 기동 직후 폴링하므로 `/wake` 처리 여부와 상관없이 쌓인 job을 잡는다. 첫 job은 컨테이너 기동 시간(수 초)만큼 늦게 시작한다.
 - `/wake`는 인증하지 않는다. 하는 일이 폴링 재개뿐이고 Railway는 어떤 요청이 와도 재운 서비스를 깨운다.
-- 워커 도메인: `railway domain --service worker --port 8080`. 확인: `railway deployment list --service worker --json`의 상태가 유휴 10분쯤 뒤 `SLEEPING`.
+- 워커 도메인: `railway domain --service worker --port 8080`. 확인: `railway deployment list --service worker --json`의 상태가 유휴 10분쯤 뒤 `SLEEPING`이 된다.
 - DB에 직접 적재하는 다른 도구(`pnpm gate:phase4` 등)를 배포 워커에 쓸 때는 `WORKER_WAKE_URL`을 환경에 두거나 `curl -X POST <깨우기 주소>`를 먼저 부른다.
 - 끄기: `WORKER_IDLE_STOP_MS=0`과 `sleepApplication: false`로 `railway config apply`.
 
@@ -196,7 +196,7 @@ curl -i http://localhost:18080/healthz
 docker stop ohmyti-worker-smoke && docker rm ohmyti-worker-smoke
 ```
 
-이미지는 `node:22.23.2-bookworm-slim` 기반, 비관리자 사용자 `runner`(uid 10001), `/app`에 `dist/`(`index.js`, `migrate.js`)·`node_modules`(프로덕션 의존성만, `pnpm deploy --prod --legacy`)·`drizzle/`(마이그레이션 SQL), `/opt/templates/order-api-ts`(승인 실행 템플릿: `package.json`·`package-lock.json`·`template.json`·`npm ci`로 설치한 `node_modules`, root 소유라 runner는 읽기만 가능, T-102).
+이미지는 `node:22.23.2-bookworm-slim`을 기반으로 하며 비관리자 사용자 `runner`(uid 10001)로 실행된다. `/app`에는 `dist/`(`index.js`, `migrate.js`)·`node_modules`(프로덕션 의존성만, `pnpm deploy --prod --legacy`)·`drizzle/`(마이그레이션 SQL)를 담는다. `/opt/templates/order-api-ts`에는 승인 실행 템플릿(`package.json`·`package-lock.json`·`template.json`·`npm ci`로 설치한 `node_modules`, T-102)을 둔다. 이 템플릿은 root 소유라 runner는 읽기만 할 수 있다.
 
 macOS Docker Desktop에서 `docker pull`이 멈추면 자격증명 helper(`credsStore: desktop`)가 키체인 프롬프트를 기다리는 것이다. 익명 설정으로 우회한다:
 
@@ -230,7 +230,7 @@ pnpm gate:personas --base-url https://ohmyti.vercel.app
 - 기대값: `samples/personas/expected-matrix.json`(페르소나별 저장소 URL·SHA·이력서·포트폴리오, 기준별 판정, 변이별 결과, 점수 표시, 후속 질문이 있어야 하는 주장, 주장별 기대 상태).
 - 흐름: Playwright가 `/submissions/new`에 저장소 URL·SHA·이력서·GitHub 프로필 URL을 넣어 제출 → `GET /api/submissions/[id]` 폴링 → `GET /api/evaluations/[id]`(판정·변이·단계) + `GET /api/evaluations/[id]/context`(GitHub 근거·맥락 연결, 이력서 본문 없음) → 대조. 4건은 워커가 순서대로 처리하며 약 15~25분 걸린다.
 - 실패 조건: 판정·점수, 변이 결과, 점수 표시, 단계 상태, REVIEW_WRITE의 LLM 결과(OK)와 R-12 초안, GitHub 근거(본인 포트폴리오 포함, 제출 저장소·다른 페르소나 저장소 없음, 커밋 1개 이상), 후속 질문 존재. 주장 상태 라벨은 경고로만 남긴다.
-- 끝나면 첫 화면 → 제출 → 제출 상태 → 워크벤치(R-12 포함)를 데스크톱·모바일로 캡처해 `docs/gates/personas/`에 두고 HTTP 상태·가로 넘침·오류 문구·콘솔 오류를 점검한다. 결과는 `docs/gates/personas.md`·`personas.json`.
+- 끝나면 첫 화면 → 제출 → 제출 상태 → 워크벤치(R-12 포함)를 데스크톱·모바일로 캡처해 `docs/gates/personas/`에 두고 HTTP 상태·가로 넘침·오류 문구·콘솔 오류를 점검한다. 결과는 `docs/gates/personas.md`·`personas.json`에 남는다.
 - 워커에 `GITHUB_TOKEN`이 없으면 GitHub API 한도가 IP당 시간 60회다. 페르소나 한 건은 프로필 보충 조회에 11회 안팎을 쓰므로 다른 게이트와 겹쳐 돌리기 전에 한도를 확인한다(`railway ssh --service worker -- node -e "fetch('https://api.github.com/rate_limit').then(r=>r.json()).then(j=>console.log(j.rate))"`).
 
 ## Vercel Sandbox 러너 (T-209)
@@ -286,4 +286,4 @@ railway up --service worker
 - 워커 재배포 중 진행 중 job은 SIGTERM 후 25초 안에 끝나지 않으면 QUEUED로 반납된다(T-006). `drainingSeconds`는 이보다 길게 둔다.
 - DB 비밀번호 교체: Railway `Postgres` 변수 변경 → 워커는 참조라 자동 반영, Vercel `DATABASE_URL`은 다시 넣고 재배포.
 - 데이터 삭제·초기화 명령(`pnpm db:reset`)은 `RAILWAY_ENVIRONMENT`·`VERCEL_ENV=production`에서 거부된다.
-- 샘플 체험(T-505): 워커를 먼저 배포(pre-deploy가 마이그레이션 `0015` 적용)한 뒤 웹을 배포하고 로컬에서 프로덕션 DB·Blob을 가리켜 `pnpm demo:seed --env-store --external-worker`를 실행한다(연결 문자열은 위와 같이 조립). Railway 워커가 A/B/C/D를 실제로 채점하며 처음 실행에서 GitHub로 수집한 스냅샷을 Blob `demo/samples/<id>/`에 저장해 두고 `이 샘플로 새로 실행`이 재사용한다. 시나리오는 `docs/demo.md`.
+- 샘플 체험(T-505): 워커를 먼저 배포하면 pre-deploy가 마이그레이션 `0015`를 적용한다. 그 뒤 웹을 배포하고 로컬에서 프로덕션 DB·Blob을 가리켜 `pnpm demo:seed --env-store --external-worker`를 실행한다. 연결 문자열은 위와 같이 조립한다. Railway 워커가 A/B/C/D를 실제로 채점하며 처음 실행에서 GitHub로 수집한 스냅샷을 Blob `demo/samples/<id>/`에 저장해 둔다. `이 샘플로 새로 실행`은 이 스냅샷을 재사용한다. 시나리오는 `docs/demo.md`.

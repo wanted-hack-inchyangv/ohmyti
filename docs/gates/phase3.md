@@ -43,14 +43,14 @@ pnpm e2e                      # chromium 프로젝트(워커 없음) → stack �
 
 - `pnpm exec playwright test --project stack --no-deps`: 5 passed (16.9s). 워커 로그: `tarball을 내려받았습니다` → `스냅샷을 저장했습니다` → `REPO_CHECK 완료` → `ENV_PREP 완료` → `서비스가 기동됐습니다` → `제출 테스트를 실행했습니다` → `REQUIREMENT_VERIFY 완료` → `요구사항 판정을 저장했습니다` → `점수를 기록했습니다` → `job 성공`, 이어서 RERUN_EXECUTION `재실행 기록을 저장했습니다` → `job 성공`.
 - `pnpm e2e` 2회: 25 passed (20.5s, 21.4s). chromium 20건이 끝난 뒤 stack 5건이 실행됐다(프로젝트 `dependencies`).
-- `pnpm stack:local` + `pnpm e2e -- workbench`(pnpm 10은 `--`를 그대로 넘겨 전체 25건이 돌았다): 25 passed (19.2s). stack 스펙이 4320의 워커를 재사용했고(`annotations: worker reused`), 워커 로그의 C 처리 시간은 `job 시작` 15:35:48.677Z → `job 성공` 15:35:50.940Z, 재실행 15:35:53.948Z → 15:35:54.329Z. Ctrl+C(SIGINT) 뒤 웹·워커 프로세스 그룹이 모두 정리됐다(4310·4320 LISTEN 없음).
+- `pnpm stack:local` + `pnpm e2e -- workbench`: 25 passed (19.2s). pnpm 10은 `--`를 그대로 넘겨 전체 25건이 돌았다. stack 스펙이 4320의 워커를 재사용했고(`annotations: worker reused`), 워커 로그의 C 처리 시간은 `job 시작` 15:35:48.677Z → `job 성공` 15:35:50.940Z, 재실행 15:35:53.948Z → 15:35:54.329Z. Ctrl+C(SIGINT) 뒤 웹·워커 프로세스 그룹이 모두 정리됐다(4310·4320 LISTEN 없음).
 - 정리: 스펙 `afterAll`이 제출·평가·기록·근거·job 행과 fs 아티팩트(`evaluations/<id>/`, `submissions/<id>/`)를 지운다. 시드한 과제 버전은 남긴다(멱등).
 
 ## CI 실행 (2026-09-18)
 
-- 워크플로 실행 [35365325367](https://github.com/inchyangv/ohmyti/actions/runs/35365325367): **success**. job `playwright e2e (web + worker + postgres)` 15:55:12Z ~ 15:58:47Z (3.6분), E2E 단계 **25 passed (2.3m, 1 worker)**. 같은 실행의 `verify`·`worker-image` job도 success. 이 절을 채운 뒤 다시 돈 실행 [35366421068](https://github.com/inchyangv/ohmyti/actions/runs/35366421068)도 세 job 모두 success다(코드는 그대로이고 이 문서만 달라졌다).
+- 워크플로 실행 [35365325367](https://github.com/inchyangv/ohmyti/actions/runs/35365325367): **success**. job `playwright e2e (web + worker + postgres)` 15:55:12Z ~ 15:58:47Z (3.6분), E2E 단계 **25 passed (2.3m, 1 worker)**. 같은 실행의 `verify`·`worker-image` job도 success. 이 절을 채운 뒤 다시 돈 실행 [35366421068](https://github.com/inchyangv/ohmyti/actions/runs/35366421068)도 세 job 모두 success다. 코드는 그대로이고 이 문서만 달라졌다.
 - 아티팩트 `playwright-phase3`(23개 파일, 6.5 MB): `test-results/phase3-screenshots/01-evaluation-open.png` ~ `07-header-after-approve.png` 7장, 테스트별 첨부 사본 7장, 워커 로그 `test-results/stack-worker.log`, `playwright-report/`(HTML). 내려받아 7장을 확인했고 마지막 장은 R-12 확정 후 헤더 `59~74/100 · 15점 검토 대기`·검토 이력 `?/10 → 10/10 · 미확정 → 통과 · 검토 대기 → 사람 확인`이다.
-- CI 워커 로그: `job 시작` 5건 = 평가 1(성공) + 재실행 1(성공) + `제출을 찾을 수 없습니다` 3건. 뒤의 3건은 앞서 끝난 `chromium` 프로젝트의 `submissions.spec.ts`가 만들고 정리한 제출의 job을 stack 워커가 뒤늦게 집은 것이며 결과에 영향이 없다(대상 제출이 이미 없으므로 비재시도 실패).
+- CI 워커 로그: `job 시작` 5건 = 평가 1(성공) + 재실행 1(성공) + `제출을 찾을 수 없습니다` 3건. 뒤의 3건은 앞서 끝난 `chromium` 프로젝트의 `submissions.spec.ts`가 만들고 정리한 제출인데, 그 job을 stack 워커가 뒤늦게 집었다. 대상 제출이 이미 없으므로 비재시도 실패로 끝나 결과에는 영향이 없다.
 
 ## 배포 (3단계 화면·워커 반영, 2026-09-18)
 

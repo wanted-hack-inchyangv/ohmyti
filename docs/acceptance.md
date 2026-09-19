@@ -1,10 +1,10 @@
 # 최종 인수 검증 (T-507)
 
-PRD 12장 인수 기준 10개를 항목별로 상태, 증명 방법(테스트 이름 또는 수동 절차), 증거로 정리한다. 테스트 이름은 파일의 `it`·`test` 문자열 그대로다.
+이 문서는 PRD 12장 인수 기준 10개를 항목별로 상태, 증명 방법(테스트 이름 또는 수동 절차), 증거로 정리한다. 테스트 이름은 파일의 `it`·`test` 문자열 그대로다.
 
 - 기준일: 2026-09-19
 - 상태 표기: `충족`(자동 테스트·게이트로 증명), `충족 · 사람 확인 대기`(자동 증거는 있고 사람의 판단이 남음), `부분 충족`(일부 조건만 증명, 남은 부분을 적음)
-- 공통 실행 명령: `pnpm test`(Vitest. DB 통합 테스트는 `DATABASE_URL_TEST`가 있어야 돈다), `pnpm e2e`(Playwright), `pnpm gate:phase1`, `pnpm gate:phase2 --base-url https://ohmyti.vercel.app --repeat 3`, `pnpm gate:phase4`, `pnpm context:isolation-check`, `pnpm copy:check`
+- 공통 실행 명령: `pnpm test`(Vitest), `pnpm e2e`(Playwright), `pnpm gate:phase1`, `pnpm gate:phase2 --base-url https://ohmyti.vercel.app --repeat 3`, `pnpm gate:phase4`, `pnpm context:isolation-check`, `pnpm copy:check`. DB 통합 테스트는 `DATABASE_URL_TEST`가 있어야 돈다
 
 ## 요약
 
@@ -96,7 +96,7 @@ PRD 12장 인수 기준 10개를 항목별로 상태, 증명 방법(테스트 �
 
 ## 7. 이력서 교체·GitHub 부재와 채점
 
-상태: **충족**. GitHub 유무를 바꿔 판정을 비교하는 테스트는 따로 없지만, 채점 입력 타입에 이력서·GitHub 필드가 존재하지 않고(G-10) 맥락 연결 단계는 판정 이후에 돌며 점수 열을 읽지 않는다.
+상태: **충족**. GitHub 유무를 바꿔 판정을 비교하는 테스트는 따로 없다. 다만 채점 입력 타입에는 이력서·GitHub 필드가 없고(G-10) 맥락 연결 단계는 판정 이후에 돌며 점수 열을 읽지 않는다.
 
 - `apps/worker/src/pipeline/context-link.test.ts` — "같은 스냅샷을 이력서 X와 Y로 평가하면 criterion_results는 같고 context_links는 다르다"
 - `packages/core/src/grading-input.test.ts` — "타입 검사가 컴파일 시점에 고정된다" (`@ts-expect-error`로 resume·github·applicant 키 차단)
@@ -143,8 +143,8 @@ PRD 12장 인수 기준 10개를 항목별로 상태, 증명 방법(테스트 �
 - 샘플 A/B/C/D 1회차: 기준 15개·점수 표시·제출 테스트가 기대 결과표와 모두 일치(불일치 0). A·B `90~100/100 · 10점 검토 대기`, C·D `54~69/100 · 15점 검토 대기`
 - 결정성: A 3회 digest `b3e9ca7dcc8a7eca`, C 3회 digest `9ad4b24052e8d94b`로 모두 같다
 - 미지원 저장소(Python): `UNSUPPORTED`, 사유 코드 `UNSUPPORTED_LANGUAGE`가 API와 화면에 모두 보인다
-- 이전 실행 두 번은 실패였다. 첫 번째는 A의 R-12 근거 수가 LLM 추정 근거 때문에 회차마다 달라 digest가 달랐고(판정·점수는 같음), digest에서 `LLM_INTERPRETATION` 근거를 빼는 것으로 고쳤다(TICKET.md 결정 로그). 두 번째는 중단된 이전 게이트 실행의 제출 8건이 워커 대기열에 남아 A 1회차가 900초 제한을 넘겼다. 나머지 회차의 digest는 모두 같았다
+- 이전 실행 두 번은 실패였다. 첫 번째는 A의 R-12 근거 수가 LLM 추정 근거 때문에 회차마다 달라 digest가 달랐다. 이때도 판정·점수는 같았다. digest에서 `LLM_INTERPRETATION` 근거를 빼서 고쳤다(TICKET.md 결정 로그). 두 번째는 중단된 이전 게이트 실행의 제출 8건이 워커 대기열에 남아 A 1회차가 900초 제한을 넘겼다. 나머지 회차의 digest는 모두 같았다
 
 ## UI 문구 점검
 
-`pnpm copy:check`(`scripts/copy-check.ts`)는 웹 화면 소스, 도메인 문구(`packages/core/src`), README와 데모·인수 문서에서 정확도·비용 절감률·실행 속도 수치와 결과를 바꿀 수 없다고 보장하는 표현을 찾는다(PRD 13장, G-16). 금지 표현이 있으면 위치를 출력하고 종료 코드 1로 끝난다.
+`pnpm copy:check`(`scripts/copy-check.ts`)는 웹 화면 소스, 도메인 문구(`packages/core/src`), README와 데모·인수 문서를 검사한다. 정확도·비용 절감률·실행 속도 수치와 결과를 바꿀 수 없다고 보장하는 표현이 있으면 찾아낸다(PRD 13장, G-16). 금지 표현이 있으면 위치를 출력하고 종료 코드 1로 끝난다.
