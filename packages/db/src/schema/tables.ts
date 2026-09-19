@@ -456,7 +456,10 @@ export const contextLinks = pgTable(
     githubEvidence: jsonb("github_evidence"),
     /** { summary, source?, evidenceId? } */
     assignmentObservation: jsonb("assignment_observation"),
+    /** 주 질문. v3(T-703)부터는 `question`의 주 질문을 그대로 넣는다 (이전 화면·게이트 호환) */
     followUpQuestion: text("follow_up_question"),
+    /** 인터뷰 질문 구조 `ContextQuestion` (T-703). v2 이전 연결은 null */
+    question: jsonb("question"),
     aiReviewId: uuid("ai_review_id"),
     createdAt: createdAt(),
   },

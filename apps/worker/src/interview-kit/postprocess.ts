@@ -98,11 +98,22 @@ export function assembleInterviewKit(input: {
     let text: KitQuestionText = template;
     let source: InterviewQuestion["source"] = "TEMPLATE";
     if (slot.resumeBridge) {
-      const bridged = { ...template, question: slot.resumeBridge.question };
+      // v3 연결(T-703)은 질문 구조 전체를 쓰고, v2 이전 연결은 주 질문만 쓰고 나머지는 기본 질문의 것을 쓴다
+      const structured = slot.resumeBridge.structured;
+      const bridged: KitQuestionText = structured
+        ? {
+            question: structured.question,
+            intent: structured.intent,
+            probes: structured.probes,
+            positiveSignals: structured.positiveSignals,
+            concernSignals: structured.concernSignals,
+          }
+        : { ...template, question: slot.resumeBridge.question };
       const violations = lintInterviewQuestion({ ...bridged, refs: slot.refs });
       if (violations.length === 0) {
         text = bridged;
-        source = "LLM";
+        // 맥락 연결 단계가 이미 기본 질문으로 바꾼 연결이면 키트에도 기본 질문으로 표시한다
+        source = structured?.source ?? "LLM";
       } else {
         dropped.push({
           index: null,

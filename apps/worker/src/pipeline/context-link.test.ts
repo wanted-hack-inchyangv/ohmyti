@@ -37,6 +37,18 @@ import { fakeGitHub, makeGitHubStyleTarball, type FakeRepoFiles } from "../repo/
 import { runEvaluationPipeline, type PipelineDeps } from ".";
 import { describeStageLog } from "../testing/premise";
 
+/** 맥락 연결 v3(T-703) 질문 구조의 fake 출력 */
+function fakeQuestion(question: string) {
+  return {
+    question,
+    intent: "이력서 경험과 과제 구현의 조건 차이를 확인한다.",
+    probes: ["그 경험에서 사용한 방식은 무엇이었나요?", "그 방식이 필요했던 조건은 무엇이었나요?"],
+    positiveSignals: ["경험의 조건을 구체적으로 설명한다", "과제와의 조건 차이를 스스로 비교한다"],
+    concernSignals: ["일반론으로만 설명한다", "본인이 맡은 범위를 구분하지 않는다"],
+    competency: "DESIGN",
+  };
+}
+
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
 const SAMPLES_DIR = path.join(REPO_ROOT, "samples/order-api");
@@ -80,7 +92,7 @@ function contextReply(extraClaims: string[] = []) {
             evidence: null,
             observedInAssignment: null,
             status: "EVIDENCE_FOUND",
-            followUpQuestion: "이 문장에 대해 설명해 주세요",
+            question: fakeQuestion("이 문장에 대해 설명해 주세요"),
           })),
           {
             claim: resume[1]!.replace(/^- /, ""),
@@ -89,7 +101,7 @@ function contextReply(extraClaims: string[] = []) {
             observedInAssignment: failed ? { criterionId: failed, observation: "관련 관측" } : null,
             // GitHub 근거가 없으므로 후처리가 NEEDS_CHECK로 낮춘다
             status: "EVIDENCE_FOUND",
-            followUpQuestion: "이력서의 경험과 이번 과제 구현의 실행 조건 차이는 무엇인가요?",
+            question: fakeQuestion("이력서의 경험과 이번 과제 구현의 실행 조건 차이는 무엇인가요?"),
           },
         ],
         unassessedAreas: ["운영 경험은 제출 자료로 확인할 수 없음"],
@@ -296,6 +308,11 @@ describe.skipIf(!hasTestDb)("CONTEXT_LINK 맥락 연결 (context-link, DB 통합
     expect(linksY.map((l) => l.claim)).toEqual(["Operated Kafka clusters for order events"]);
     expect(linksX[0]!.evaluationId).toBe(x.evaluationId);
     expect(linksY[0]!.evaluationId).toBe(y.evaluationId);
+    // v3(T-703): 질문 구조가 저장되고 주 질문은 이전 열에도 들어간다
+    expect(linksX[0]!.question).toMatchObject({ competency: "DESIGN", source: "LLM" });
+    expect(linksX[0]!.followUpQuestion).toBe(
+      (linksX[0]!.question as { question: string }).question,
+    );
 
     // 두 요청 모두 이력서가 들어간 CONTEXT_LINK 호출이었고, 채점 용도 요청에는 이력서가 없다
     const contextCalls = fake.sent.filter((s) => s.purpose === "CONTEXT_LINK");

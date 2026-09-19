@@ -43,6 +43,18 @@ import { fakeGitHub, makeGitHubStyleTarball, type FakeRepoFiles } from "../repo/
 import { describeStageLog } from "../testing/premise";
 import { runEvaluationPipeline, type PipelineDeps } from ".";
 
+/** 맥락 연결 v3(T-703) 질문 구조의 fake 출력 */
+function fakeQuestion(question: string) {
+  return {
+    question,
+    intent: "이력서 경험과 과제 구현의 조건 차이를 확인한다.",
+    probes: ["그 경험에서 사용한 방식은 무엇이었나요?", "그 방식이 필요했던 조건은 무엇이었나요?"],
+    positiveSignals: ["경험의 조건을 구체적으로 설명한다", "과제와의 조건 차이를 스스로 비교한다"],
+    concernSignals: ["일반론으로만 설명한다", "본인이 맡은 범위를 구분하지 않는다"],
+    competency: "DESIGN",
+  };
+}
+
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
 const SAMPLES_DIR = path.join(REPO_ROOT, "samples/order-api");
@@ -79,7 +91,7 @@ function contextReply({ messages }: { messages: Array<{ role: string; content: s
           evidence: null,
           observedInAssignment: null,
           status: "NEEDS_CHECK",
-          followUpQuestion: "이력서의 경험과 이번 과제 구현의 실행 조건 차이는 무엇인가요?",
+          question: fakeQuestion("이력서의 경험과 이번 과제 구현의 실행 조건 차이는 무엇인가요?"),
         },
       ],
       unassessedAreas: [],

@@ -16,6 +16,7 @@ import {
   INTERVIEW_QUESTION_KIND_LABELS,
   InterviewQuestionKindSchema,
   type Competency,
+  type ContextQuestion,
   type DesignSignals,
   type InterviewPlan,
   type InterviewPlanDuration,
@@ -79,6 +80,11 @@ export interface KitContextLinkFact {
   id: string;
   /** CONTEXT_LINK 단계가 만든 후속 질문 (이력서 연결 질문). 이 단계의 LLM에는 넘기지 않는다 */
   question: string;
+  /**
+   * 맥락 연결 v3(T-703)의 질문 구조. 주 질문은 `question`과 같다. v2 이전에 저장된 연결이면 null이며,
+   * 그때는 역량을 연결 기준에서 정하고 의도·꼬리 질문·신호는 기본 질문의 것을 쓴다
+   */
+  structured: ContextQuestion | null;
   /** 연결된 과제 관측의 기준 ID. 없으면 null */
   criterionId: string | null;
 }
@@ -133,7 +139,8 @@ export interface InterviewSlot {
   refs: ObservationRef[];
   brief: SlotBrief;
   /** `RESUME_BRIDGE`만: 맥락 연결 단계가 만든 질문. LLM에 넘기지 않고 그대로 쓴다 */
-  resumeBridge?: { contextLinkId: string; question: string } | undefined;
+  resumeBridge?:
+    { contextLinkId: string; question: string; structured: ContextQuestion | null } | undefined;
 }
 
 export interface InterviewSlotPlan {
@@ -549,14 +556,19 @@ function planResumeBridge(facts: InterviewKitFacts): DraftSlot[] {
     return {
       id: `RESUME_BRIDGE:${i + 1}`,
       kind: "RESUME_BRIDGE",
-      competency: criterion ? competencyForCriterion(criterion) : "DESIGN",
+      competency:
+        link.structured?.competency ?? (criterion ? competencyForCriterion(criterion) : "DESIGN"),
       minutes: SLOT_MINUTES.RESUME_BRIDGE,
       refs: capRefs([
         { kind: "CONTEXT_LINK", contextLinkId: link.id },
         ...(criterion ? [{ kind: "CRITERION" as const, criterionId: criterion.id }] : []),
       ]),
       brief: { ...emptyBrief(), criteria: criterion ? [criterionBrief(criterion)] : [] },
-      resumeBridge: { contextLinkId: link.id, question: link.question.trim() },
+      resumeBridge: {
+        contextLinkId: link.id,
+        question: link.question.trim(),
+        structured: link.structured,
+      },
     };
   });
 }

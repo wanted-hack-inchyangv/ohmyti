@@ -235,6 +235,7 @@ async function main(argv: string[]): Promise<number> {
         githubEvidence: l.githubEvidence ?? null,
         assignmentObservation: l.assignmentObservation ?? null,
         followUpQuestion: l.followUpQuestion ?? null,
+        question: l.question ?? null,
       })),
     };
     const json = `${JSON.stringify(record, null, 2)}\n`;

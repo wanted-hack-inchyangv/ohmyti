@@ -4,10 +4,12 @@
  * - 후처리: claim은 이력서 인용만(README 지시문 제거), 근거 URL은 수집한 소스 안, 기준 ID는 판정에 있는 것만, 금지 표현 항목 제거
  * - 출력 스키마에 점수·판정 키가 없고, 단계 코드가 점수 열을 참조하지 않는다 (정적 검사)
  * - DB: 이력서 없음 → NO_DATA "이력서 미제공" 하나, status CHECK, 예산 초과 → DONE + "LLM 미실행"
+ * - v3(T-703): 질문 구조, 검사 위반·형식 오류는 연결을 두고 기본 질문으로 대체, v2 연결(질문 구조 없음) 읽기
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  CONTEXT_DEFAULT_QUESTION,
   CONTEXT_LINK_BUDGET_EXCEEDED_REASON,
   CONTEXT_LINK_INCONCLUSIVE_REASON,
   CONTEXT_LINK_LLM_NOT_CONFIGURED_REASON,
@@ -15,8 +17,11 @@ import {
   CONTEXT_NO_RESUME_CLAIM,
   ContextLinkOutputSchema,
   ContextLinkSchema,
+  ContextQuestionSchema,
   findForbiddenContextExpression,
+  lintInterviewQuestion,
   type ContextLinkOutput,
+  type ContextQuestionDraft,
   type GitHubSources,
 } from "@ohmyti/core";
 import {
@@ -44,7 +49,9 @@ import {
   findIsolationViolations,
 } from "../../../scripts/check-context-isolation";
 import {
+  CONTEXT_LINK_EXAMPLE,
   CONTEXT_LINK_PROMPT,
+  acceptContextQuestion,
   buildContextLinkInput,
   evidenceUrlIndex,
   isResumeQuote,
@@ -110,6 +117,23 @@ const OBSERVATIONS: CriterionObservation[] = [
   { criterionId: "R-01", verdict: "PASS", observation: "주문 생성이 201을 돌려주었다" },
 ];
 
+const GOOD_QUESTION = "같은 키에 다른 본문이 오면 결제 API는 어떻게 응답했나요?";
+
+function question(overrides: Partial<ContextQuestionDraft> = {}): ContextQuestionDraft {
+  return {
+    question: GOOD_QUESTION,
+    intent: "멱등성 설계가 본문 불일치 조건까지 다뤘는지 확인한다.",
+    probes: [
+      "멱등성 키는 어디에 얼마 동안 저장했나요?",
+      "같은 키의 요청이 동시에 오면 어느 단계에서 하나로 정리되나요?",
+    ],
+    positiveSignals: ["키 저장 위치와 만료를 설명한다", "본문 비교 기준을 구체적으로 든다"],
+    concernSignals: ["일반론으로만 설명한다", "본문이 다른 재요청의 처리를 설명하지 않는다"],
+    competency: "DATA_INTEGRITY",
+    ...overrides,
+  };
+}
+
 function link(
   overrides: Partial<ContextLinkOutput["links"][number]>,
 ): ContextLinkOutput["links"][number] {
@@ -119,7 +143,7 @@ function link(
     evidence: null,
     observedInAssignment: null,
     status: "NEEDS_CHECK",
-    followUpQuestion: "같은 키에 다른 본문이 오면 결제 API는 어떻게 응답했나요?",
+    question: question(),
     ...overrides,
   };
 }
@@ -234,16 +258,34 @@ describe("postprocessContextLinks (context-link)", () => {
     "경력의 진위를 확인하기 위해 증빙을 요청하세요",
     "합격 여부를 결정할 핵심 질문입니다",
     "Was this code AI-generated?",
-  ])("금지 표현이 있는 항목은 통째로 제거한다: %s", (question) => {
+  ])("금지 표현이 있는 항목은 통째로 제거한다: %s", (text) => {
     const processed = runPostprocess({
-      links: [link({ followUpQuestion: question })],
-      unassessedAreas: [question],
+      links: [link({ question: question({ question: text }) })],
+      unassessedAreas: [text],
     });
     expect(processed.links).toEqual([]);
     expect(processed.unassessedAreas).toEqual([]);
     expect(processed.dropped.map((d) => [d.field, d.reason])).toEqual([
       ["link", "FORBIDDEN_EXPRESSION"],
       ["unassessedArea", "FORBIDDEN_EXPRESSION"],
+    ]);
+  });
+
+  it("질문 구조의 의도·꼬리 질문·신호에 금지 표현이 있어도 항목을 통째로 제거한다", () => {
+    const processed = runPostprocess({
+      links: [
+        link({ question: question({ intent: "이력서가 과장된 것인지 확인한다." }) }),
+        link({
+          claim: CLAIM_ORDER_API,
+          question: question({ concernSignals: ["AI가 작성한 코드를 설명하지 못한다", "x"] }),
+        }),
+      ],
+      unassessedAreas: [],
+    });
+    expect(processed.links).toEqual([]);
+    expect(processed.dropped.map((d) => [d.index, d.field, d.reason])).toEqual([
+      [0, "link", "FORBIDDEN_EXPRESSION"],
+      [1, "link", "FORBIDDEN_EXPRESSION"],
     ]);
   });
 
@@ -270,6 +312,119 @@ describe("postprocessContextLinks (context-link)", () => {
       CONTEXT_MAX_LINKS + 1,
     );
     expect(processed.unassessedAreas).toEqual(["운영 경험은 확인할 수 없음"]);
+  });
+});
+
+describe("질문 구조 v3 (context-link, T-703)", () => {
+  /** 6단계 페르소나 실측 문장 (TICKET.md 12장 표) */
+  const PERSONA_QUESTIONS = {
+    seojin:
+      "어떤 저장소(DB/Redis)에서 어떤 격리 수준으로 구현했고, 이번 과제의 메모리 구현과 비교해 충돌 재시도 조건은 어떻게 달랐나요?",
+    dohyun: "이번 과제에서는 왜 그 조건이 테스트에 들어가지 않았는지 설명해 주시겠어요?",
+    gaeun:
+      "크로스 브라우저 이슈는 어떻게 재현하고 해결했나요? 이번 과제의 API 응답 검증과는 어떤 점이 다른가요?",
+  };
+
+  it("복합 질문 출력: 연결은 저장되고 질문은 기본 질문으로 대체되며 dropped에 사유가 남는다", () => {
+    const processed = runPostprocess({
+      links: [
+        link({ question: question({ question: PERSONA_QUESTIONS.seojin }) }),
+        link({ claim: CLAIM_ORDER_API, question: question() }),
+      ],
+      unassessedAreas: [],
+    });
+    expect(processed.links.map((l) => l.claim)).toEqual([CLAIM_IDEMPOTENT, CLAIM_ORDER_API]);
+    expect(processed.links[0]!.question).toEqual(CONTEXT_DEFAULT_QUESTION);
+    expect(processed.links[0]!.followUpQuestion).toBe(CONTEXT_DEFAULT_QUESTION.question);
+    expect(processed.links[1]!.question).toMatchObject({ question: GOOD_QUESTION, source: "LLM" });
+    expect(processed.links[1]!.followUpQuestion).toBe(GOOD_QUESTION);
+    expect(processed.dropped).toEqual([
+      { index: 0, field: "question", reason: "QUESTION_LINT_VIOLATION", note: "COMPOUND_QUESTION" },
+    ]);
+  });
+
+  it.each([
+    ["seojin", PERSONA_QUESTIONS.seojin, "COMPOUND_QUESTION"],
+    ["dohyun", PERSONA_QUESTIONS.dohyun, "ACCUSATORY_TONE"],
+    ["gaeun", PERSONA_QUESTIONS.gaeun, "MULTIPLE_QUESTION_MARKS"],
+  ])("페르소나 실측 질문(%s)은 기본 질문으로 바뀐다", (_name, text, rule) => {
+    const accepted = acceptContextQuestion(question({ question: text }));
+    expect(accepted.question).toEqual(CONTEXT_DEFAULT_QUESTION);
+    expect(accepted.rejected?.reason).toBe("QUESTION_LINT_VIOLATION");
+    expect(accepted.rejected?.note.split(",")).toContain(rule);
+  });
+
+  it("꼬리 질문의 복합 질문, 신호의 인상 표현, 개인 신상 주제도 질문만 바꾼다", () => {
+    for (const draft of [
+      question({
+        probes: ["어디에 저장했나요? 얼마 동안 두었나요?", "동시 요청은 어떻게 되나요?"],
+      }),
+      question({ positiveSignals: ["똑똑하게 설명한다", "본문 비교 기준을 든다"] }),
+      question({ question: "그 프로젝트를 할 때 결혼 계획이 업무 선택에 영향을 주었나요?" }),
+    ]) {
+      const accepted = acceptContextQuestion(draft);
+      expect(accepted.rejected?.reason).toBe("QUESTION_LINT_VIOLATION");
+      expect(accepted.question.source).toBe("TEMPLATE");
+    }
+  });
+
+  it("개수·역량 값이 계약과 다르면 QUESTION_SCHEMA_INVALID로 기본 질문을 쓰고, 공백만 정리한 문장은 받아들인다", () => {
+    const processed = runPostprocess({
+      links: [
+        link({ question: question({ probes: ["하나뿐인 꼬리 질문인가요?"] }) }),
+        link({ claim: CLAIM_ORDER_API, question: question({ competency: "LEADERSHIP" }) }),
+      ],
+      unassessedAreas: [],
+    });
+    expect(processed.links).toHaveLength(2);
+    expect(processed.links.map((l) => l.question?.source)).toEqual(["TEMPLATE", "TEMPLATE"]);
+    expect(processed.dropped).toEqual([
+      { index: 0, field: "question", reason: "QUESTION_SCHEMA_INVALID", note: "probes" },
+      { index: 1, field: "question", reason: "QUESTION_SCHEMA_INVALID", note: "competency" },
+    ]);
+    const padded = acceptContextQuestion(
+      question({
+        question: `  ${GOOD_QUESTION}  `,
+        probes: ["  a는 무엇인가요?", "", "b는 어떤가요? "],
+      }),
+    );
+    expect(padded.rejected).toBeNull();
+    expect(padded.question).toMatchObject({
+      question: GOOD_QUESTION,
+      probes: ["a는 무엇인가요?", "b는 어떤가요?"],
+      source: "LLM",
+    });
+  });
+
+  it("기본 질문과 프롬프트 예시의 질문 구조가 계약과 질문 검사를 통과한다", () => {
+    expect(ContextQuestionSchema.parse(CONTEXT_DEFAULT_QUESTION)).toEqual(CONTEXT_DEFAULT_QUESTION);
+    expect(CONTEXT_DEFAULT_QUESTION.question).toBe(
+      "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
+    );
+    expect(lintInterviewQuestion({ ...CONTEXT_DEFAULT_QUESTION, refs: ["link"] })).toEqual([]);
+    for (const example of CONTEXT_LINK_EXAMPLE.links) {
+      expect(acceptContextQuestion(example.question).rejected).toBeNull();
+      expect(lintInterviewQuestion({ ...example.question, refs: ["link"] })).toEqual([]);
+    }
+  });
+
+  it("프롬프트 v3에 질문 작성 규칙 (a)~(e)가 있다", () => {
+    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v3\+[0-9a-f]{8}$/);
+    const rules = CONTEXT_LINK_PROMPT.system
+      .split("\n")
+      .filter((line) => /^\s+\([a-f]\)/.test(line))
+      .map((line) => line.trim());
+    expect(rules).toMatchInlineSnapshot(`
+      [
+        "(a) 주 질문은 한 문장에 질문 하나다. 물음표는 하나만 쓰고, 이어서 묻고 싶은 내용은 probes로 내린다. 주 질문과 꼬리 질문은 각각 160자 이내다.",
+        "(b) observedInAssignment가 null이면 이번 과제와 비교하지 않는다. 이력서에 적힌 그 경험 자체를 묻는다.",
+        "(c) 과제 결과를 근거로 이력서 주장을 추궁하지 않는다. '왜 이번 과제에서는 하지 않았나'가 아니라 두 구현의 실행 조건이나 보장 범위가 어떻게 달랐는지를 묻는다.",
+        "(d) 수치 주장(p95 지연, 장애 0건, 성능 N배 등)은 그 수치를 어떻게 측정했는지를 묻는다.",
+        "(e) competency는 다음 값 중 하나다: REQUIREMENTS, ROBUSTNESS, DATA_INTEGRITY, TESTING, DESIGN, DEBUGGING, TRADEOFFS, OPERABILITY, COMMUNICATION.",
+        "(f) 정답을 암시하지 않는 중립적인 개방형으로 쓰고, 자료에 없는 사실을 전제하지 않는다. 나이·가족·출신·건강·종교·병역 같은 개인 신상은 묻지 않는다.",
+      ]
+    `);
+    expect(CONTEXT_LINK_PROMPT.system).not.toContain("followUpQuestion");
   });
 });
 
@@ -304,7 +459,6 @@ describe("출력 스키마와 입력 (context-link)", () => {
     expect(blocks).toEqual(["resume", "github:jane_payments", "assignment-observations"]);
     expect(input).toContain(`https://github.com/jane/payments/commit/${SHA}`);
     expect(input).not.toMatch(/maxPoints|earned|relevance/i);
-    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v2\+[0-9a-f]{8}$/);
   });
 
   it("GitHub 근거 블록에 커밋·PR의 작성자 구분이 들어간다 (T-604)", () => {
@@ -467,6 +621,21 @@ describe.skipIf(!hasTestDb)("runContextLinkStage (context-link, DB 통합)", () 
     }
   });
 
+  it("v2로 저장된 연결(질문 구조 열 null)도 그대로 읽는다", async () => {
+    const seeded = await seedEvaluation(tdb.db);
+    await tdb.db.insert(contextLinks).values({
+      submissionId: seeded.submissionId,
+      claim: CLAIM_IDEMPOTENT,
+      status: "NEEDS_CHECK",
+      followUpQuestion: "같은 키에 다른 본문이 오면 어떻게 처리했나요?",
+    });
+    const rows = await listContextLinks(tdb.db, seeded.submissionId);
+    expect(rows[0]!.question).toBeNull();
+    const parsed = toContextLink(rows[0]!);
+    expect(parsed.followUpQuestion).toBe("같은 키에 다른 본문이 오면 어떻게 처리했나요?");
+    expect(parsed).not.toHaveProperty("question");
+  });
+
   it("이력서와 GitHub이 있으면 검증된 연결만 저장하고 ai_reviews 행을 가리킨다. 다시 실행하면 연결을 바꾼다", async () => {
     const seeded = await seedWithObservation();
     await upsertSubmissionContext(tdb.db, seeded.submissionId, { githubLogin: "jane" });
@@ -529,6 +698,9 @@ describe.skipIf(!hasTestDb)("runContextLinkStage (context-link, DB 통합)", () 
         },
       ],
       assignmentObservation: { criterionId: "R-01", summary: "주문 생성이 201을 돌려주었다" },
+      // v3: 질문 구조는 JSON 열에, 주 질문은 이전 열에도 그대로 들어간다
+      followUpQuestion: GOOD_QUESTION,
+      question: { ...question(), source: "LLM" },
       aiReviewId: outcome.detail.aiReviewId,
     });
     // 요청에는 이력서와 GitHub 근거 URL이 들어가고 점수 열 값은 들어가지 않는다

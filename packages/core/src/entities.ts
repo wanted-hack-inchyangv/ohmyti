@@ -20,6 +20,7 @@ import {
   SubmissionStatusSchema,
   VerdictSchema,
 } from "./enums";
+import { ContextQuestionSchema } from "./context-link";
 import { RubricSchema } from "./rubric";
 
 /** 제출물이 지켜야 할 실행 계약 (부록 A R-10). */
@@ -167,7 +168,10 @@ export const ContextLinkSchema = z.strictObject({
       evidenceId: IdSchema.optional(),
     })
     .optional(),
+  /** 주 질문. v3(T-703)부터는 `question.question`과 같다 */
   followUpQuestion: z.string().min(1).optional(),
+  /** 인터뷰 질문 구조 (T-703). v2 이전에 저장된 연결에는 없다 */
+  question: ContextQuestionSchema.optional(),
   aiReviewId: IdSchema.optional(),
   createdAt: TimestampSchema,
 });

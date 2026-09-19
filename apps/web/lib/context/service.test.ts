@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { EvaluationContextReportResponseSchema, type GitHubSources } from "@ohmyti/core";
+import {
+  CONTEXT_DEFAULT_QUESTION,
+  EvaluationContextReportResponseSchema,
+  type GitHubSources,
+} from "@ohmyti/core";
 import {
   createTestDatabase,
   replaceContextLinks,
@@ -84,6 +88,14 @@ describe.skipIf(!hasTestDb)("readEvaluationContextReport (T-606 조회 API)", ()
           status: "NEEDS_CHECK",
           followUpQuestion: "경계 조건을 어떤 기준으로 테스트했나요?",
         },
+        // 맥락 연결 v3(T-703): 질문 구조 열이 있는 연결
+        {
+          claimSource: "RESUME",
+          claim: "주문 API의 멱등성 키를 설계했다",
+          status: "NEEDS_CHECK",
+          followUpQuestion: CONTEXT_DEFAULT_QUESTION.question,
+          question: CONTEXT_DEFAULT_QUESTION,
+        },
       ],
     });
 
@@ -94,7 +106,11 @@ describe.skipIf(!hasTestDb)("readEvaluationContextReport (T-606 조회 API)", ()
     expect(result.data.submissionId).toBe(seeded.submissionId);
     expect(result.data.links.map((l) => [l.claim, l.followUpQuestion])).toEqual([
       ["클린 아키텍처와 TDD를 적용했다", "경계 조건을 어떤 기준으로 테스트했나요?"],
+      ["주문 API의 멱등성 키를 설계했다", CONTEXT_DEFAULT_QUESTION.question],
     ]);
+    // v2 연결(질문 구조 열 null)은 질문 구조 없이 그대로 읽고, v3 연결은 질문 구조를 함께 돌려준다
+    expect(result.data.links[0]).not.toHaveProperty("question");
+    expect(result.data.links[1]!.question).toEqual(CONTEXT_DEFAULT_QUESTION);
     expect(result.data.github.sources?.repos.map((r) => r.fullName)).toEqual(["acme/board-api"]);
     expect(result.data.resume).toEqual({ uploaded: false, textStatus: "EXTRACTED", reason: null });
     expect(JSON.stringify(result)).not.toContain("이력서 본문 비밀 문장");

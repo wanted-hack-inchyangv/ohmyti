@@ -1,0 +1,1 @@
+ALTER TABLE "context_links" ADD COLUMN "question" jsonb;

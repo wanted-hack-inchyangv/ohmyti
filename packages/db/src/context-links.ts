@@ -1,6 +1,7 @@
 import {
   ContextLinkSchema,
   type ContextLink,
+  type ContextQuestion,
   type ContextStatus,
   type Verdict,
 } from "@ohmyti/core";
@@ -47,6 +48,8 @@ export interface NewContextLink {
   githubEvidence?: Array<{ repo: string; url: string; summary: string }> | null;
   assignmentObservation?: { criterionId?: string; summary: string } | null;
   followUpQuestion?: string | null;
+  /** 인터뷰 질문 구조 (T-703) */
+  question?: ContextQuestion | null;
   aiReviewId?: string | null;
 }
 
@@ -74,6 +77,7 @@ export async function replaceContextLinks(
           githubEvidence: link.githubEvidence ?? null,
           assignmentObservation: link.assignmentObservation ?? null,
           followUpQuestion: link.followUpQuestion ?? null,
+          question: link.question ?? null,
           aiReviewId: link.aiReviewId ?? null,
           // 같은 문장 안의 now()는 모두 같으므로 순서를 밀리초로 벌려 둔다
           createdAt: new Date(base + i),
@@ -107,6 +111,7 @@ export function toContextLink(row: ContextLinkRow): ContextLink {
     ...(row.githubEvidence ? { githubEvidence: row.githubEvidence } : {}),
     ...(row.assignmentObservation ? { assignmentObservation: row.assignmentObservation } : {}),
     ...(row.followUpQuestion ? { followUpQuestion: row.followUpQuestion } : {}),
+    ...(row.question ? { question: row.question } : {}),
     ...(row.aiReviewId ? { aiReviewId: row.aiReviewId } : {}),
     createdAt: toIsoTimestamp(row.createdAt),
   });

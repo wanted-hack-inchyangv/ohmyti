@@ -8,6 +8,7 @@
  */
 import { MUTATION_CATALOG } from "@ohmyti/analysis";
 import {
+  ContextQuestionSchema,
   DesignSignalsSchema,
   FunctionGraphAnalysisSchema,
   ReviewWriteSummarySchema,
@@ -143,9 +144,11 @@ export async function collectInterviewKitFacts(
     .filter((link) => link.claimSource === "RESUME" && Boolean(link.followUpQuestion?.trim()))
     .map((link) => {
       const observed = link.assignmentObservation as { criterionId?: unknown } | null;
+      const structured = ContextQuestionSchema.safeParse(link.question);
       return {
         id: link.id,
         question: link.followUpQuestion!.trim(),
+        structured: structured.success ? structured.data : null,
         criterionId:
           typeof observed?.criterionId === "string" && resultById.has(observed.criterionId)
             ? observed.criterionId

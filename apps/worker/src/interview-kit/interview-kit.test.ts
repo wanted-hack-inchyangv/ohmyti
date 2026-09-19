@@ -3,6 +3,7 @@
  * 파이프라인 통합은 `pipeline/interview-kit.test.ts`가 맡는다.
  */
 import {
+  CONTEXT_DEFAULT_QUESTION,
   InterviewKitSchema,
   lintInterviewQuestion,
   type DesignSignals,
@@ -130,6 +131,7 @@ function facts(
       id: `00000000-0000-4000-8000-00000000020${i}`,
       question: "결제 API에서 같은 키에 다른 본문이 오면 어떤 응답을 돌려주도록 정했나요?",
       criterionId: i === 1 ? "R-06" : null,
+      structured: null,
     })),
   };
 }
@@ -421,6 +423,52 @@ describe("후처리 (acceptKitItems · assembleInterviewKit)", () => {
         rules: ["COMPOUND_QUESTION", "MULTIPLE_QUESTION_MARKS"],
       },
     ]);
+  });
+
+  it("맥락 연결 v3의 질문 구조가 있으면 의도·꼬리 질문·신호·역량을 그대로 쓰고, 기본 질문으로 바뀐 연결은 TEMPLATE이다 (T-703)", () => {
+    const withLinks = facts({ links: 2 });
+    const structured = {
+      question: "결제 API에서 같은 키에 다른 본문이 오면 어떤 응답을 돌려주도록 정했나요?",
+      intent: "멱등성 설계가 본문 불일치 조건까지 다뤘는지 확인한다.",
+      probes: ["멱등성 키는 어디에 저장했나요?", "동시에 같은 키가 오면 어떻게 되나요?"],
+      positiveSignals: ["키 저장 위치와 만료를 설명한다", "본문 비교 기준을 구체적으로 든다"],
+      concernSignals: ["일반론으로만 설명한다", "본문 불일치 처리를 설명하지 않는다"],
+      competency: "DATA_INTEGRITY" as const,
+      source: "LLM" as const,
+    };
+    withLinks.contextLinks[0]!.structured = structured;
+    withLinks.contextLinks[1]!.question = CONTEXT_DEFAULT_QUESTION.question;
+    withLinks.contextLinks[1]!.structured = CONTEXT_DEFAULT_QUESTION;
+    const bridgePlan = planInterviewSlots(withLinks);
+    const bridgeSlots = bridgePlan.slots.filter((s) => s.kind === "RESUME_BRIDGE");
+    // 관측 기준(R-06)이 있는 두 번째 연결이 먼저다. 역량은 연결 기준이 아니라 질문 구조의 값이다
+    expect(bridgeSlots.map((s) => s.competency)).toEqual(["TRADEOFFS", "DATA_INTEGRITY"]);
+    const kit = assembleInterviewKit({
+      evaluationId: "00000000-0000-4000-8000-000000000001",
+      plan: bridgePlan,
+      accepted: new Map(),
+      dropped: [],
+      generation: {
+        llm: "NOT_CONFIGURED",
+        llmReason: "LLM 미실행(설정 없음)",
+        promptVersion: "interview-kit@v1+test",
+        model: null,
+        aiReviewId: null,
+        inputDigest: null,
+      },
+    });
+    const bridges = kit.questions.filter((q) => q.kind === "RESUME_BRIDGE");
+    expect(bridges.map((q) => [q.source, q.competency, q.question])).toEqual([
+      ["TEMPLATE", "TRADEOFFS", CONTEXT_DEFAULT_QUESTION.question],
+      ["LLM", "DATA_INTEGRITY", structured.question],
+    ]);
+    expect(bridges[1]).toMatchObject({
+      intent: structured.intent,
+      probes: structured.probes,
+      positiveSignals: structured.positiveSignals,
+      concernSignals: structured.concernSignals,
+    });
+    expect(kit.generation.dropped).toEqual([]);
   });
 });
 
