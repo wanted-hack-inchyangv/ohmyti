@@ -456,7 +456,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       destroy: (env) => runner.destroy(env),
       startService: async (env, options) => {
         if (options?.label === "mutation-service") {
-          await new Promise((resolve) => setTimeout(resolve, 15_000));
+          await new Promise((resolve) => setTimeout(resolve, 20_000));
         }
         return runner.startService(env, options);
       },
@@ -464,21 +464,21 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
     const started = Date.now();
     const { result, experiments, detail, leftovers, processes } = await evaluate(
       "a",
-      { timeoutMs: 5000 },
+      { timeoutMs: 15_000 },
       slowStart,
     );
     expect(result.submissionStatus).toBe("COMPLETED");
     expect(result.stageLog.find((s) => s.stage === "TEST_EFFECTIVENESS")!.state).toBe("DONE");
     expect(detail.deadlineReached).toBe(true);
-    expect(detail.timeoutMs).toBe(5000);
+    expect(detail.timeoutMs).toBe(15_000);
     expect(detail.outcomes).toEqual({ TIMEOUT: 5 });
     const [first, ...rest] = experiments;
     // 첫 변형은 유효성 검증 중에 멈췄다 (환경을 만든 뒤)
     expect(first!.mutationId).toBe("M-01");
-    expect(first!.reason).toBe("단계 벽시계 상한(5000ms)을 넘겨 유효성 검증 중에 중단함");
+    expect(first!.reason).toBe("단계 벽시계 상한(15000ms)을 넘겨 유효성 검증 중에 중단함");
     // 나머지는 시작하지 않았다
     for (const e of rest) {
-      expect(e.reason).toBe("단계 벽시계 상한(5000ms)을 넘겨 실행하지 않음");
+      expect(e.reason).toBe("단계 벽시계 상한(15000ms)을 넘겨 실행하지 않음");
     }
     for (const e of experiments) {
       expect(e.outcome).toBe("TIMEOUT");

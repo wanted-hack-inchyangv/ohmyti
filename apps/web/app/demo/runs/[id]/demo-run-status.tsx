@@ -128,11 +128,8 @@ export function DemoRunStatus({ initial }: { initial: DemoRunStatusView }) {
                   className={`${buttonClass("secondary", "md")} w-full sm:w-auto`}
                   data-testid="demo-run-saved-link"
                 >
-                  워크벤치 열기
+                  {view.saved.label} 워크벤치 열기
                 </a>
-                <Badge tone="neutral" className="self-start sm:self-auto">
-                  {view.saved.label}
-                </Badge>
               </div>
             </>
           ) : (

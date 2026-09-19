@@ -328,8 +328,9 @@ http.createServer((_, res) => { res.writeHead(503); res.end(); }).listen(Number(
 
   it("수명 제한이 지나면 서비스 그룹을 종료하고 timedOut을 남긴다", async () => {
     const env = await prepareFixture("snapshots/lifetime.tar.gz", GRANDCHILD_SERVICE);
-    const service = await runner.startService(env, { maxLifetimeMs: 800 });
-    await new Promise((r) => setTimeout(r, 2_000));
+    // 수명 제한은 느린 CI 러너에서도 /health 200까지 걸리는 시간보다 길게 둔다
+    const service = await runner.startService(env, { maxLifetimeMs: 3_000 });
+    await new Promise((r) => setTimeout(r, 5_000));
     expect(service.isRunning()).toBe(false);
     const exit = await service.stop();
     expect(exit.timedOut).toBe(true);

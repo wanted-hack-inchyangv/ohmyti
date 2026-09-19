@@ -505,9 +505,12 @@ test("FAIL 카드 클릭 한 번으로 URL과 중앙 패널이 갱신되고, 필
   };
   const { score, criterionResults, rubric } = body.data;
 
+  // 기준 없이 들어오면 첫 FAIL 기준(R-05)이 먼저 열린다. 중앙 패널이 빈 채로 시작하지 않는다
   await page.goto(`/evaluations/${evaluationId}`);
-  await expect(page.getByTestId("replay-empty")).toContainText("기준을 선택하세요");
-  await expect(page.locator("[data-selected='true']")).toHaveCount(0);
+  await expect(page.getByTestId("replay-empty")).toHaveCount(0);
+  await expect(page.locator('[data-criterion="R-05"]')).toHaveAttribute("data-selected", "true");
+  await expect(page.locator("[data-selected='true']")).toHaveCount(1);
+  await expect(page.getByTestId("replay-criterion")).toHaveText("R-05");
 
   // FAIL 카드(R-05) 클릭 한 번 → URL·왼쪽 선택·중앙 패널 제목·오른쪽 패널 제목이 함께 바뀐다
   await page.locator('[data-criterion="R-05"] a').click();
