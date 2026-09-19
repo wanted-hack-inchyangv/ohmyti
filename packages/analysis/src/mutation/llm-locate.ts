@@ -15,7 +15,7 @@ import {
 } from "@ohmyti/llm";
 import type { Node, SourceFile } from "ts-morph";
 import { z } from "zod";
-import type { MutationDefinition } from "./catalog";
+import { isRejection, type MutationDefinition, type MutationRejectCode } from "./catalog";
 
 export const MUTATION_LOCATE_PROMPT = definePrompt({
   purpose: "MUTATION_TARGETS",
@@ -50,6 +50,8 @@ export const MUTATION_LOCATE_MAX_TOKENS = 1_024;
 
 export interface DiscardedCandidate {
   candidate: MutationCandidate;
+  /** 거절 코드 (`NOT_APPLICABLE` 사유에 붙는다) */
+  code: MutationRejectCode;
   reason: string;
 }
 
@@ -113,21 +115,30 @@ export function buildLocateInput(
   return parts.join("\n\n");
 }
 
-/** 후보 하나를 검증한다. 통과하면 변형 대상 노드, 아니면 버리는 사유 */
+/** 후보 하나를 검증한다. 통과하면 변형 대상 노드, 아니면 거절 코드와 버리는 사유 */
 export function validateCandidate(
   definition: MutationDefinition,
   candidate: MutationCandidate,
   filesByPath: ReadonlyMap<string, SourceFile>,
-): { node: Node } | { reason: string } {
+): { node: Node } | { code: MutationRejectCode; reason: string } {
   const sourceFile = filesByPath.get(candidate.file);
-  if (!sourceFile) return { reason: `변형할 수 없는 파일이거나 없는 파일: ${candidate.file}` };
+  if (!sourceFile) {
+    return {
+      code: "FILE_NOT_MUTABLE",
+      reason: `변형할 수 없는 파일이거나 없는 파일: ${candidate.file}`,
+    };
+  }
   const lineCount = sourceLines(sourceFile.getFullText()).length;
   if (candidate.line < 1 || candidate.line > lineCount) {
-    return { reason: `존재하지 않는 라인: ${candidate.line} (파일은 ${lineCount}줄)` };
+    return {
+      code: "LINE_OUT_OF_RANGE",
+      reason: `존재하지 않는 라인: ${candidate.line} (파일은 ${lineCount}줄)`,
+    };
   }
   const kinds: readonly string[] = definition.locate.llmNodeKinds;
   if (!kinds.includes(candidate.nodeKind)) {
     return {
+      code: "WRONG_NODE_KIND",
       reason: `이 변형이 받지 않는 노드 종류: ${candidate.nodeKind} (받는 종류: ${kinds.join(", ")})`,
     };
   }
@@ -138,13 +149,19 @@ export function validateCandidate(
     }
   });
   if (nodes.length === 0) {
-    return { reason: `${candidate.line}번 라인에서 시작하는 ${candidate.nodeKind} 노드가 없음` };
+    return {
+      code: "NODE_NOT_FOUND",
+      reason: `${candidate.line}번 라인에서 시작하는 ${candidate.nodeKind} 노드가 없음`,
+    };
   }
+  let firstRejection: MutationRejectCode | undefined;
   for (const node of nodes) {
-    const target = definition.locate.llmAccept(node);
-    if (target) return { node: target };
+    const accepted = definition.locate.llmAccept(node);
+    if (!isRejection(accepted)) return { node: accepted };
+    firstRejection ??= accepted.reject;
   }
   return {
+    code: firstRejection!,
     reason: `${candidate.line}번 라인의 ${candidate.nodeKind}가 변형 대상 조건에 맞지 않음`,
   };
 }
@@ -192,9 +209,9 @@ export async function locateWithLlm(input: {
       logger?.info({ mutationId: definition.id, candidate }, "mutation 위치 LLM 후보 채택");
       return { target: { node: checked.node, candidate }, discarded, outcome };
     }
-    discarded.push({ candidate, reason: checked.reason });
+    discarded.push({ candidate, code: checked.code, reason: checked.reason });
     logger?.warn(
-      { mutationId: definition.id, candidate, reason: checked.reason },
+      { mutationId: definition.id, candidate, code: checked.code, reason: checked.reason },
       "mutation 위치 LLM 후보 버림",
     );
   }

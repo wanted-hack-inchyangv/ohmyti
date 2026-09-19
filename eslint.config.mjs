@@ -16,6 +16,8 @@ export default defineConfig([
     "**/test-results/",
     "**/next-env.d.ts",
     ".run-logs/",
+    // mutation 대상 제출물 픽스처 (제출 코드 형식을 그대로 둔다)
+    "packages/analysis/fixtures/",
   ]),
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

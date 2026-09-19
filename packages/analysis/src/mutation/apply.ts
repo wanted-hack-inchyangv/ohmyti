@@ -151,6 +151,13 @@ function notApplicable(
   };
 }
 
+/** LLM 후보를 모두 버렸을 때의 사유. 거절 코드를 처음 나온 순서대로 중복 없이 붙인다 */
+function llmDiscardNote(discarded: readonly DiscardedCandidate[]): string {
+  if (discarded.length === 0) return "LLM 후보 없음";
+  const codes = [...new Set(discarded.map((d) => d.code))];
+  return `LLM 후보 ${discarded.length}개 모두 검증 실패 (거절 코드: ${codes.join(", ")})`;
+}
+
 /** 대상 요청이 매치된 라우트 핸들러에서 호출 간선으로 도달 가능한 함수 (BFS 순) */
 export function reachableFunctions(
   graph: CallGraph,
@@ -334,7 +341,7 @@ export async function applyMutations(input: ApplyMutationsInput): Promise<Mutati
             );
           } else {
             const llmNote = result.llm
-              ? `LLM 후보 ${result.discardedCandidates.length}개 모두 검증 실패`
+              ? llmDiscardNote(result.discardedCandidates)
               : "LLM 탐색 미사용";
             results.push(notApplicable(result, "NO_TARGET", `AST 휴리스틱 후보 없음, ${llmNote}`));
           }

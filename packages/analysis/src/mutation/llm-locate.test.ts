@@ -90,12 +90,21 @@ describe("LLM 후보 검증: 샘플 C (대상 로직 없음)", () => {
       }
       expect(m03.discardedCandidates.map((d) => d.reason)).toEqual([
         "존재하지 않는 라인: 9999 (파일은 98줄)",
-        "이 변형이 받지 않는 노드 종류: IfStatement (받는 종류: CallExpression)",
+        "이 변형이 받지 않는 노드 종류: IfStatement (받는 종류: CallExpression, BinaryExpression, ForOfStatement, ForStatement)",
         "48번 라인에서 시작하는 CallExpression 노드가 없음",
         "49번 라인의 CallExpression가 변형 대상 조건에 맞지 않음",
         "변형할 수 없는 파일이거나 없는 파일: test/orders.test.ts",
       ]);
-      expect(m03.detail).toBe("AST 휴리스틱 후보 없음, LLM 후보 5개 모두 검증 실패");
+      expect(m03.discardedCandidates.map((d) => d.code)).toEqual([
+        "LINE_OUT_OF_RANGE",
+        "WRONG_NODE_KIND",
+        "NODE_NOT_FOUND",
+        "NOT_LOOKUP",
+        "FILE_NOT_MUTABLE",
+      ]);
+      expect(m03.detail).toBe(
+        "AST 휴리스틱 후보 없음, LLM 후보 5개 모두 검증 실패 (거절 코드: LINE_OUT_OF_RANGE, WRONG_NODE_KIND, NODE_NOT_FOUND, NOT_LOOKUP, FILE_NOT_MUTABLE)",
+      );
       expect(m04.discardedCandidates.map((d) => d.reason)).toEqual([
         "80번 라인의 BinaryExpression가 변형 대상 조건에 맞지 않음",
         "변형할 수 없는 파일이거나 없는 파일: src/nope.ts",

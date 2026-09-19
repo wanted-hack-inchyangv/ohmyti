@@ -8,6 +8,7 @@ import {
   createTestDatabase,
   executionRecords,
   getEvaluation,
+  listCriterionResults,
   listExecutionRecords,
   listMutationExperiments,
   mutationExperiments,
@@ -41,11 +42,37 @@ import { plannedMutations, preconditionOf, type TestEffectivenessDetail } from "
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const TEMPLATE_ROOT = path.join(REPO_ROOT, "templates");
 const SAMPLES_DIR = path.join(REPO_ROOT, "samples/order-api");
+/** T-602 인라인 핸들러 픽스처: 단일 파일, 배열 순회 멱등 조회, `x.stock = x.stock + q` 재고 복구, 약한 제출 테스트 */
+const INLINE_FIXTURE_DIR = path.join(REPO_ROOT, "packages/analysis/fixtures/inline-order-api");
 const SHA = {
   a: "a".repeat(40),
   c: "c".repeat(40),
   noTests: "e".repeat(40),
+  inline: "1".repeat(40),
+  inlineDecoy: "2".repeat(40),
 } as const;
+
+/** 실제 조회 앞에 결과를 쓰지 않는 멱등 기록 순회를 끼운 인라인 픽스처. 휴리스틱이 이 반복문을 먼저 고른다 */
+async function inlineDecoyFiles(): Promise<FakeRepoFiles> {
+  const files = await readTree(INLINE_FIXTURE_DIR);
+  const source = files["src/index.ts"]!.toString();
+  const anchor = "    let prior: any = null;\n";
+  if (!source.includes(anchor)) throw new Error("인라인 픽스처의 조회 위치를 찾지 못했습니다");
+  files["src/index.ts"] = source.replace(
+    anchor,
+    [
+      "    let seen = 0;",
+      "    for (const rec of idemRecords) {",
+      "      if (rec.key === k) {",
+      "        seen = seen + 1;",
+      "      }",
+      "    }",
+      '    res.setHeader("x-idem-seen", String(seen));',
+      anchor,
+    ].join("\n"),
+  );
+  return files;
+}
 
 describe("preconditionOf", () => {
   it("PASSED만 실험하고, 테스트 미제출과 환경 미지원·기준 실패를 구분한다", () => {
@@ -164,6 +191,8 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
   let contract: ExecutionContract;
   let github: ReturnType<typeof fakeGitHub>;
   const workRoots: string[] = [];
+  /** 평가 id → 그 평가의 아티팩트 저장소 (평가마다 작업 루트가 따로다) */
+  const storesByEvaluation = new Map<string, FsArtifactStore>();
   const harnessVersion = harnessVersionOf(getCaseSet(DEFAULT_CASE_SET));
   let expectedMatrix: { samples: Array<{ id: string; mutations: Record<string, string> }> };
 
@@ -196,19 +225,29 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
         validationResult: { ok: true },
       })
     ).id;
-    const [a, c, noTests] = await Promise.all([
+    const [a, c, noTests, inline, inlineDecoy] = await Promise.all([
       readTree(path.join(SAMPLES_DIR, "impl-a")),
       readTree(path.join(SAMPLES_DIR, "impl-c")),
       noTestsFiles(),
+      readTree(INLINE_FIXTURE_DIR),
+      inlineDecoyFiles(),
     ]);
     github = fakeGitHub({
       "acme/order-api": {
         defaultBranch: "main",
-        refs: { a: SHA.a, c: SHA.c, "no-tests": SHA.noTests },
+        refs: {
+          a: SHA.a,
+          c: SHA.c,
+          "no-tests": SHA.noTests,
+          inline: SHA.inline,
+          "inline-decoy": SHA.inlineDecoy,
+        },
         tarballs: {
           [SHA.a]: () => makeGitHubStyleTarball(a, SHA.a),
           [SHA.c]: () => makeGitHubStyleTarball(c, SHA.c),
           [SHA.noTests]: () => makeGitHubStyleTarball(noTests, SHA.noTests),
+          [SHA.inline]: () => makeGitHubStyleTarball(inline, SHA.inline),
+          [SHA.inlineDecoy]: () => makeGitHubStyleTarball(inlineDecoy, SHA.inlineDecoy),
         },
       },
     });
@@ -259,6 +298,7 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       deps,
     );
     const evaluation = (await getEvaluation(tdb.db, result.evaluationId!))!;
+    storesByEvaluation.set(evaluation.id, store);
     const stage = evaluation.stageLog.find((s) => s.stage === "TEST_EFFECTIVENESS")!;
     return {
       result,
@@ -365,6 +405,51 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
     }
   }, 300_000);
 
+  it("인라인 핸들러(T-602): M-01~M-05가 모두 휴리스틱으로 적용되고 대상 기준이 변형에서 FAIL이며 모두 SURVIVED, G1~G3 FAIL", async () => {
+    const { result, experiments, detail, store } = await evaluate("inline");
+    expect(result.submissionStatus).toBe("COMPLETED");
+    expect(detail.outcomes).toEqual({ SURVIVED: 5 });
+    expect(
+      experiments.map((e) => [e.mutationId, e.targetCriterionId, e.outcome, e.validationVerdict]),
+    ).toEqual([
+      ["M-01", "R-03", "SURVIVED", "FAIL"],
+      ["M-02", "R-04", "SURVIVED", "FAIL"],
+      ["M-03", "R-05", "SURVIVED", "FAIL"],
+      ["M-04", "R-06", "SURVIVED", "FAIL"],
+      ["M-05", "R-09", "SURVIVED", "FAIL"],
+    ]);
+    const byId = new Map(experiments.map((e) => [e.mutationId, e]));
+    const diffOf = async (id: string) =>
+      Buffer.from((await store.get(byId.get(id)!.patchRef!))!.body).toString("utf8");
+    expect(await diffOf("M-03")).toContain("-      if (rec.key === k) {\n+      if (false) {");
+    expect(await diffOf("M-05")).toContain("-      target.stock = target.stock + order.quantity;");
+
+    const criteria = new Map(
+      (await listCriterionResults(tdb.db, result.evaluationId!)).map((r) => [r.criterionId, r]),
+    );
+    for (const id of ["R-01", "R-02", "R-03", "R-04", "R-05", "R-06", "R-07", "R-08", "R-09"]) {
+      expect(criteria.get(id)?.verdict, id).toBe("PASS");
+    }
+    for (const id of ["G1", "G2", "G3"]) {
+      expect(criteria.get(id)?.verdict, id).toBe("FAIL");
+      expect(criteria.get(id)?.earnedPoints, id).toBe(0);
+    }
+  }, 300_000);
+
+  it("인라인 핸들러(T-602): 결과를 쓰지 않는 멱등 기록 순회를 고르면 변형 검증이 PASS라 EQUIVALENT로 걸러지고 SURVIVED로 세지 않는다", async () => {
+    // M-03만 실행한다 (나머지는 카탈로그에 없어 실행 없이 NOT_APPLICABLE)
+    const { experiments, store } = await evaluate("inline-decoy", {
+      catalog: MUTATION_CATALOG.filter((definition) => definition.id === "M-03"),
+    });
+    const m03 = experiments.find((e) => e.mutationId === "M-03")!;
+    expect(m03.outcome).toBe("EQUIVALENT");
+    expect(m03.validationVerdict).toBe("PASS");
+    expect(m03.testRecordId).toBeNull();
+    const diff = Buffer.from((await store.get(m03.patchRef!))!.body).toString("utf8");
+    expect(diff).toContain("-      if (rec.key === k) {\n+      if (false) {");
+    expect(diff).toContain("seen = seen + 1;");
+  }, 300_000);
+
   it("DB 검사: SURVIVED 실험은 예외 없이 유효성 검증 기록의 verdict가 FAIL이고, 어긋난 행은 CHECK 제약이 거부한다", async () => {
     const [{ result: c }] = await Promise.all([evaluated("c"), evaluated("a")]);
     // 저장된 모든 SURVIVED 실험을 DB에서 모아 검증 기록 본문과 대조한다
@@ -374,10 +459,10 @@ describe.skipIf(!hasTestDb)("TEST_EFFECTIVENESS 단계 (DB 통합)", () => {
       .leftJoin(executionRecords, eq(mutationExperiments.validationRecordId, executionRecords.id))
       .where(eq(mutationExperiments.outcome, "SURVIVED"));
     expect(survived.length).toBeGreaterThanOrEqual(2);
-    const { store } = await evaluated("c");
     for (const { experiment, validation } of survived) {
       expect(experiment.validationVerdict).toBe("FAIL");
       expect(validation?.kind).toBe("MUTATION_VALIDATION");
+      const store = storesByEvaluation.get(experiment.evaluationId)!;
       const actual = await readJson(store, validation!.actualRef);
       expect(actual.verdict).toBe("FAIL");
     }

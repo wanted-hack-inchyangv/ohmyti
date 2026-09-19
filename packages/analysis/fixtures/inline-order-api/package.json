@@ -1,0 +1,27 @@
+{
+  "name": "order-api-inline-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "T-602 회귀 fixture: 단일 파일·인라인 핸들러·배열 순회 멱등 조회·단순 대입 재고 복구 구조의 order-api",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "tsx": "4.23.13"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.3",
+    "@types/supertest": "7.2.1",
+    "supertest": "7.2.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

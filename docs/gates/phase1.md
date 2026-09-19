@@ -3,7 +3,7 @@
 `pnpm gate:phase1`이 만든 기록이다. DB·LLM 없이 러너(T-108) + 하네스(T-107) + 제출 테스트 실행기(T-109)만으로 샘플 A/B/C/D를 `samples/order-api/expected-matrix.json`과 대조하고, 같은 절차를 반복해 판정 digest가 같은지 확인한다.
 
 - 결과: **통과**
-- 실행 일시: 2026-09-18T13:06:15.367Z ~ 2026-09-18T13:06:30.248Z (총 14.9초, 상한 10분)
+- 실행 일시: 2026-09-19T14:43:26.308Z ~ 2026-09-19T14:43:38.985Z (총 12.7초, 상한 10분)
 - 반복 횟수: 3
 - 러너: local (Node v24.15.0)
 - environmentDigest: `2044a2e63de05a7fa5be2f53d0693ecd2ea2b95df754926b0ee50473734c0b07`
@@ -52,7 +52,7 @@
 
 | 샘플 | 1회차 | 2회차 | 3회차 | 기동(ms) | 하네스                            | 제출 테스트          |
 | ---- | ----: | ----: | ----: | -------: | --------------------------------- | -------------------- |
-| A    |  1.6s |  1.5s |  1.2s |      308 | PASS 10 · FAIL 0 · INCONCLUSIVE 0 | PASSED 49/49 (7파일) |
-| B    |  1.1s |  1.2s |  1.1s |      308 | PASS 10 · FAIL 0 · INCONCLUSIVE 0 | PASSED 61/61 (7파일) |
-| C    |  1.2s |  1.3s |  1.1s |      311 | PASS 7 · FAIL 3 · INCONCLUSIVE 0  | PASSED 11/11 (3파일) |
-| D    |  1.3s |  1.2s |  1.1s |      307 | PASS 7 · FAIL 3 · INCONCLUSIVE 0  | PASSED 16/16 (4파일) |
+| A    |  1.1s |  1.2s |  1.1s |      307 | PASS 10 · FAIL 0 · INCONCLUSIVE 0 | PASSED 49/49 (7파일) |
+| B    |  1.0s |  1.0s |  1.0s |      308 | PASS 10 · FAIL 0 · INCONCLUSIVE 0 | PASSED 61/61 (7파일) |
+| C    |  1.0s |  1.0s |  1.0s |      307 | PASS 7 · FAIL 3 · INCONCLUSIVE 0  | PASSED 11/11 (3파일) |
+| D    |  1.0s |  1.0s |  1.0s |      306 | PASS 7 · FAIL 3 · INCONCLUSIVE 0  | PASSED 16/16 (4파일) |
