@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>문가은 이력서</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #222222;
+        font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 16mm 18mm;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 3px solid #1f2d3d;
+        padding-bottom: 10px;
+        margin-bottom: 16px;
+      }
+      .name {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #1f2d3d;
+      }
+      .role {
+        font-size: 13px;
+        color: #4a5a6a;
+        margin-top: 4px;
+      }
+      .contact {
+        text-align: right;
+        font-size: 11.5px;
+        color: #333333;
+        line-height: 1.7;
+      }
+      .contact div span.label {
+        color: #8a95a1;
+        margin-right: 4px;
+      }
+      .section {
+        margin-bottom: 15px;
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffffff;
+        background: #1f2d3d;
+        padding: 4px 10px;
+        display: inline-block;
+        border-radius: 2px;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+      }
+      .intro {
+        font-size: 12px;
+        color: #2f3b47;
+        text-align: justify;
+      }
+      .stack-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .stack-chip {
+        border: 1px solid #c7d0d9;
+        color: #2f3b47;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        background: #f4f6f8;
+      }
+      .entry {
+        margin-bottom: 10px;
+      }
+      .entry-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .entry-title {
+        font-weight: 700;
+        font-size: 12.5px;
+        color: #1f2d3d;
+      }
+      .entry-sub {
+        font-size: 11.5px;
+        color: #5a6672;
+        margin-top: 1px;
+      }
+      .entry-date {
+        font-size: 11px;
+        color: #8a95a1;
+        white-space: nowrap;
+      }
+      ul.entry-list {
+        margin: 6px 0 0 0;
+        padding-left: 18px;
+      }
+      ul.entry-list li {
+        margin-bottom: 3px;
+        font-size: 11.5px;
+        color: #2f3b47;
+      }
+      .project {
+        border: 1px solid #e1e6ea;
+        border-radius: 6px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        background: #fafbfc;
+      }
+      .project-title {
+        font-weight: 700;
+        font-size: 12px;
+        color: #1f2d3d;
+      }
+      .project-link {
+        font-size: 10.5px;
+        color: #3763a8;
+        word-break: break-all;
+      }
+      .project-desc {
+        font-size: 11.5px;
+        color: #2f3b47;
+        margin-top: 4px;
+      }
+      .two-col {
+        display: flex;
+        gap: 20px;
+      }
+      .two-col .col {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="header">
+        <div>
+          <div class="name">문가은</div>
+          <div class="role">신입 백엔드 개발자 (Backend Developer)</div>
+        </div>
+        <div class="contact">
+          <div><span class="label">Email</span>gaeun.moon@example.com</div>
+          <div><span class="label">Phone</span>010-0000-0000</div>
+          <div><span class="label">GitHub</span>github.com/wanted-hack-inchyangv</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">자기소개</div>
+        <div class="intro">
+          웹 에이전시에서 퍼블리셔 겸 프론트엔드 개발자로 1년간 근무하며 React와 TypeScript로 다양한
+          화면을 구현했습니다. 사용자에게 직접 보이는 화면을 만드는 일도 즐거웠지만, 데이터가 어떻게
+          저장되고 처리되는지에 대한 궁금증이 커져 코드스프링 부트캠프의 백엔드 과정을 수료하며
+          Node.js와 Express로 서버를 설계하고 구현하는 법을 익혔습니다. 시각디자인을 전공한 경험을
+          살려 사용자와 동료 개발자 모두가 이해하기 쉬운 구조와 문서를 만들려고 노력합니다. 아직
+          실무 경험이 많지 않지만 빠르게 배우고 꾸준히 개선하는 개발자가 되고 싶습니다.
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">기술 스택</div>
+        <div class="stack-grid">
+          <span class="stack-chip">JavaScript</span>
+          <span class="stack-chip">TypeScript</span>
+          <span class="stack-chip">React</span>
+          <span class="stack-chip">Vite</span>
+          <span class="stack-chip">Node.js</span>
+          <span class="stack-chip">Express</span>
+          <span class="stack-chip">HTML / CSS</span>
+          <span class="stack-chip">Git / GitHub</span>
+          <span class="stack-chip">Figma</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="col">
+          <div class="section">
+            <div class="section-title">경력</div>
+            <div class="entry">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">스튜디오 도트</div>
+                  <div class="entry-sub">퍼블리셔 · 프론트엔드 개발자 (웹 에이전시)</div>
+                </div>
+                <div class="entry-date">2024.03 - 2025.02</div>
+              </div>
+              <ul class="entry-list">
+                <li>고객사 랜딩 페이지와 관리자 화면을 HTML/CSS와 React로 퍼블리싱 및 구현</li>
+                <li>기존 jQuery 기반 화면 일부를 React + TypeScript 컴포넌트로 전환</li>
+                <li>반응형 레이아웃과 크로스 브라우저 이슈를 점검하고 수정</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">교육</div>
+            <div class="entry">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">코드스프링 부트캠프</div>
+                  <div class="entry-sub">백엔드 과정 수료</div>
+                </div>
+                <div class="entry-date">2025.09 - 2026.02</div>
+              </div>
+              <ul class="entry-list">
+                <li>Node.js, Express를 이용한 REST API 설계와 구현 학습</li>
+                <li>
+                  팀 프로젝트로 주문/예약 API를 설계하며 대용량 트래픽 환경을 고려한 동시성 제어와
+                  멱등성 설계 경험을 쌓음
+                </li>
+                <li>Git을 이용한 협업과 코드 리뷰 프로세스 경험</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="section">
+            <div class="section-title">프로젝트</div>
+            <div class="project">
+              <div class="project-title">gaeun-todo-react</div>
+              <div class="project-link">github.com/wanted-hack-inchyangv/gaeun-todo-react</div>
+              <div class="project-desc">
+                React + TypeScript + Vite로 만든 할 일 관리 앱. localStorage에 데이터를 저장하며
+                상태별 필터링과 정렬 기능을 구현했습니다.
+              </div>
+            </div>
+            <div class="project">
+              <div class="project-title">gaeun-bookmark-api</div>
+              <div class="project-link">github.com/wanted-hack-inchyangv/gaeun-bookmark-api</div>
+              <div class="project-desc">
+                부트캠프 백엔드 과정에서 만든 Express 기반 북마크(bookmark) CRUD API. 인메모리
+                저장소와 간단한 테스트 코드를 포함합니다.
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">학력</div>
+            <div class="entry">
+              <div class="entry-head">
+                <div>
+                  <div class="entry-title">누리대학교</div>
+                  <div class="entry-sub">시각디자인학과 졸업</div>
+                </div>
+                <div class="entry-date">2020.03 - 2024.02</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

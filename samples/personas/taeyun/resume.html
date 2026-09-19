@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>오태윤 이력서</title>
+    <style>
+      :root {
+        --ink: #1b2430;
+        --sub: #4c5766;
+        --line: #d7dce3;
+        --accent: #2f5d8a;
+        --accent-bg: #eef3f8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: var(--ink);
+        font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        font-size: 12.5px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 16mm 18mm;
+      }
+      header.hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-bottom: 2px solid var(--ink);
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+      }
+      header.hero h1 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0.5px;
+      }
+      header.hero .role {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--sub);
+      }
+      .contact {
+        text-align: right;
+        font-size: 11.5px;
+        color: var(--sub);
+        line-height: 1.7;
+      }
+      .contact a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      section {
+        margin-bottom: 15px;
+      }
+      h2.section-title {
+        font-size: 13.5px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 4px;
+        margin: 0 0 8px 0;
+      }
+      p.summary {
+        margin: 0;
+        color: var(--ink);
+      }
+      .stack-grid {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        row-gap: 5px;
+        column-gap: 10px;
+      }
+      .stack-grid dt {
+        font-weight: 600;
+        color: var(--sub);
+      }
+      .stack-grid dd {
+        margin: 0;
+      }
+      .pill {
+        display: inline-block;
+        background: var(--accent-bg);
+        color: var(--accent);
+        border-radius: 3px;
+        padding: 1px 7px;
+        margin: 0 4px 4px 0;
+        font-size: 11px;
+      }
+      .job {
+        margin-bottom: 12px;
+      }
+      .job:last-child {
+        margin-bottom: 0;
+      }
+      .job-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .job-head .org {
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .job-head .period {
+        font-size: 11.5px;
+        color: var(--sub);
+      }
+      .job .title {
+        font-size: 11.5px;
+        color: var(--sub);
+        margin-bottom: 4px;
+      }
+      ul.bullets {
+        margin: 4px 0 0 0;
+        padding-left: 18px;
+      }
+      ul.bullets li {
+        margin-bottom: 3px;
+      }
+      .project {
+        margin-bottom: 10px;
+      }
+      .project:last-child {
+        margin-bottom: 0;
+      }
+      .project-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .project-head .name {
+        font-weight: 700;
+        font-size: 12.5px;
+      }
+      .project-head .url {
+        font-size: 11px;
+        color: var(--accent);
+      }
+      .project .desc {
+        margin: 3px 0 0 0;
+      }
+      .edu-row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .edu-row .school {
+        font-weight: 700;
+      }
+      .edu-row .period {
+        color: var(--sub);
+        font-size: 11.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div>
+          <h1>오태윤</h1>
+          <div class="role">백엔드 엔지니어 (Backend Engineer) · 3년차</div>
+        </div>
+        <div class="contact">
+          taeyun.oh@example.com<br />
+          010-0000-0000<br />
+          GitHub:
+          <a href="https://github.com/wanted-hack-inchyangv">github.com/wanted-hack-inchyangv</a>
+        </div>
+      </header>
+
+      <section>
+        <h2 class="section-title">소개</h2>
+        <p class="summary">
+          예약·결제 도메인의 REST API를 설계하고 운영한 3년차 백엔드 엔지니어입니다. 요구사항을
+          엔드포인트와 검증 규칙으로 정리하고, 계층을 나눠 구현하는 데 익숙합니다. 최근에는 동시
+          요청 상황에서 발생하는 문제를 더 깊이 이해하려고 학습하고 있습니다.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="section-title">기술 스택</h2>
+        <dl class="stack-grid">
+          <dt>Language</dt>
+          <dd>
+            <span class="pill">TypeScript</span><span class="pill">JavaScript (Node.js)</span>
+          </dd>
+          <dt>Backend</dt>
+          <dd>
+            <span class="pill">Express</span><span class="pill">REST API</span
+            ><span class="pill">Zod</span><span class="pill">JWT</span>
+          </dd>
+          <dt>Data</dt>
+          <dd>
+            <span class="pill">PostgreSQL</span><span class="pill">Redis</span
+            ><span class="pill">Prisma</span>
+          </dd>
+          <dt>Infra / Tools</dt>
+          <dd>
+            <span class="pill">Docker</span><span class="pill">GitHub Actions</span
+            ><span class="pill">Vitest</span><span class="pill">Jest</span>
+          </dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2 class="section-title">경력</h2>
+        <div class="job">
+          <div class="job-head">
+            <span class="org">모아북스 (MoaBooks)</span>
+            <span class="period">2023.07 — 현재</span>
+          </div>
+          <div class="title">백엔드 엔지니어 · 독서 모임 예약 플랫폼</div>
+          <ul class="bullets">
+            <li>
+              독서 모임 예약(booking) API를 개발하며 같은 시간대에 같은 장소·모임이 중복 예약되지
+              않도록 검증 로직을 구현했습니다. 개인적으로 같은 문제를 다시 정리해
+              <strong>taeyun-room-booking</strong> 저장소에 회의실 예약 API로 만들어 공개했습니다.
+            </li>
+            <li>
+              결제 웹훅(payment webhook) 수신을 맡아 같은 웹훅이 재전송돼도 결제가 중복 반영되지
+              않도록 멱등(idempotent) 처리를 담당했습니다.
+            </li>
+            <li>
+              모임·예약·결제 도메인의 라우팅(routes)·서비스(services)·저장소(repository) 계층을
+              분리하는 리팩터링에 참여해 신규 기능 추가 시 변경 범위를 줄였습니다.
+            </li>
+            <li>신규 입사자 온보딩 문서를 정리하고, 팀 코드 리뷰에 정기적으로 참여했습니다.</li>
+          </ul>
+        </div>
+        <div class="job">
+          <div class="job-head">
+            <span class="org">데브브릿지 (DevBridge)</span>
+            <span class="period">2023.01 — 2023.06</span>
+          </div>
+          <div class="title">백엔드 인턴 (6개월)</div>
+          <ul class="bullets">
+            <li>사내 관리자(admin) 도구의 API 엔드포인트 추가·수정을 담당했습니다.</li>
+            <li>기존 REST API 문서를 최신 상태로 정리하고 간단한 통합 테스트를 작성했습니다.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">개인 프로젝트</h2>
+        <div class="project">
+          <div class="project-head">
+            <span class="name">taeyun-room-booking</span>
+            <span class="url">github.com/wanted-hack-inchyangv/taeyun-room-booking</span>
+          </div>
+          <p class="desc">
+            회의실 예약 REST API. 같은 시간대 중복 예약(overlapping booking)을 막는 검사 로직, zod
+            기반 입력 검증, routes/services/repository 계층 분리, vitest 테스트를 포함합니다.
+            Express + TypeScript로 만들었습니다. 다만 동시에 들어오는 예약 요청까지는 아직 다루지
+            못했습니다.
+          </p>
+        </div>
+        <div class="project">
+          <div class="project-head">
+            <span class="name">taeyun-til-cli</span>
+            <span class="url">github.com/wanted-hack-inchyangv/taeyun-til-cli</span>
+          </div>
+          <p class="desc">
+            TIL(Today I Learned) 마크다운을 관리하는 Node.js CLI 도구입니다. 기록 작성, 태그 검색,
+            주간 요약 기능을 붙여서 팀의 개발 생산성을 높이는 데 도움이 됐습니다.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">학력</h2>
+        <div class="edu-row">
+          <span class="school">새솔대학교 · 소프트웨어학과</span>
+          <span class="period">졸업 · 2023.02</span>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

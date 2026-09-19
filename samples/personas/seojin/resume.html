@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>한서진 이력서</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 13mm 17mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        color: #1f2430;
+        font-size: 9.4pt;
+        line-height: 1.4;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      header.masthead {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2.5pt solid #1f2430;
+        padding-bottom: 6pt;
+        margin-bottom: 9pt;
+      }
+      .name-block h1 {
+        margin: 0;
+        font-size: 20pt;
+        letter-spacing: 0.5pt;
+      }
+      .name-block .role {
+        margin-top: 2pt;
+        font-size: 10pt;
+        color: #4b5468;
+      }
+      .contact-block {
+        text-align: right;
+        font-size: 8.4pt;
+        color: #333a4a;
+        line-height: 1.55;
+      }
+      .contact-block div span.label {
+        color: #7a8299;
+        margin-right: 4pt;
+      }
+      section {
+        margin-bottom: 8pt;
+      }
+      h2.section-title {
+        font-size: 10pt;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        color: #1f2430;
+        border-bottom: 1pt solid #c7cbd6;
+        padding-bottom: 2pt;
+        margin: 0 0 5pt 0;
+      }
+      p.intro {
+        margin: 0;
+        text-align: justify;
+      }
+      .skills-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10pt;
+        row-gap: 2.5pt;
+        font-size: 8.8pt;
+      }
+      .skills-grid dt {
+        font-weight: 700;
+        color: #333a4a;
+        white-space: nowrap;
+      }
+      .skills-grid dd {
+        margin: 0;
+      }
+      .job {
+        margin-bottom: 6pt;
+      }
+      .job:last-child {
+        margin-bottom: 0;
+      }
+      .job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 2pt;
+      }
+      .job-header .company {
+        font-weight: 700;
+        font-size: 9.8pt;
+      }
+      .job-header .title {
+        font-weight: 400;
+        color: #4b5468;
+        margin-left: 5pt;
+        font-size: 8.8pt;
+      }
+      .job-header .period {
+        font-size: 8.2pt;
+        color: #7a8299;
+        white-space: nowrap;
+      }
+      ul.bullets {
+        margin: 0;
+        padding-left: 13pt;
+      }
+      ul.bullets li {
+        margin-bottom: 1.5pt;
+      }
+      ul.bullets li:last-child {
+        margin-bottom: 0;
+      }
+      .metric {
+        font-weight: 700;
+        color: #10529c;
+      }
+      .project {
+        margin-bottom: 5pt;
+      }
+      .project:last-child {
+        margin-bottom: 0;
+      }
+      .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .project-header .project-name {
+        font-weight: 700;
+        font-size: 9.4pt;
+      }
+      .project-header .project-stack {
+        font-size: 8.2pt;
+        color: #7a8299;
+      }
+      .project-url {
+        font-size: 8.2pt;
+        color: #10529c;
+        margin: 1pt 0 2pt 0;
+        word-break: break-all;
+      }
+      .project p.desc {
+        margin: 0;
+        text-align: justify;
+      }
+      .education-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .education-row .school {
+        font-weight: 700;
+      }
+      .education-row .degree {
+        color: #4b5468;
+        font-size: 9.6pt;
+        margin-left: 5pt;
+      }
+      .education-row .period {
+        font-size: 9pt;
+        color: #7a8299;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="name-block">
+        <h1>
+          한서진 <span style="font-size: 12pt; font-weight: 400; color: #7a8299">Han Seojin</span>
+        </h1>
+        <div class="role">시니어 백엔드 엔지니어 (Senior Backend Engineer) · 7년차</div>
+      </div>
+      <div class="contact-block">
+        <div><span class="label">Email</span>seojin.han@example.com</div>
+        <div><span class="label">Phone</span>010-0000-0000</div>
+        <div><span class="label">GitHub</span>github.com/wanted-hack-inchyangv</div>
+      </div>
+    </header>
+
+    <section>
+      <h2 class="section-title">소개 (Summary)</h2>
+      <p class="intro">
+        7년간 주문·재고·결제 도메인의 백엔드 시스템을 설계하고 운영해 온 시니어 백엔드
+        엔지니어입니다. 동시성 제어(concurrency control), 멱등성 설계(idempotency), 이벤트 기반
+        아키텍처(event-driven architecture)를 핵심 강점으로 삼아, 트래픽이 몰리는 주문 처리 구간에서
+        정합성을 지키는 시스템을 만드는 데 집중해 왔습니다. 장애가 나기 전에 테스트로 잡아내는 것을
+        원칙으로 삼고, 경계값과 동시 요청 시나리오를 검증하는 테스트 설계(test design)에 특히 공을
+        들입니다.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title">기술 스택 (Skills)</h2>
+      <dl class="skills-grid">
+        <dt>Language</dt>
+        <dd>TypeScript, Node.js, SQL</dd>
+        <dt>Backend</dt>
+        <dd>
+          Express, Hono, REST API 설계, 동시성 제어(concurrency control), 멱등성 설계(idempotency)
+        </dd>
+        <dt>Messaging</dt>
+        <dd>Kafka(이벤트 기반 아키텍처, event-driven architecture), Redis</dd>
+        <dt>Data</dt>
+        <dd>PostgreSQL, 낙관적 잠금(optimistic locking), 트랜잭션 설계</dd>
+        <dt>Testing</dt>
+        <dd>Vitest, 동시성 테스트(concurrency test), 계약 테스트(contract test)</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="section-title">경력 (Experience)</h2>
+
+      <div class="job">
+        <div class="job-header">
+          <div>
+            <span class="company">루멘커머스</span
+            ><span class="title">주문·재고 플랫폼팀 · 시니어 백엔드 엔지니어</span>
+          </div>
+          <div class="period">2021.03 – 현재</div>
+        </div>
+        <ul class="bullets">
+          <li>
+            주문·재고 서비스의 동시 주문 처리 구간에서 초과 판매(overselling)가 반복적으로 발생하는
+            문제를 맡아, 상품 단위 재고 선점(stock reservation) 시스템을 설계해 도입했습니다. TTL
+            기반 예약과 버전 비교(version check) 기반의 낙관적 잠금(optimistic locking)으로 재고
+            차감을 직렬화한 결과, 피크 트래픽 구간에서 동시 주문으로 인한 초과 판매를
+            <span class="metric">0건</span>으로 줄였습니다.
+          </li>
+          <li>
+            결제·주문 생성 API에 <span class="metric">멱등성 키(Idempotency-Key) 미들웨어</span>를
+            도입해, 클라이언트 재시도·네트워크 재전송으로 발생하던 중복 주문을 제거했습니다. 도입 후
+            3개월간 중복 주문으로 인한 결제 취소·환불 처리 건수가
+            <span class="metric">0건</span>으로 유지되고 있습니다.
+          </li>
+          <li>
+            주문 생성부터 배송 상태 변경까지의 도메인 이벤트를
+            <span class="metric">Kafka 기반 이벤트 파이프라인</span>으로 전환해 주문·재고·정산
+            서비스 간 동기 호출 의존을 제거했습니다. 이벤트 컨슈머 재처리(replay)와 재시도 정책을
+            함께 설계해 장애 시 데이터 유실 없이 복구할 수 있는 구조를 만들었습니다.
+          </li>
+          <li>
+            신규 합류자 온보딩을 위해 동시성·멱등성 설계 원칙을 문서화하고, 코드 리뷰에서
+            경계값·동시 요청 테스트 커버리지를 필수 체크리스트로 정착시켰습니다.
+          </li>
+        </ul>
+      </div>
+
+      <div class="job">
+        <div class="job-header">
+          <div>
+            <span class="company">패스트레일</span><span class="title">백엔드 엔지니어</span>
+          </div>
+          <div class="period">2018.02 – 2021.02</div>
+        </div>
+        <ul class="bullets">
+          <li>
+            물류 배차·운송장 관리 시스템의 백엔드 API를 Node.js/TypeScript로 개발하며, 배차 상태
+            전이(state transition)를 도메인 계층에 명시적으로 모델링해 잘못된 상태 전이로 인한 배차
+            오류를
+            <span class="metric">월 수십 건에서 사실상 0건</span>으로 줄였습니다.
+          </li>
+          <li>
+            운송장 조회 API의 응답 지연을 인덱스 재설계와 캐시 도입으로 개선해 p95 응답 시간을
+            <span class="metric">1.2초에서 180ms</span>로 단축했습니다.
+          </li>
+          <li>
+            레거시 배치 작업(batch job)을 이벤트 기반 처리로 점진적으로 전환하며, 팀의 테스트
+            자동화(CI) 파이프라인 구축에 참여했습니다.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">오픈소스·개인 프로젝트 (Open Source &amp; Side Projects)</h2>
+
+      <div class="project">
+        <div class="project-header">
+          <span class="project-name">stock-reservation — 재고 선점(예약) 서비스</span>
+          <span class="project-stack">TypeScript · Hono</span>
+        </div>
+        <div class="project-url">github.com/wanted-hack-inchyangv/seojin-stock-reservation</div>
+        <p class="desc">
+          회사 시스템에서 다루기 어려웠던 재고 선점 로직을 독립적으로 정리한 라이브러리형
+          서비스입니다. TTL 기반 예약, 버전 비교(version check) 방식의 낙관적 잠금(optimistic
+          locking)과 충돌 시 재시도, 만료된 예약을 회수하는 백그라운드 작업을 포함합니다. 병렬 예약
+          요청 200건을 동시에 보내 초과 판매가 발생하지 않음을 확인하는 동시성 테스트(concurrency
+          test)로 정합성을 검증했습니다.
+        </p>
+      </div>
+
+      <div class="project">
+        <div class="project-header">
+          <span class="project-name">idempotency-kit — HTTP API 멱등성 키 미들웨어</span>
+          <span class="project-stack">TypeScript · Express / Hono</span>
+        </div>
+        <div class="project-url">github.com/wanted-hack-inchyangv/seojin-idempotency-kit</div>
+        <p class="desc">
+          HTTP API에 붙여 쓸 수 있는 멱등성 키(idempotency key) 미들웨어 라이브러리입니다. 요청
+          지문(메서드 + 경로 + 본문 해시) 비교로 같은 키의 다른 요청을 구분하고, 같은 키로 들어온
+          진행 중 요청은 병합해 중복 처리를 막습니다. 키 충돌 감지와 Express·Hono 어댑터를 함께
+          제공합니다.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">학력 (Education)</h2>
+      <div class="education-row">
+        <div>
+          <span class="school">한빛대학교</span><span class="degree">컴퓨터공학과 학사</span>
+        </div>
+        <div class="period">졸업 2018.02</div>
+      </div>
+    </section>
+  </body>
+</html>
