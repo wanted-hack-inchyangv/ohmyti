@@ -158,8 +158,12 @@ describe.skipIf(!hasTestDb)("워커 루프 (통합)", () => {
     const { worker, lines } = makeWorker("w-fail", registry);
     worker.start();
 
+    // 가져갈 때 attempts가 먼저 오르므로, 실패가 기록되어 QUEUED로 돌아올 때까지 기다린다
     await waitFor(
-      async () => (await getJob(tdb.db, id))?.attempts === 1 && calls === 1,
+      async () => {
+        const job = await getJob(tdb.db, id);
+        return job?.attempts === 1 && job.status === "QUEUED" && calls === 1;
+      },
       5_000,
       "1차 시도",
     );
