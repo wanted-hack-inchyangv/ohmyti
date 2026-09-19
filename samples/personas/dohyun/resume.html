@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>백도현 이력서</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 12mm 16mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+        color: #1f2430;
+        font-size: 9.1pt;
+        line-height: 1.38;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      header.masthead {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2.5pt solid #1f2430;
+        padding-bottom: 6pt;
+        margin-bottom: 8pt;
+      }
+      .name-block h1 {
+        margin: 0;
+        font-size: 19pt;
+        letter-spacing: 0.5pt;
+      }
+      .name-block .role {
+        margin-top: 2pt;
+        font-size: 9.6pt;
+        color: #4b5468;
+      }
+      .contact-block {
+        text-align: right;
+        font-size: 8.2pt;
+        color: #333a4a;
+        line-height: 1.5;
+      }
+      .contact-block div span.label {
+        color: #7a8299;
+        margin-right: 4pt;
+      }
+      section {
+        margin-bottom: 7pt;
+      }
+      h2.section-title {
+        font-size: 9.6pt;
+        text-transform: uppercase;
+        letter-spacing: 1pt;
+        color: #1f2430;
+        border-bottom: 1pt solid #c7cbd6;
+        padding-bottom: 2pt;
+        margin: 0 0 4.5pt 0;
+      }
+      p.intro {
+        margin: 0;
+        text-align: justify;
+      }
+      .skills-grid {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10pt;
+        row-gap: 2pt;
+        font-size: 8.6pt;
+      }
+      .skills-grid dt {
+        font-weight: 700;
+        color: #333a4a;
+        white-space: nowrap;
+      }
+      .skills-grid dd {
+        margin: 0;
+      }
+      .job {
+        margin-bottom: 5pt;
+      }
+      .job:last-child {
+        margin-bottom: 0;
+      }
+      .job-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 2pt;
+      }
+      .job-header .company {
+        font-weight: 700;
+        font-size: 9.6pt;
+      }
+      .job-header .title {
+        font-weight: 400;
+        color: #4b5468;
+        margin-left: 5pt;
+        font-size: 8.6pt;
+      }
+      .job-header .period {
+        font-size: 8pt;
+        color: #7a8299;
+        white-space: nowrap;
+      }
+      ul.bullets {
+        margin: 0;
+        padding-left: 13pt;
+      }
+      ul.bullets li {
+        margin-bottom: 1.5pt;
+      }
+      ul.bullets li:last-child {
+        margin-bottom: 0;
+      }
+      table.proj-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 8.2pt;
+        margin-top: 2pt;
+      }
+      table.proj-table th,
+      table.proj-table td {
+        border-bottom: 0.75pt solid #dfe2ea;
+        padding: 3pt 4pt;
+        text-align: left;
+        vertical-align: top;
+      }
+      table.proj-table th {
+        color: #4b5468;
+        font-weight: 700;
+        border-bottom: 1pt solid #9aa1b5;
+      }
+      table.proj-table td.period,
+      table.proj-table th.period {
+        white-space: nowrap;
+      }
+      .project {
+        margin-bottom: 5pt;
+      }
+      .project:last-child {
+        margin-bottom: 0;
+      }
+      .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .project-header .project-name {
+        font-weight: 700;
+        font-size: 9.2pt;
+      }
+      .project-header .project-stack {
+        font-size: 8pt;
+        color: #7a8299;
+      }
+      .project-url {
+        font-size: 8pt;
+        color: #10529c;
+        margin: 1pt 0 2pt 0;
+        word-break: break-all;
+      }
+      .project p.desc {
+        margin: 0;
+        text-align: justify;
+      }
+      .education-row,
+      .cert-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .education-row .school,
+      .cert-row .cert-name {
+        font-weight: 700;
+      }
+      .education-row .degree {
+        color: #4b5468;
+        font-size: 9.2pt;
+        margin-left: 5pt;
+      }
+      .education-row .period,
+      .cert-row .period {
+        font-size: 8.6pt;
+        color: #7a8299;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="name-block">
+        <h1>
+          백도현
+          <span style="font-size: 11.5pt; font-weight: 400; color: #7a8299">Baek Dohyun</span>
+        </h1>
+        <div class="role">백엔드/풀스택 개발자 (Backend/Full-stack Developer) · 5년차</div>
+      </div>
+      <div class="contact-block">
+        <div><span class="label">Email</span>dohyun.baek@example.com</div>
+        <div><span class="label">Phone</span>010-0000-0000</div>
+        <div><span class="label">GitHub</span>github.com/wanted-hack-inchyangv</div>
+      </div>
+    </header>
+
+    <section>
+      <h2 class="section-title">소개 (Summary)</h2>
+      <p class="intro">
+        5년차 백엔드/풀스택 개발자입니다. SI(System Integration) 업체에서 공공·유통 분야 프로젝트를
+        수행하며, 다수의 SI 프로젝트에서 REST API를 설계·개발하고 정해진 일정 안에 요구사항을
+        빠짐없이 구현하여 납기를 준수해 왔습니다. Node.js/Express와 Java/Spring 기반의 백엔드 API
+        개발, 데이터 배치(batch) 처리, 운영 유지보수 업무를 두루 경험했습니다.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="section-title">기술 스택 (Skills)</h2>
+      <dl class="skills-grid">
+        <dt>Language</dt>
+        <dd>JavaScript, TypeScript, Java</dd>
+        <dt>Backend</dt>
+        <dd>Node.js, Express, Spring Boot, REST API 설계</dd>
+        <dt>Database</dt>
+        <dd>MySQL, Oracle, Redis</dd>
+        <dt>Tools</dt>
+        <dd>Git, Jenkins, Postman, Jira</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2 class="section-title">경력 (Experience)</h2>
+
+      <div class="job">
+        <div class="job-header">
+          <div>
+            <span class="company">한울정보기술</span><span class="title">백엔드 개발자</span>
+          </div>
+          <div class="period">2021.07 – 현재</div>
+        </div>
+        <ul class="bullets">
+          <li>
+            SI 업체 소속으로 공공·유통 분야 고객사 프로젝트의 백엔드 개발과 운영 유지보수를
+            담당했습니다.
+          </li>
+          <li>
+            최근 참여한 프로젝트에서는 클린 아키텍처(Clean Architecture)와 TDD(Test-Driven
+            Development)를 적용하여 유지보수성을 높였습니다.
+          </li>
+          <li>여러 프로젝트에서 정해진 일정 안에 요구 기능 구현을 완료하며 납기를 준수했습니다.</li>
+        </ul>
+      </div>
+
+      <div class="job">
+        <div class="job-header">
+          <div>
+            <span class="company">넥스트웨이브솔루션</span><span class="title">풀스택 개발자</span>
+          </div>
+          <div class="period">2020.01 – 2021.06</div>
+        </div>
+        <ul class="bullets">
+          <li>
+            웹 에이전시 소속으로 고객사 웹 서비스의 백엔드 API 개발과 화면 연동을 함께 담당했습니다.
+          </li>
+          <li>
+            짧은 일정의 프로젝트가 많아 요구사항을 빠르게 동작하는 코드로 구현하는 데 익숙합니다.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">프로젝트 수행 이력 (Project History)</h2>
+      <table class="proj-table">
+        <thead>
+          <tr>
+            <th>프로젝트명</th>
+            <th>발주처</th>
+            <th class="period">기간</th>
+            <th>역할</th>
+            <th>사용 기술</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>민원 접수 시스템 구축</td>
+            <td>A 공공기관</td>
+            <td class="period">2024.03 – 2024.12</td>
+            <td>백엔드 개발 (REST API 설계·구현)</td>
+            <td>Node.js, Express, MySQL</td>
+          </tr>
+          <tr>
+            <td>온라인몰 주문 API 고도화</td>
+            <td>B 유통사</td>
+            <td class="period">2023.02 – 2023.12</td>
+            <td>백엔드 개발, 성능 개선</td>
+            <td>Java, Spring Boot, Oracle, Redis</td>
+          </tr>
+          <tr>
+            <td>통계 포털 유지보수</td>
+            <td>A 공공기관</td>
+            <td class="period">2022.01 – 2023.01</td>
+            <td>백엔드 유지보수, 장애 대응</td>
+            <td>Node.js, Express, MySQL</td>
+          </tr>
+          <tr>
+            <td>사내 관리자 페이지 구축</td>
+            <td>C 유통사</td>
+            <td class="period">2020.03 – 2021.06</td>
+            <td>풀스택 개발 (백엔드 API + 화면 연동)</td>
+            <td>PHP, jQuery, MySQL</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 class="section-title">개인 프로젝트 (Side Projects)</h2>
+
+      <div class="project">
+        <div class="project-header">
+          <span class="project-name">게시판 REST API (Board REST API)</span>
+          <span class="project-stack">Express · TypeScript</span>
+        </div>
+        <div class="project-url">github.com/wanted-hack-inchyangv/dohyun-board-api</div>
+        <p class="desc">
+          게시글·댓글 CRUD와 페이징을 갖춘 게시판(board) REST API입니다. Express와 TypeScript로
+          구현했고 데이터는 JSON 파일에 저장합니다.
+        </p>
+      </div>
+
+      <div class="project">
+        <div class="project-header">
+          <span class="project-name">매출 보고서 자동화 배치 (Sales Report Batch)</span>
+          <span class="project-stack">Node.js</span>
+        </div>
+        <div class="project-url">github.com/wanted-hack-inchyangv/dohyun-report-batch</div>
+        <p class="desc">
+          매출 CSV 데이터를 집계해 보고서(리포트, report)를 CSV와 HTML 요약으로 자동 생성하는
+          Node.js 배치(batch) 스크립트입니다. 수작업으로 작성하던 매출 보고서를 자동화했습니다.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">학력 (Education)</h2>
+      <div class="education-row">
+        <div>
+          <span class="school">동해대학교</span><span class="degree">정보통신공학과 학사</span>
+        </div>
+        <div class="period">졸업 2020.02</div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">자격증 (Certifications)</h2>
+      <div class="cert-row">
+        <div><span class="cert-name">정보처리기사</span></div>
+        <div class="period">2020.08</div>
+      </div>
+    </section>
+  </body>
+</html>
