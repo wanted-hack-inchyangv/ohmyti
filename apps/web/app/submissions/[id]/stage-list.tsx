@@ -76,7 +76,14 @@ function StageDot({ state, index }: { state: StageView["state"]; index: number }
   );
 }
 
-export function StageList({ stages }: { stages: StageView[] }) {
+export function StageList({
+  stages,
+  reference,
+}: {
+  stages: StageView[];
+  /** 단계별 참고 시간을 잰 저장된 실행 (T-904). 없으면 시간을 보이지 않는다 */
+  reference?: { href: string; label: string } | null;
+}) {
   return (
     <ol className="flex flex-col" data-testid="stage-list">
       {stages.map((stage, index) => {
@@ -120,6 +127,19 @@ export function StageList({ stages }: { stages: StageView[] }) {
                   </span>
                 ) : null}
               </div>
+              <p className="text-sm leading-relaxed text-neutral-500">{stage.description}</p>
+              {reference && stage.referenceSeconds !== null ? (
+                <p
+                  className="text-[13px] text-neutral-500"
+                  data-testid={`stage-reference-${stage.stage}`}
+                >
+                  {`저장된 실행에서 잰 소요 시간 ${stage.referenceSeconds}초 (참고값, `}
+                  <a href={reference.href} className="font-semibold text-primary hover:underline">
+                    {reference.label}
+                  </a>
+                  {")"}
+                </p>
+              ) : null}
               {stage.summary ? (
                 <p className="text-sm leading-relaxed text-neutral-600">{stage.summary}</p>
               ) : null}

@@ -19,6 +19,7 @@ import {
 } from "@ohmyti/db";
 import { FsArtifactStore } from "@ohmyti/storage";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { stageDurationsOf } from "@/lib/demo/service";
 import * as actions from "./actions";
 import {
   buildStageViews,
@@ -37,6 +38,7 @@ import {
   resumeTextViewOf,
   retrySubmission,
   saveManualResumeText,
+  STAGE_DESCRIPTION,
   STAGE_LABEL,
   SubmissionFormSchema,
   summarizeStage,
@@ -131,6 +133,39 @@ describe("buildStageViews", () => {
     ]);
     expect(views.every((v) => v.state === "PENDING" && v.stateLabel === "대기")).toBe(true);
     expect(Object.keys(STAGE_LABEL)).toHaveLength(7);
+  });
+
+  it("T-904: 7단계 모두 설명이 있고, 참고 시간은 넘겨받은 실측값만 보인다", () => {
+    const plain = buildStageViews([]);
+    expect(plain.every((v) => v.description.length > 20)).toBe(true);
+    // 참고값을 넘기지 않으면 어떤 단계에도 시간이 없다 (진행률·예측을 만들지 않는다)
+    expect(plain.every((v) => v.referenceSeconds === null)).toBe(true);
+    const withReference = buildStageViews([], { REPO_CHECK: 12_400, ENV_PREP: 400 });
+    expect(withReference.find((v) => v.stage === "REPO_CHECK")?.referenceSeconds).toBe(12);
+    // 1초 미만도 0초로 보이지 않게 올린다
+    expect(withReference.find((v) => v.stage === "ENV_PREP")?.referenceSeconds).toBe(1);
+    expect(withReference.find((v) => v.stage === "REVIEW_WRITE")?.referenceSeconds).toBeNull();
+    expect(Object.keys(STAGE_DESCRIPTION)).toHaveLength(7);
+  });
+
+  it("T-904: 단계별 실측 시간은 DONE이고 시작·종료 기록이 모두 있는 단계만 계산한다", () => {
+    const log: EvaluationStageRecord[] = [
+      {
+        stage: "REPO_CHECK",
+        state: "DONE",
+        startedAt: "2026-09-19T06:00:00.000Z",
+        finishedAt: "2026-09-19T06:00:09.000Z",
+      },
+      { stage: "ENV_PREP", state: "DONE", startedAt: "2026-09-19T06:00:09.000Z" },
+      {
+        stage: "REVIEW_WRITE",
+        state: "FAILED",
+        startedAt: "2026-09-19T06:01:00.000Z",
+        finishedAt: "2026-09-19T06:01:30.000Z",
+      },
+    ];
+    expect(stageDurationsOf(log)).toEqual({ REPO_CHECK: 9_000 });
+    expect(stageDurationsOf([])).toEqual({});
   });
 
   it("완료된 단계는 기록된 값으로 요약하고 미지원 단계는 사유 코드·상세를 그대로 낸다", () => {

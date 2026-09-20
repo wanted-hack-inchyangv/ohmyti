@@ -102,6 +102,8 @@ export const PREFILL_EXAMPLES: PrefillExample[] = [
 ];
 
 export interface PrefillValues {
+  /** 프리필이 고른 과제 버전. 페이지가 저장된 실행에서 정한다 (T-904). 없으면 폼이 첫 번째 승인 버전을 쓴다 */
+  assignmentVersionId?: string | null;
   repoUrl: string;
   commitSha: string;
   githubProfileUrl: string;

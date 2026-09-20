@@ -239,6 +239,20 @@ export function SubmissionStatus({ initial }: SubmissionStatusProps) {
         <ResumeTextPanel submissionId={id} initial={view.context.resumeText} />
       ) : null}
 
+      {view.sameInputRun ? (
+        <a
+          href={view.sameInputRun.href}
+          className="flex flex-col gap-1 rounded-xl bg-neutral-50 px-5 py-4 ring-1 ring-neutral-200 transition-colors hover:ring-primary/50"
+          data-testid="same-input-run"
+        >
+          <span className="text-[15px] font-bold text-ink">같은 입력으로 저장된 실행 결과 보기</span>
+          <span className="text-[13px] leading-relaxed text-neutral-500">
+            같은 과제 버전·저장소·커밋 SHA로 이미 끝난 실행이 있습니다 ({view.sameInputRun.label}).
+            이 제출이 끝나기를 기다리는 동안 먼저 볼 수 있습니다. 이번 실행의 결과가 아닙니다.
+          </span>
+        </a>
+      ) : null}
+
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-bold tracking-tight sm:text-xl">작업 단계</h2>
@@ -252,7 +266,7 @@ export function SubmissionStatus({ initial }: SubmissionStatusProps) {
                 : "워커가 저장소를 확인하면 단계 기록이 시작됩니다."}
             </p>
           ) : null}
-          <StageList stages={view.stages} />
+          <StageList stages={view.stages} reference={view.stageReference} />
         </div>
       </section>
     </div>

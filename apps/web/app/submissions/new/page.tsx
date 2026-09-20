@@ -7,7 +7,9 @@ import {
   STAGE_LABEL,
   type ApprovedVersionSummary,
 } from "@/lib/submissions/service";
-import { PREFILL_EXAMPLES, readPrefill } from "@/lib/submissions/prefill";
+import { listSavedRunMatches } from "@/lib/demo/service";
+import { findSavedRunByRepo, type SavedRunMatch } from "@/lib/demo/saved-run";
+import { PREFILL_EXAMPLES, readPrefill, type PrefillValues } from "@/lib/submissions/prefill";
 import { SubmissionForm } from "./submission-form";
 
 export const metadata: Metadata = { title: "제출 · CodeGraph Reviewer" };
@@ -27,8 +29,11 @@ interface NewSubmissionPageProps {
 export default async function NewSubmissionPage({ searchParams }: NewSubmissionPageProps) {
   const prefill = readPrefill(await searchParams);
   let options: ApprovedVersionSummary[];
+  let savedRuns: SavedRunMatch[];
   try {
     options = await listApprovedVersionSummaries({ db: getDb().db, store: getArtifactStore() });
+    // 같은 입력으로 이미 끝난 실행이 있으면 기다리지 않고 먼저 볼 수 있게 한다 (T-904)
+    savedRuns = await listSavedRunMatches({ db: getDb().db });
   } catch {
     // 연결 문자열 등 비밀값이 섞일 수 있으므로 오류 본문은 화면에 내지 않는다
     return (
@@ -43,7 +48,12 @@ export default async function NewSubmissionPage({ searchParams }: NewSubmissionP
   return (
     <PageContainer width="narrow">
       <PageHeader eyebrow="채점 요청" title="제출" description={DESCRIPTION} />
-      <SubmissionForm options={options} prefill={prefill} examples={PREFILL_EXAMPLES} />
+      <SubmissionForm
+        options={options}
+        prefill={{ ...prefill, assignmentVersionId: prefillVersionId(prefill, savedRuns, options) }}
+        examples={PREFILL_EXAMPLES}
+        savedRuns={savedRuns}
+      />
       <StagePreview />
     </PageContainer>
   );
@@ -78,4 +88,20 @@ function StagePreview() {
       </ol>
     </section>
   );
+}
+
+/**
+ * 프리필이 가리키는 과제 버전 (T-902·T-904). 같은 저장소·커밋의 저장된 실행이 쓴 버전을 고르고,
+ * 그 버전이 승인 목록에 없으면 null이라 폼이 첫 번째 승인 버전을 쓴다.
+ */
+function prefillVersionId(
+  prefill: PrefillValues,
+  savedRuns: SavedRunMatch[],
+  options: ApprovedVersionSummary[],
+): string | null {
+  const saved = findSavedRunByRepo(savedRuns, prefill);
+  if (!saved) return null;
+  return options.some((option) => option.id === saved.assignmentVersionId)
+    ? saved.assignmentVersionId
+    : null;
 }

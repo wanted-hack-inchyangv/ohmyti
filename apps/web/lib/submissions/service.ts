@@ -51,6 +51,7 @@ import {
 import { ARTIFACT_CONTENT_TYPES, artifactKeys, type ArtifactStore } from "@ohmyti/storage";
 import { formatVersionLabel, type ActionResult } from "@/lib/assignments/service";
 import { specExcerpt } from "@/lib/spec-excerpt";
+import { listSavedRunMatches, matchSavedRun, readSavedStageDurations } from "@/lib/demo/service";
 import { MAX_MANUAL_RESUME_CHARS } from "./resume-text";
 
 export interface SubmissionDeps {
@@ -236,6 +237,23 @@ export const STAGE_LABEL: Record<EvaluationStage, string> = {
   INTERVIEW_KIT: "인터뷰 키트",
 };
 
+/** 단계마다 무엇을 하는지 (T-904). 진행률이 아니라 설명이다 */
+export const STAGE_DESCRIPTION: Record<EvaluationStage, string> = {
+  REPO_CHECK:
+    "공개 저장소의 tarball을 받아 커밋 SHA를 고정하고, 지원하는 언어·크기인지 확인합니다. 코드를 실행하지는 않습니다.",
+  ENV_PREP:
+    "승인된 실행 템플릿의 고정 의존성으로 격리 실행 환경을 준비하고 제출물을 기동해 `/health`로 준비 상태를 확인합니다.",
+  REQUIREMENT_VERIFY:
+    "신뢰 하네스가 기준마다 정해진 요청을 보내고 응답·상태 변화를 기록합니다. 판정과 점수는 이 기록에서만 나옵니다.",
+  TEST_EFFECTIVENESS:
+    "코드에 결함을 하나씩 주입한 변형을 만들어 제출 테스트가 그 결함을 잡는지 실험합니다.",
+  REVIEW_WRITE: "저장된 판정과 코드 신호를 근거로 LLM이 설계 검토 초안 문장을 씁니다. 점수는 바꾸지 않습니다.",
+  CONTEXT_LINK:
+    "이력서 주장과 GitHub 공개 활동에서 관련 근거를 찾아 연결합니다. 채점 입력에는 들어가지 않습니다.",
+  INTERVIEW_KIT:
+    "저장된 판정·변이·설계 신호에서 질문 슬롯을 정하고 문장을 채워 인터뷰 키트를 만듭니다.",
+};
+
 export const STAGE_STATE_LABEL: Record<StageState, string> = {
   PENDING: "대기",
   RUNNING: "진행 중",
@@ -288,6 +306,10 @@ export function parseUnsupportedReason(reason: string | null | undefined): Unsup
 export interface StageView {
   stage: EvaluationStage;
   label: string;
+  /** 이 단계가 무엇을 하는지 (T-904) */
+  description: string;
+  /** 저장된 실행에서 잰 소요 시간(초). 기록이 없으면 null이고 화면에 시간을 보이지 않는다 */
+  referenceSeconds: number | null;
   state: StageState;
   stateLabel: string;
   startedAt: string | null;
@@ -409,13 +431,23 @@ export function summarizeStage(record: EvaluationStageRecord): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-/** `stage_log`만으로 7단계 뷰를 만든다. 기록이 없는 단계는 PENDING */
-export function buildStageViews(stageLog: readonly EvaluationStageRecord[]): StageView[] {
+/**
+ * `stage_log`만으로 7단계 뷰를 만든다. 기록이 없는 단계는 PENDING.
+ * `referenceDurations`가 있으면 저장된 실행에서 잰 소요 시간을 참고값으로 싣는다 (T-904). 없는 단계는 싣지 않는다.
+ */
+export function buildStageViews(
+  stageLog: readonly EvaluationStageRecord[],
+  referenceDurations: Partial<Record<EvaluationStage, number>> = {},
+): StageView[] {
   return EVALUATION_STAGE_ORDER.map((stage) => {
     const record = stageLog.find((r) => r.stage === stage) ?? { stage, state: "PENDING" as const };
+    const referenceMs = referenceDurations[stage];
     return {
       stage,
       label: STAGE_LABEL[stage],
+      description: STAGE_DESCRIPTION[stage],
+      referenceSeconds:
+        typeof referenceMs === "number" ? Math.max(1, Math.round(referenceMs / 1000)) : null,
       state: record.state,
       stateLabel: STAGE_STATE_LABEL[record.state],
       startedAt: record.startedAt ?? null,
@@ -460,6 +492,10 @@ export interface SubmissionStatusView {
   retryable: boolean;
   /** 평가가 없는데 FAILED면 평가 생성 전(등록 오류·환경 장애)에 끝난 것이다 */
   failureKind: FailureKind | null;
+  /** 같은 입력(과제 버전·저장소·커밋 SHA)으로 이미 끝난 저장된 실행 (T-904) */
+  sameInputRun: { href: string; label: string } | null;
+  /** 단계별 참고 시간을 어느 저장된 실행에서 쟀는지. 없으면 시간을 보이지 않는다 */
+  stageReference: { href: string; label: string } | null;
 }
 
 /** 이력서 텍스트 상태 (T-501). 본문은 담지 않는다 */
@@ -517,7 +553,21 @@ export async function readSubmissionStatus(
   ]);
   const assignment = version ? await getAssignment(deps.db, version.assignmentId) : null;
   const stageLog = evaluation?.stageLog ?? [];
-  const stages = buildStageViews(stageLog);
+  // 저장된 실행에서 잰 단계별 시간과 "같은 입력" 링크 (T-904). 값이 없으면 화면에 아무 시간도 보이지 않는다
+  const [reference, matches] = await Promise.all([
+    readSavedStageDurations(deps, submission.assignmentVersionId).catch(() => null),
+    listSavedRunMatches(deps).catch(() => []),
+  ]);
+  const sameInputRun = matchSavedRun(
+    matches,
+    {
+      assignmentVersionId: submission.assignmentVersionId,
+      repoUrl: submission.repoUrl,
+      commitSha: submission.submissionSha ?? submission.repoRef ?? "",
+    },
+    { excludeSubmissionId: submission.id },
+  );
+  const stages = buildStageViews(stageLog, reference?.durations ?? {});
   const failedStage = stages.find((s) => s.state === "FAILED");
   const retryable =
     submission.status === "FAILED" && (evaluation === null || isEnvironmentFailure(stageLog));
@@ -554,6 +604,8 @@ export async function readSubmissionStatus(
       terminal: isTerminalSubmissionStatus(submission.status),
       retryable,
       failureKind: failedStage?.failureKind ?? null,
+      sameInputRun: sameInputRun ? { href: sameInputRun.href, label: sameInputRun.label } : null,
+      stageReference: reference ? { href: reference.href, label: reference.label } : null,
     },
   };
 }

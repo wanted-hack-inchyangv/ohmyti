@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { buttonClass, inputClassName } from "@/components/ui";
 import { createSubmissionFromFormAction } from "@/lib/submissions/actions";
+import { matchSavedRun, type SavedRunMatch } from "@/lib/demo/saved-run";
 import type { ExampleResumeId, PrefillExample, PrefillValues } from "@/lib/submissions/prefill";
 import type { ApprovedVersionSummary } from "@/lib/submissions/service";
 
@@ -19,6 +20,8 @@ interface SubmissionFormProps {
   prefill: PrefillValues;
   /** `예시로 채우기` 칩 목록 */
   examples: PrefillExample[];
+  /** 같은 입력으로 이미 끝난 저장된 실행 목록 (T-904) */
+  savedRuns: SavedRunMatch[];
 }
 
 type FieldErrors = Partial<
@@ -68,8 +71,17 @@ export function validateClientFields(values: {
 
 const inputClass = inputClassName;
 
-export function SubmissionForm({ options, prefill, examples }: SubmissionFormProps) {
-  const [assignmentVersionId, setAssignmentVersionId] = useState(options[0]?.id ?? "");
+export function SubmissionForm({
+  options,
+  prefill,
+  examples,
+  savedRuns,
+}: SubmissionFormProps) {
+  const [assignmentVersionId, setAssignmentVersionId] = useState(
+    (prefill.assignmentVersionId && options.some((o) => o.id === prefill.assignmentVersionId)
+      ? prefill.assignmentVersionId
+      : options[0]?.id) ?? "",
+  );
   const [repoUrl, setRepoUrl] = useState(prefill.repoUrl);
   const [commitSha, setCommitSha] = useState(prefill.commitSha);
   const [githubProfileUrl, setGithubProfileUrl] = useState(prefill.githubProfileUrl);
@@ -128,6 +140,7 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
   const selected = options.find((option) => option.id === assignmentVersionId) ?? null;
   const parsedRepo = parseRepoLabel(repoUrl);
   const hasContext = Boolean(exampleResumeId || resumeName || githubProfileUrl.trim());
+  const sameInputRun = matchSavedRun(savedRuns, { assignmentVersionId, repoUrl, commitSha });
 
   return (
     <form
@@ -321,6 +334,20 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
         >
           {serverError}
         </p>
+      ) : null}
+
+      {sameInputRun ? (
+        <a
+          href={sameInputRun.href}
+          className="flex flex-col gap-1 rounded-xl bg-neutral-50 px-5 py-4 ring-1 ring-neutral-200 transition-colors hover:ring-primary/50"
+          data-testid="same-input-run"
+        >
+          <span className="text-[15px] font-bold text-ink">같은 입력으로 저장된 실행 결과 보기</span>
+          <span className="text-[13px] leading-relaxed text-neutral-500">
+            같은 과제 버전·저장소·커밋 SHA로 이미 끝난 실행이 있습니다 ({sameInputRun.label}).
+            채점을 기다리지 않고 바로 볼 수 있습니다.
+          </span>
+        </a>
       ) : null}
 
       <section

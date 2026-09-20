@@ -8,7 +8,11 @@
  * - `readDemoRunStatus`: 새 실행 화면의 상태. 끝나기 전에는 실행 중으로, 실패·미지원이거나 워커가 작업을 시작하지 않으면
  *   실패 사유와 이전의 저장된 실행 링크를 보인다. 실시간 성공으로 꾸미지 않는다 (PRD 7장).
  */
-import { formatStoredScoreDisplay } from "@ohmyti/core";
+import {
+  formatStoredScoreDisplay,
+  type EvaluationStage,
+  type EvaluationStageRecord,
+} from "@ohmyti/core";
 import {
   assignmentVersions,
   createSubmission,
@@ -37,6 +41,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { formatVersionLabel } from "@/lib/assignments/service";
 import { specExcerpt } from "@/lib/spec-excerpt";
+import { matchSavedRun, normalizeRepoUrl, type SavedRunMatch } from "./saved-run";
 import { formatSavedAt, savedRunLabel } from "./format";
 import {
   DEMO_RECOMMENDED_ORDER,
@@ -48,6 +53,7 @@ import {
 } from "./samples";
 
 export { formatSavedAt, savedRunLabel };
+export { matchSavedRun, normalizeRepoUrl, type SavedRunMatch };
 
 export interface DemoDeps {
   db: Database;
@@ -272,6 +278,65 @@ export async function readDemoOverview(deps: DemoDeps): Promise<DemoOverview> {
     assignment: latest ? await readAssignmentSummary(deps, latest.assignmentVersionId) : null,
     recommendedOrder: DEMO_RECOMMENDED_ORDER,
   };
+}
+
+// ── 같은 입력의 저장된 실행 · 단계별 실측 시간 (T-904) ──────────────────────────
+
+export async function listSavedRunMatches(
+  deps: Pick<DemoDeps, "db">,
+): Promise<SavedRunMatch[]> {
+  const saved = await listSavedDemoEvaluations(deps.db);
+  return [...saved.values()].map((item) => ({
+    assignmentVersionId: item.assignmentVersionId,
+    repoUrl: item.repoUrl,
+    submissionSha: item.submissionSha,
+    submissionId: item.submissionId,
+    evaluationId: item.evaluationId,
+    href: `/evaluations/${item.evaluationId}`,
+    label: savedRunLabel(item.finishedAt),
+  }));
+}
+
+/** 저장된 실행에서 잰 단계별 소요 시간 (ms). 시작·종료 기록이 있는 단계만 담는다 */
+export interface SavedStageDurations {
+  /** 어느 저장된 실행에서 잰 값인지 */
+  label: string;
+  href: string;
+  durations: Partial<Record<EvaluationStage, number>>;
+}
+
+export async function readSavedStageDurations(
+  deps: Pick<DemoDeps, "db">,
+  assignmentVersionId?: string,
+): Promise<SavedStageDurations | null> {
+  const saved = [...(await listSavedDemoEvaluations(deps.db)).values()]
+    .filter((item) => !assignmentVersionId || item.assignmentVersionId === assignmentVersionId)
+    .sort((a, b) => b.finishedAt.getTime() - a.finishedAt.getTime());
+  for (const item of saved) {
+    const evaluation = await findLatestEvaluation(deps.db, item.submissionId);
+    const durations = stageDurationsOf(evaluation?.stageLog ?? []);
+    if (Object.keys(durations).length > 0) {
+      return {
+        label: savedRunLabel(item.finishedAt),
+        href: `/evaluations/${item.evaluationId}`,
+        durations,
+      };
+    }
+  }
+  return null;
+}
+
+/** `stage_log`의 시작·종료 시각 차이. 계산할 수 없는 단계는 담지 않는다 (없는 값을 지어내지 않는다, G-09) */
+export function stageDurationsOf(
+  stageLog: readonly EvaluationStageRecord[],
+): Partial<Record<EvaluationStage, number>> {
+  const out: Partial<Record<EvaluationStage, number>> = {};
+  for (const record of stageLog) {
+    if (record.state !== "DONE" || !record.startedAt || !record.finishedAt) continue;
+    const ms = new Date(record.finishedAt).getTime() - new Date(record.startedAt).getTime();
+    if (Number.isFinite(ms) && ms >= 0) out[record.stage] = ms;
+  }
+  return out;
 }
 
 // ── 새 실행 ─────────────────────────────────────────────────────────────────────
