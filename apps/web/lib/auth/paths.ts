@@ -1,4 +1,10 @@
-/** 보호 대상에서 제외되는 경로. proxy의 matcher와 함께 이중으로 검사한다. */
+/**
+ * 보호 대상에서 제외되는 경로. proxy의 matcher와 함께 이중으로 검사한다.
+ *
+ * 배포된 서비스는 `APP_ACCESS_MODE=public`이라 `resolveAccessConfig`가 보호를 끄고 모든 경로가 열린다
+ * (README "90초 체험 가이드"의 "로그인 없이"는 이 설정을 전제로 한다). 이 목록은 비밀번호 보호를 켠
+ * 환경에서만 쓰이며, 그때는 `/demo`를 포함한 제품 화면이 모두 보호된다 (T-907에서 확인).
+ */
 const PUBLIC_EXACT = new Set([
   "/login",
   "/api/login",
