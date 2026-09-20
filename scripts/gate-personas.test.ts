@@ -3,12 +3,16 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MATRIX,
   comparePersona,
+  countPdfPages,
   forbiddenRepos,
   parseExistingSubmissions,
   PersonaMatrixSchema,
   STAGES,
+  type KitFacts,
+  type KitQuestionFacts,
   type PersonaFacts,
   type PersonaMatrix,
+  type ReportFacts,
 } from "./gate-personas";
 
 const MAX_POINTS = new Map<string, number>([
@@ -33,10 +37,71 @@ async function loadMatrix(): Promise<PersonaMatrix> {
   return PersonaMatrixSchema.parse(JSON.parse(await readFile(DEFAULT_MATRIX, "utf8")));
 }
 
+/** 기대 키트를 그대로 만족하는 질문 목록 (기대에 없는 슬롯은 선택 질문으로 채운다) */
+function kitFactsMatching(matrix: PersonaMatrix, handle: string): KitFacts {
+  const expected = matrix.personas[handle]!.kit;
+  const questions: KitQuestionFacts[] = [];
+  for (const [kind, expectedCount] of Object.entries(expected.kindCounts)) {
+    const count = typeof expectedCount === "number" ? expectedCount : expectedCount.max;
+    const wanted = expected.questions.filter((q) => q.kind === kind);
+    for (let i = 0; i < count; i += 1) {
+      const want = wanted[i];
+      questions.push({
+        id: want?.id ?? `${kind}:filler-${i + 1}`,
+        number: questions.length + 1,
+        kind,
+        competency: "DESIGN",
+        priority: want?.priority ?? "OPTIONAL",
+        minutes: 6,
+        question: "그 동작을 어떻게 확인했는지 설명해 주시겠어요?",
+        intent: `${want?.anyOf?.[0] ?? "관측"} 근거를 본인 말로 설명할 수 있는지 본다`,
+        probes: ["무엇을 먼저 확인했나요?", "다른 방법은 무엇이 있었나요?"],
+        positiveSignals: ["재현 절차를 말한다", "관측과 원인을 나눈다"],
+        concernSignals: ["추측으로 답한다", "근거를 말하지 못한다"],
+        refs: ["기준 R-05"],
+        refKinds: kind === "RESUME_BRIDGE" ? ["CONTEXT_LINK", "CRITERION"] : ["CRITERION"],
+        source: "LLM",
+        lint: [],
+      });
+    }
+  }
+  return {
+    slotCount: questions.length,
+    templateCount: 0,
+    llm: "OK",
+    llmReason: null,
+    promptVersion: "interview-kit-v1",
+    model: "deepseek-chat",
+    inputDigest: "b".repeat(64),
+    dropped: [],
+    plans: [
+      { durationMinutes: 45, totalMinutes: 40, questionCount: 4 },
+      { durationMinutes: 60, totalMinutes: 58, questionCount: 6 },
+    ],
+    questions,
+  };
+}
+
+function reportFactsMatching(facts: PersonaFacts): ReportFacts {
+  return {
+    scoreDisplay: facts.scoreDisplay,
+    verdictCounts: { PASS: 10, FAIL: 2, PARTIAL: 0, INCONCLUSIVE: 1 },
+    criteria: { ...facts.criteria },
+    mustQuestions: (facts.kit?.questions ?? [])
+      .filter((q) => q.priority === "MUST")
+      .map((q) => ({ number: q.number, question: q.question, source: q.source })),
+    interviewGuideStatus: "AVAILABLE",
+    resumeLinksStatus: "AVAILABLE",
+    resumeLinkCount: 3,
+    designReviewStatus: "AVAILABLE",
+    forbidden: [],
+  };
+}
+
 /** 기대값을 그대로 만족하는 관측값 */
 function factsMatching(matrix: PersonaMatrix, handle: string): PersonaFacts {
   const p = matrix.personas[handle]!;
-  return {
+  const facts: PersonaFacts = {
     criteria: Object.fromEntries(
       Object.entries(p.criteria).map(([id, verdict]) => [
         id,
@@ -81,7 +146,12 @@ function factsMatching(matrix: PersonaMatrix, handle: string): PersonaFacts {
         criterionId: "R-05",
       })),
     ],
+    kit: null,
+    report: null,
   };
+  facts.kit = kitFactsMatching(matrix, handle);
+  facts.report = reportFactsMatching(facts);
+  return facts;
 }
 
 describe("gate:personas 기대값 (T-606)", () => {
@@ -143,6 +213,12 @@ describe("comparePersona", () => {
     dohyun.mutations["M-05"] = { outcome: "NOT_APPLICABLE", reason: "대상 로직 없음" };
     dohyun.criteria.G3 = { verdict: "INCONCLUSIVE", earnedPoints: null };
     dohyun.scoreDisplay = "75~90/100 · 15점 검토 대기";
+    // 리포트는 같은 저장값을 옮기므로 워크벤치 값과 함께 바뀐다 (리포트 대조는 아래 T-708 테스트에서 본다)
+    dohyun.report = {
+      ...dohyun.report!,
+      scoreDisplay: dohyun.scoreDisplay,
+      criteria: dohyun.criteria,
+    };
     expect(comparePersona(matrix, "dohyun", MAX_POINTS, dohyun).mismatches).toEqual([
       "G3: 기대 FAIL 0점, 실제 INCONCLUSIVE null점",
       "M-05: 기대 SURVIVED, 실제 NOT_APPLICABLE (대상 로직 없음)",
@@ -177,6 +253,68 @@ describe("comparePersona", () => {
       "R-11: 판정 없음 (기대 PASS)",
       "CONTEXT_LINK: 기대 DONE, 실제 FAILED",
     ]);
+  });
+});
+
+describe("comparePersona · 인터뷰 키트와 채용 리포트 (T-708)", () => {
+  it("키트가 없거나 질문 수·우선순위가 다르면 불일치다", async () => {
+    const matrix = await loadMatrix();
+    const taeyun = factsMatching(matrix, "taeyun");
+    taeyun.kit = null;
+    expect(comparePersona(matrix, "taeyun", MAX_POINTS, taeyun).mismatches).toContain(
+      "인터뷰 키트를 읽지 못함",
+    );
+
+    const dohyun = factsMatching(matrix, "dohyun");
+    const first = dohyun.kit!.questions[0]!;
+    first.priority = first.priority === "MUST" ? "SHOULD" : "MUST";
+    dohyun.kit!.questions = dohyun.kit!.questions.filter((q) => q.kind !== "EXTENSION");
+    dohyun.kit!.slotCount = dohyun.kit!.questions.length;
+    const result = comparePersona(matrix, "dohyun", MAX_POINTS, dohyun);
+    expect(result.mismatches.some((m) => m.includes("EXTENSION 질문 수"))).toBe(true);
+    expect(result.mismatches.some((m) => m.includes("우선순위"))).toBe(true);
+  });
+
+  it("질문 검사 위반·근거 없음·과제 비교 이력서 질문을 불일치로 잡고 기본 질문 대체는 경고다", async () => {
+    const matrix = await loadMatrix();
+    const gaeun = factsMatching(matrix, "gaeun");
+    const kit = gaeun.kit!;
+    kit.templateCount = 2;
+    kit.questions[0]!.lint = ["question: MULTI_QUESTION"];
+    kit.questions[0]!.refs = [];
+    const bridge = kit.questions.find((q) => q.kind === "RESUME_BRIDGE")!;
+    bridge.refKinds = ["CONTEXT_LINK"];
+    bridge.question = "이번 과제와 비교하면 무엇이 달랐나요?";
+    const result = comparePersona(matrix, "gaeun", MAX_POINTS, gaeun);
+    expect(result.mismatches).toContain(`${kit.questions[0]!.id}: 근거 참조 없음`);
+    expect(result.mismatches).toContain(
+      `${kit.questions[0]!.id}: 질문 검사 위반 question: MULTI_QUESTION`,
+    );
+    expect(result.mismatches).toContain(
+      `${bridge.id}: 관측 기준이 없는 이력서 연결 질문이 과제와 비교함`,
+    );
+    expect(result.warnings).toContain(`기본 질문(TEMPLATE) 대체 2/${kit.slotCount}`);
+  });
+
+  it("리포트의 판정·점수가 워크벤치와 다르거나 금지 표현이 있으면 불일치다", async () => {
+    const matrix = await loadMatrix();
+    const seojin = factsMatching(matrix, "seojin");
+    seojin.report!.scoreDisplay = "100/100";
+    seojin.report!.criteria["R-05"] = { verdict: "FAIL", earnedPoints: 0 };
+    seojin.report!.forbidden = ["추천"];
+    const mismatches = comparePersona(matrix, "seojin", MAX_POINTS, seojin).mismatches;
+    expect(mismatches).toContain(
+      `리포트 점수 표시: 워크벤치 ${seojin.scoreDisplay}, 리포트 100/100`,
+    );
+    expect(mismatches).toContain("리포트 R-05: 워크벤치 PASS 14점, 리포트 FAIL 0점");
+    expect(mismatches).toContain("금지 표현 추천");
+  });
+});
+
+describe("countPdfPages", () => {
+  it("페이지 트리의 Count를 읽고 없으면 Page 객체를 센다", () => {
+    expect(countPdfPages("<< /Type /Pages /Kids [1 0 R 2 0 R] /Count 3 >>")).toBe(3);
+    expect(countPdfPages("<< /Type /Page >> << /Type /Page >>")).toBe(2);
   });
 });
 

@@ -1,5 +1,5 @@
 {
-  "note": "페르소나 4종의 배포 환경 회귀 기대값 (T-606). `pnpm gate:personas`가 읽는다. 판정·변이 결과·점수 표시·근거 저장소·단계 상태·후속 질문 존재는 실패 조건이고, 주장 상태 라벨(claims)은 LLM 판단이라 불일치를 경고로만 기록한다. 판정 점수는 rubric 배점에서 정한다(PASS = 배점, FAIL = 0, INCONCLUSIVE = null).",
+  "note": "페르소나 4종의 배포 환경 회귀 기대값 (T-606·T-708). `pnpm gate:personas`가 읽는다. 판정·변이 결과·점수 표시·근거 저장소·단계 상태·후속 질문 존재는 실패 조건이고, 주장 상태 라벨(claims)은 LLM 판단이라 불일치를 경고로만 기록한다. 판정 점수는 rubric 배점에서 정한다(PASS = 배점, FAIL = 0, INCONCLUSIVE = null). 키트 기대값(`kit`)은 T-708에서 더했다: 유형별 질문 수(이력서 연결은 LLM이 고른 주장 수에 따라 범위)와 있어야 하는 질문 슬롯·우선순위·근거 키워드다. 슬롯과 우선순위는 저장된 판정에서 결정적으로 정해진다(T-702).",
   "organization": "wanted-hack-inchyangv",
   "githubProfileUrl": "https://github.com/wanted-hack-inchyangv",
   "rubricVersion": "v2-be07fb44",
@@ -41,10 +41,49 @@
       "scoreDisplay": "90~100/100 · 10점 검토 대기",
       "followUpClaims": [],
       "claims": [
-        { "anyOf": ["재고 선점", "초과 판매"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["멱등성 키", "멱등성", "중복 주문"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["Kafka", "카프카"], "status": "NO_DATA" }
-      ]
+        {
+          "anyOf": ["재고 선점", "초과 판매"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["멱등성 키", "멱등성", "중복 주문"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["Kafka", "카프카"],
+          "status": "NO_DATA"
+        }
+      ],
+      "kit": {
+        "kindCounts": {
+          "FAILURE_DEBRIEF": 0,
+          "TEST_DESIGN": 0,
+          "DESIGN_TRADEOFF": 2,
+          "STRENGTH_DEPTH": 2,
+          "EXTENSION": 2,
+          "RESUME_BRIDGE": {
+            "min": 1,
+            "max": 3
+          }
+        },
+        "questions": [
+          {
+            "id": "STRENGTH_DEPTH:R-03",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          },
+          {
+            "id": "STRENGTH_DEPTH:R-04",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          },
+          {
+            "id": "EXTENSION:multi-instance",
+            "kind": "EXTENSION",
+            "priority": "MUST"
+          }
+        ]
+      }
     },
     "taeyun": {
       "level": "주니어",
@@ -81,12 +120,58 @@
         "M-04": "대상 기준 R-06이 기준 상태에서 이미 FAIL이라 적용하지 않는다. G2는 M-03 KILLED로 PASS다"
       },
       "scoreDisplay": "78~88/100 · 10점 검토 대기",
-      "followUpClaims": [{ "label": "결제 웹훅 멱등 처리", "anyOf": ["웹훅", "webhook"] }],
+      "followUpClaims": [
+        {
+          "label": "결제 웹훅 멱등 처리",
+          "anyOf": ["웹훅", "webhook"]
+        }
+      ],
       "claims": [
-        { "anyOf": ["중복 예약", "시간대"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["웹훅", "webhook"], "status": "NO_DATA" },
-        { "anyOf": ["CLI"], "status": "NEEDS_CHECK" }
-      ]
+        {
+          "anyOf": ["중복 예약", "시간대"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["웹훅", "webhook"],
+          "status": "NO_DATA"
+        },
+        {
+          "anyOf": ["CLI"],
+          "status": "NEEDS_CHECK"
+        }
+      ],
+      "kit": {
+        "kindCounts": {
+          "FAILURE_DEBRIEF": 2,
+          "TEST_DESIGN": 0,
+          "DESIGN_TRADEOFF": 2,
+          "STRENGTH_DEPTH": 2,
+          "EXTENSION": 2,
+          "RESUME_BRIDGE": {
+            "min": 1,
+            "max": 3
+          }
+        },
+        "questions": [
+          {
+            "id": "FAILURE_DEBRIEF:R-06",
+            "kind": "FAILURE_DEBRIEF",
+            "priority": "MUST",
+            "anyOf": ["기준 R-06"]
+          },
+          {
+            "id": "FAILURE_DEBRIEF:R-07",
+            "kind": "FAILURE_DEBRIEF",
+            "priority": "MUST",
+            "anyOf": ["기준 R-07"]
+          },
+          {
+            "id": "STRENGTH_DEPTH:R-03",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          }
+        ]
+      }
     },
     "gaeun": {
       "level": "신입",
@@ -127,13 +212,63 @@
       },
       "scoreDisplay": "37~57/100 · 20점 검토 대기",
       "followUpClaims": [
-        { "label": "동시성 제어와 멱등성 설계 경험", "anyOf": ["동시성", "멱등"] }
+        {
+          "label": "동시성 제어와 멱등성 설계 경험",
+          "anyOf": ["동시성", "멱등"]
+        }
       ],
       "claims": [
-        { "anyOf": ["React"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["Express"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["동시성", "멱등"], "status": "NEEDS_CHECK" }
-      ]
+        {
+          "anyOf": ["React"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["Express"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["동시성", "멱등"],
+          "status": "NEEDS_CHECK"
+        }
+      ],
+      "kit": {
+        "kindCounts": {
+          "FAILURE_DEBRIEF": 4,
+          "TEST_DESIGN": 1,
+          "DESIGN_TRADEOFF": 2,
+          "STRENGTH_DEPTH": 2,
+          "EXTENSION": 2,
+          "RESUME_BRIDGE": {
+            "min": 1,
+            "max": 3
+          }
+        },
+        "questions": [
+          {
+            "id": "FAILURE_DEBRIEF:R-05",
+            "kind": "FAILURE_DEBRIEF",
+            "priority": "MUST",
+            "anyOf": ["기준 R-05"]
+          },
+          {
+            "id": "FAILURE_DEBRIEF:R-06",
+            "kind": "FAILURE_DEBRIEF",
+            "priority": "MUST",
+            "anyOf": ["기준 R-06"]
+          },
+          {
+            "id": "TEST_DESIGN:G1",
+            "kind": "TEST_DESIGN",
+            "priority": "MUST",
+            "anyOf": ["변이 M-01"]
+          },
+          {
+            "id": "STRENGTH_DEPTH:R-03",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          }
+        ]
+      }
     },
     "dohyun": {
       "level": "미들",
@@ -175,10 +310,67 @@
         }
       ],
       "claims": [
-        { "anyOf": ["SI", "납기"], "status": "EVIDENCE_FOUND" },
-        { "anyOf": ["TDD", "클린 아키텍처", "Clean Architecture"], "status": "NO_DATA" },
-        { "anyOf": ["매출", "보고서", "배치"], "status": "EVIDENCE_FOUND" }
-      ]
+        {
+          "anyOf": ["SI", "납기"],
+          "status": "EVIDENCE_FOUND"
+        },
+        {
+          "anyOf": ["TDD", "클린 아키텍처", "Clean Architecture"],
+          "status": "NO_DATA"
+        },
+        {
+          "anyOf": ["매출", "보고서", "배치"],
+          "status": "EVIDENCE_FOUND"
+        }
+      ],
+      "kit": {
+        "kindCounts": {
+          "FAILURE_DEBRIEF": 0,
+          "TEST_DESIGN": 2,
+          "DESIGN_TRADEOFF": 2,
+          "STRENGTH_DEPTH": 2,
+          "EXTENSION": 2,
+          "RESUME_BRIDGE": {
+            "min": 1,
+            "max": 3
+          }
+        },
+        "questions": [
+          {
+            "id": "STRENGTH_DEPTH:R-03",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          },
+          {
+            "id": "STRENGTH_DEPTH:R-04",
+            "kind": "STRENGTH_DEPTH",
+            "priority": "MUST"
+          },
+          {
+            "id": "EXTENSION:multi-instance",
+            "kind": "EXTENSION",
+            "priority": "MUST"
+          },
+          {
+            "id": "TEST_DESIGN:G1",
+            "kind": "TEST_DESIGN",
+            "priority": "SHOULD",
+            "anyOf": ["변이 M-01"]
+          },
+          {
+            "id": "TEST_DESIGN:G2",
+            "kind": "TEST_DESIGN",
+            "priority": "OPTIONAL",
+            "anyOf": ["변이 M-03"]
+          },
+          {
+            "id": "DESIGN_TRADEOFF:busy-waits",
+            "kind": "DESIGN_TRADEOFF",
+            "priority": "SHOULD",
+            "anyOf": ["src/index.ts"]
+          }
+        ]
+      }
     }
   }
 }

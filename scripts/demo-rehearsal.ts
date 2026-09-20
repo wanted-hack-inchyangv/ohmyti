@@ -91,21 +91,21 @@ export function rehearsalSteps(c: string, r05Run: string | null): RehearsalStep[
     },
     {
       segment: "75~90초",
-      name: "08-resume-links",
+      name: "08-hiring-report",
+      path: `${wb}/report`,
+      expectTexts: ["한눈 요약", "54~69/100"],
+    },
+    {
+      segment: "75~90초",
+      name: "09-interview-kit",
+      path: `${wb}/interview-kit`,
+      expectTexts: ["인터뷰 키트", "필수"],
+    },
+    {
+      segment: "75~90초",
+      name: "10-resume-links",
       path: `${wb}?tab=resume`,
       expectTexts: ["확인 필요"],
-    },
-    {
-      segment: "75~90초",
-      name: "09-follow-up-questions",
-      path: `${wb}?tab=questions`,
-      expectTexts: ["후속 질문"],
-    },
-    {
-      segment: "75~90초",
-      name: "10-r12-review",
-      path: `${wb}?criterion=R-12`,
-      expectTexts: ["검토 대기"],
     },
   ];
 }

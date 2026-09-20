@@ -1,6 +1,10 @@
 /**
- * 6단계 게이트 (T-606): 가상 지원자 페르소나 4종(`samples/personas/`)을 배포 환경에 실제로 제출하고
+ * 6단계 게이트 (T-606) · 7단계 게이트 (T-708): 가상 지원자 페르소나 4종(`samples/personas/`)을 배포 환경에 실제로 제출하고
  * 조회 API의 결과를 `samples/personas/expected-matrix.json`과 대조한다.
+ *
+ * T-708에서 인터뷰 키트(`/api/evaluations/[id]/interview-kit`)와 채용 리포트(`/api/evaluations/[id]/hiring-report`) 대조를
+ * 더했다. 키트의 질문 슬롯·유형별 수·우선순위, 질문마다의 결정적 검사와 근거 참조, 리포트와 워크벤치의 판정·점수 일치,
+ * 금지 표현 0건이 실패 조건이고 기본 질문 대체·버린 LLM 출력은 경고다. 기록은 `docs/gates/stage7.md`에 남는다.
  *
  * 흐름: Playwright로 웹 폼(`/submissions/new`)에 저장소 URL·SHA·이력서 PDF·GitHub 프로필 URL을 넣어 제출한다
  * (`POST /api/submissions`는 이력서를 받지 않는다) → `GET /api/submissions/[id]` 폴링 → `GET /api/evaluations/[id]`
@@ -27,10 +31,21 @@ import {
   ContextStatusSchema,
   EvaluationContextReportResponseSchema,
   EvaluationReportResponseSchema,
+  findForbiddenReportExpressions,
+  HiringReportResponseSchema,
+  INTERVIEW_QUESTION_KIND_LABELS,
+  InterviewKitReportResponseSchema,
+  InterviewPrioritySchema,
+  InterviewQuestionKindSchema,
+  interviewQuestionNumbers,
+  lintInterviewQuestion,
   MutationOutcomeSchema,
   VerdictSchema,
   type EvaluationContextReport,
   type EvaluationReport,
+  type HiringReport,
+  type InterviewKit,
+  type ObservationRef,
 } from "@ohmyti/core";
 import "./load-env";
 import { GateClient, unwrap, waitForTerminal } from "./gate-phase2";
@@ -40,6 +55,9 @@ export const DEFAULT_MATRIX = path.join(repoRoot, "samples", "personas", "expect
 export const DEFAULT_OUT = path.join(repoRoot, "docs", "gates", "personas.md");
 export const DEFAULT_JSON_OUT = path.join(repoRoot, "docs", "gates", "personas.json");
 export const DEFAULT_SCREENSHOTS = path.join(repoRoot, "docs", "gates", "personas");
+/** 7단계 게이트 기록 (T-708) */
+export const DEFAULT_STAGE7_OUT = path.join(repoRoot, "docs", "gates", "stage7.md");
+export const DEFAULT_STAGE7_DOCS = path.join(repoRoot, "docs", "gates", "stage7");
 /** 워커가 페르소나를 순서대로 처리하므로 마지막 제출은 앞 제출이 끝날 때까지 기다린다 */
 export const DEFAULT_TIMEOUT_MS = 40 * 60 * 1000;
 export const DEFAULT_POLL_MS = 10_000;
@@ -56,6 +74,36 @@ export const STAGES = [
 // ── 기대값 ──────────────────────────────────────────────────────────────────────
 
 const KeywordsSchema = z.array(z.string().min(1)).min(1);
+
+/**
+ * 인터뷰 키트 질문 하나의 기대값 (T-708). 슬롯 ID·유형·우선순위는 저장된 판정에서 결정적으로 정해지므로 실패 조건이고,
+ * `anyOf`는 그 질문의 문장·근거에 있어야 하는 신호 키워드다(설계 신호 근거 같은 것).
+ */
+export const KitQuestionExpectationSchema = z.strictObject({
+  id: z.string().min(1),
+  kind: InterviewQuestionKindSchema,
+  priority: InterviewPrioritySchema,
+  anyOf: KeywordsSchema.optional(),
+});
+export type KitQuestionExpectation = z.infer<typeof KitQuestionExpectationSchema>;
+
+/**
+ * 유형별 질문 수의 기대값. 과제 관측에서 나오는 유형은 판정으로 수가 정해지므로 정수를 쓰고, 이력서 연결은 LLM이 고른
+ * 주장 수에 따라 달라지므로 범위(`{ min, max }`)를 쓴다.
+ */
+export const KitCountExpectationSchema = z.union([
+  z.int().min(0),
+  z.strictObject({ min: z.int().min(0), max: z.int().min(0) }),
+]);
+export type KitCountExpectation = z.infer<typeof KitCountExpectationSchema>;
+
+/** 페르소나의 인터뷰 키트 기대값 (T-708). 유형별 질문 수와 있어야 하는 질문 슬롯 */
+export const PersonaKitExpectationSchema = z.strictObject({
+  /** 유형별 질문 수. 여섯 유형을 모두 적는다 */
+  kindCounts: z.record(InterviewQuestionKindSchema, KitCountExpectationSchema),
+  questions: z.array(KitQuestionExpectationSchema),
+});
+export type PersonaKitExpectation = z.infer<typeof PersonaKitExpectationSchema>;
 
 export const PersonaExpectationSchema = z.strictObject({
   level: z.string().min(1),
@@ -74,6 +122,8 @@ export const PersonaExpectationSchema = z.strictObject({
   followUpClaims: z.array(z.strictObject({ label: z.string().min(1), anyOf: KeywordsSchema })),
   /** 주장별 기대 상태. LLM 판단이라 불일치는 경고다 */
   claims: z.array(z.strictObject({ anyOf: KeywordsSchema, status: ContextStatusSchema })),
+  /** 인터뷰 키트 기대값 (T-708) */
+  kit: PersonaKitExpectationSchema,
 });
 export type PersonaExpectation = z.infer<typeof PersonaExpectationSchema>;
 
@@ -105,6 +155,58 @@ export function forbiddenRepos(matrix: PersonaMatrix, handle: string): string[] 
 
 // ── 대조 ───────────────────────────────────────────────────────────────────────
 
+/** 키트 질문 하나의 관측값 (T-708). 기록(`docs/gates/stage7.md`)의 키트 전문도 이 값으로 쓴다 */
+export interface KitQuestionFacts {
+  id: string;
+  /** 키트 안의 질문 번호 (Q1, Q2 …) */
+  number: number;
+  kind: string;
+  competency: string;
+  priority: string;
+  minutes: number;
+  question: string;
+  intent: string;
+  probes: string[];
+  positiveSignals: string[];
+  concernSignals: string[];
+  /** 근거 참조를 사람이 읽는 문장으로 옮긴 것 */
+  refs: string[];
+  /** 근거 참조의 종류 (`CRITERION`, `MUTATION` …) */
+  refKinds: string[];
+  source: string;
+  /** 결정적 질문 검사(`lintInterviewQuestion`) 위반. 비어 있어야 한다 */
+  lint: string[];
+}
+
+export interface KitFacts {
+  slotCount: number;
+  templateCount: number;
+  llm: string;
+  llmReason: string | null;
+  promptVersion: string;
+  model: string | null;
+  inputDigest: string | null;
+  /** 후처리가 버린 LLM 출력 항목 */
+  dropped: { index: number | null; slotId: string | null; reason: string; rules: string[] }[];
+  /** 진행안별 구간 시간 합 */
+  plans: { durationMinutes: number; totalMinutes: number; questionCount: number }[];
+  questions: KitQuestionFacts[];
+}
+
+/** 채용 리포트의 관측값 (T-708). 리포트는 새 판단을 만들지 않으므로 평가 조회 API의 값과 같아야 한다 */
+export interface ReportFacts {
+  scoreDisplay: string | null;
+  verdictCounts: Record<string, number>;
+  criteria: Record<string, { verdict: string; earnedPoints: number | null }>;
+  mustQuestions: { number: number; question: string; source: string }[];
+  interviewGuideStatus: string;
+  resumeLinksStatus: string;
+  resumeLinkCount: number;
+  designReviewStatus: string;
+  /** 시스템이 쓴 문장에 남은 금지 표현 (PRD 14.4). 비어 있어야 한다 */
+  forbidden: string[];
+}
+
 export interface PersonaFacts {
   criteria: Record<string, { verdict: string; earnedPoints: number | null }>;
   mutations: Record<string, { outcome: string; reason: string | null }>;
@@ -128,6 +230,10 @@ export interface PersonaFacts {
     followUpQuestion: string | null;
     criterionId: string | null;
   }[];
+  /** 인터뷰 키트 (T-708). 조회에 실패했으면 null */
+  kit: KitFacts | null;
+  /** 채용 리포트 (T-708). 조회에 실패했으면 null */
+  report: ReportFacts | null;
 }
 
 export interface R12Draft {
@@ -160,6 +266,137 @@ const ReviewWriteDetailSchema = z.looseObject({
     )
     .optional(),
 });
+
+/** 근거 참조 하나를 사람이 읽는 문장으로 (기록·키워드 검사용) */
+export function refText(ref: ObservationRef): string {
+  switch (ref.kind) {
+    case "CRITERION":
+      return `기준 ${ref.criterionId}`;
+    case "EXECUTION_RECORD":
+      return `실행 기록 ${ref.runId.slice(0, 8)}${ref.criterionId ? ` · ${ref.criterionId}` : ""}`;
+    case "SOURCE":
+      return `코드 ${ref.location.path}:${ref.location.startLine}-${ref.location.endLine}`;
+    case "MUTATION":
+      return `변이 ${ref.mutationId}`;
+    case "CONTEXT_LINK":
+      return `맥락 연결 ${ref.contextLinkId.slice(0, 8)}`;
+  }
+}
+
+/** 질문 하나에서 키워드를 찾을 때 보는 텍스트 (문장 + 근거) */
+export function kitQuestionText(question: KitQuestionFacts): string {
+  return [
+    question.question,
+    question.intent,
+    ...question.probes,
+    ...question.positiveSignals,
+    ...question.concernSignals,
+    ...question.refs,
+  ].join(" ");
+}
+
+export function kitFactsOf(kit: InterviewKit): KitFacts {
+  const numbers = interviewQuestionNumbers(kit.questions);
+  return {
+    slotCount: kit.generation.slotCount,
+    templateCount: kit.generation.templateCount,
+    llm: kit.generation.llm,
+    llmReason: kit.generation.llmReason,
+    promptVersion: kit.generation.promptVersion,
+    model: kit.generation.model,
+    inputDigest: kit.generation.inputDigest,
+    dropped: kit.generation.dropped.map((d) => ({
+      index: d.index,
+      slotId: d.slotId,
+      reason: d.reason,
+      rules: [...d.rules],
+    })),
+    plans: kit.plans.map((plan) => ({
+      durationMinutes: plan.durationMinutes,
+      totalMinutes: plan.segments.reduce((sum, s) => sum + s.minutes, 0),
+      questionCount: plan.segments.reduce((sum, s) => sum + s.questionIds.length, 0),
+    })),
+    questions: kit.questions.map((q) => ({
+      id: q.id,
+      number: numbers.get(q.id) ?? 0,
+      kind: q.kind,
+      competency: q.competency,
+      priority: q.priority,
+      minutes: q.minutes,
+      question: q.question,
+      intent: q.intent,
+      probes: [...q.probes],
+      positiveSignals: [...q.positiveSignals],
+      concernSignals: [...q.concernSignals],
+      refs: q.refs.map(refText),
+      refKinds: q.refs.map((ref) => ref.kind),
+      source: q.source,
+      lint: lintInterviewQuestion({
+        question: q.question,
+        probes: q.probes,
+        intent: q.intent,
+        positiveSignals: q.positiveSignals,
+        concernSignals: q.concernSignals,
+        refs: q.refs,
+      }).map((v) => `${v.field}${v.index === null ? "" : `[${v.index}]`}: ${v.rule}`),
+    })),
+  };
+}
+
+/**
+ * 금지 표현(PRD 14.4)을 검사할 텍스트. 시스템이 쓴 문장만 본다. 이력서 주장·관측 문장에는 제출물과 지원자가 쓴 값이
+ * 그대로 들어 있어 (경력 연차 같은) 단어가 섞일 수 있고, 그것은 시스템의 판단이 아니다.
+ */
+export function reportSystemText(report: HiringReport): string {
+  const observations = [...report.keyObservations.strengths, ...report.keyObservations.defects];
+  return [
+    ...observations.flatMap((o) => [o.impact ?? "", o.aiDraft ?? ""]),
+    ...report.requirements.designReview.items.map((i) => i.rationale),
+    ...report.interviewGuide.mustQuestions.map((q) => q.question),
+    ...report.competencies.map((c) => c.name),
+    ...report.scorecard.competencies.flatMap((c) => [
+      c.name,
+      c.definition,
+      ...c.anchors.map((a) => `${a.label} ${a.behavior}`),
+    ]),
+    ...report.scope.supportScope,
+    ...report.scope.unassessedAreas,
+  ].join("\n");
+}
+
+export function reportFactsOf(report: HiringReport, kit: InterviewKit | null): ReportFacts {
+  const kitText = kit
+    ? kit.questions
+        .flatMap((q) => [
+          q.question,
+          q.intent,
+          ...q.probes,
+          ...q.positiveSignals,
+          ...q.concernSignals,
+        ])
+        .join("\n")
+    : "";
+  return {
+    scoreDisplay: report.summary.score?.display ?? null,
+    verdictCounts: { ...report.summary.verdictCounts },
+    criteria: Object.fromEntries(
+      report.requirements.criteria.map((c) => [
+        c.criterionId,
+        { verdict: c.verdict, earnedPoints: c.earnedPoints },
+      ]),
+    ),
+    mustQuestions: report.interviewGuide.mustQuestions.map((q) => ({
+      number: q.number,
+      question: q.question,
+      source: q.source,
+    })),
+    interviewGuideStatus: report.interviewGuide.status,
+    resumeLinksStatus: report.resumeLinks.status,
+    resumeLinkCount: report.resumeLinks.links.length,
+    designReviewStatus: report.requirements.designReview.status,
+    forbidden: findForbiddenReportExpressions(`${reportSystemText(report)}\n${kitText}`),
+  };
+}
 
 export function factsOf(report: EvaluationReport, context: EvaluationContextReport): PersonaFacts {
   const reviewStage = report.stages.find((s) => s.stage === "REVIEW_WRITE");
@@ -211,7 +448,135 @@ export function factsOf(report: EvaluationReport, context: EvaluationContextRepo
       followUpQuestion: l.followUpQuestion ?? null,
       criterionId: l.assignmentObservation?.criterionId ?? null,
     })),
+    kit: null,
+    report: null,
   };
+}
+
+/**
+ * 이력서 연결 질문이 이번 과제와 비교하는 어조인지 보는 표현 (T-703의 프롬프트 규칙 (b)). 관측 기준이 없는 연결은
+ * 이력서에 적힌 경험 자체를 물어야 한다.
+ */
+const ASSIGNMENT_COMPARISON_PATTERN = /이번 과제|과제에서|과제와|과제의|제출한 코드/;
+
+/**
+ * 인터뷰 키트 대조 (T-708). 슬롯 ID·유형·우선순위·유형별 질문 수는 저장된 판정에서 결정적으로 정해지므로 실패 조건이고,
+ * 기본 질문(`TEMPLATE`) 대체와 후처리가 버린 항목은 LLM 출력의 품질이라 경고로 남긴다.
+ */
+export function compareKit(
+  expected: PersonaKitExpectation,
+  facts: PersonaFacts,
+  mismatches: string[],
+  warnings: string[],
+): void {
+  const kit = facts.kit;
+  if (!kit) {
+    mismatches.push("인터뷰 키트를 읽지 못함");
+    return;
+  }
+  if (kit.llm !== "OK") {
+    mismatches.push(
+      `INTERVIEW_KIT LLM 결과: 기대 OK, 실제 ${kit.llm}${kit.llmReason ? ` (${kit.llmReason})` : ""}`,
+    );
+  }
+  if (kit.questions.length !== kit.slotCount) {
+    mismatches.push(
+      `키트 질문 수(${kit.questions.length})가 계획한 슬롯 수(${kit.slotCount})와 다름`,
+    );
+  }
+  for (const [kind, count] of Object.entries(expected.kindCounts)) {
+    const actual = kit.questions.filter((q) => q.kind === kind).length;
+    const min = typeof count === "number" ? count : count.min;
+    const max = typeof count === "number" ? count : count.max;
+    if (actual < min || actual > max) {
+      mismatches.push(
+        `${kind} 질문 수: 기대 ${min === max ? min : `${min}~${max}`}, 실제 ${actual}`,
+      );
+    }
+  }
+  for (const want of expected.questions) {
+    const question = kit.questions.find((q) => q.id === want.id);
+    if (!question) {
+      mismatches.push(`키트에 질문 ${want.id}이 없음`);
+      continue;
+    }
+    if (question.kind !== want.kind) {
+      mismatches.push(`${want.id} 유형: 기대 ${want.kind}, 실제 ${question.kind}`);
+    }
+    if (question.priority !== want.priority) {
+      mismatches.push(`${want.id} 우선순위: 기대 ${want.priority}, 실제 ${question.priority}`);
+    }
+    if (want.anyOf && !includesAny(kitQuestionText(question), want.anyOf)) {
+      mismatches.push(`${want.id}에 ${want.anyOf.join("·")} 근거가 없음`);
+    }
+  }
+  for (const question of kit.questions) {
+    if (question.refs.length === 0) mismatches.push(`${question.id}: 근거 참조 없음`);
+    if (question.lint.length > 0) {
+      mismatches.push(`${question.id}: 질문 검사 위반 ${question.lint.join(", ")}`);
+    }
+    if (
+      question.kind === "RESUME_BRIDGE" &&
+      !question.refKinds.includes("CRITERION") &&
+      ASSIGNMENT_COMPARISON_PATTERN.test([question.question, ...question.probes].join(" "))
+    ) {
+      mismatches.push(`${question.id}: 관측 기준이 없는 이력서 연결 질문이 과제와 비교함`);
+    }
+  }
+  for (const plan of kit.plans) {
+    if (plan.totalMinutes > plan.durationMinutes) {
+      mismatches.push(
+        `${plan.durationMinutes}분 진행안의 구간 합이 ${plan.totalMinutes}분으로 길이를 넘음`,
+      );
+    }
+  }
+  if (kit.templateCount > 0) {
+    warnings.push(`기본 질문(TEMPLATE) 대체 ${kit.templateCount}/${kit.slotCount}`);
+  }
+  for (const dropped of kit.dropped) {
+    warnings.push(
+      `버린 LLM 출력 ${dropped.slotId ?? `#${dropped.index ?? "?"}`}: ${dropped.reason}${dropped.rules.length > 0 ? ` (${dropped.rules.join(", ")})` : ""}`,
+    );
+  }
+}
+
+/** 채용 리포트 대조 (T-708). 리포트는 저장된 값을 옮기기만 하므로 평가 조회 API의 판정·점수와 같아야 한다 */
+export function compareReport(facts: PersonaFacts, mismatches: string[]): void {
+  const report = facts.report;
+  if (!report) {
+    mismatches.push("채용 리포트를 읽지 못함");
+    return;
+  }
+  if (report.scoreDisplay !== facts.scoreDisplay) {
+    mismatches.push(
+      `리포트 점수 표시: 워크벤치 ${facts.scoreDisplay ?? "없음"}, 리포트 ${report.scoreDisplay ?? "없음"}`,
+    );
+  }
+  for (const [criterionId, actual] of Object.entries(facts.criteria)) {
+    const inReport = report.criteria[criterionId];
+    if (!inReport) {
+      mismatches.push(`리포트에 기준 ${criterionId}이 없음`);
+    } else if (
+      inReport.verdict !== actual.verdict ||
+      inReport.earnedPoints !== actual.earnedPoints
+    ) {
+      mismatches.push(
+        `리포트 ${criterionId}: 워크벤치 ${actual.verdict} ${actual.earnedPoints ?? "null"}점, 리포트 ${inReport.verdict} ${inReport.earnedPoints ?? "null"}점`,
+      );
+    }
+  }
+  if (report.interviewGuideStatus !== "AVAILABLE") {
+    mismatches.push(`리포트 면접 안내: 기대 AVAILABLE, 실제 ${report.interviewGuideStatus}`);
+  }
+  const mustInKit = (facts.kit?.questions ?? []).filter((q) => q.priority === "MUST");
+  if (facts.kit && report.mustQuestions.length !== mustInKit.length) {
+    mismatches.push(
+      `리포트 필수 질문 수: 키트 ${mustInKit.length}, 리포트 ${report.mustQuestions.length}`,
+    );
+  }
+  if (report.forbidden.length > 0) {
+    mismatches.push(`금지 표현 ${report.forbidden.join(", ")}`);
+  }
 }
 
 export function comparePersona(
@@ -297,6 +662,9 @@ export function comparePersona(
     }
   }
 
+  compareKit(expected.kit, facts, mismatches, warnings);
+  compareReport(facts, mismatches);
+
   for (const want of expected.claims) {
     const matched = facts.links.filter((l) => includesAny(l.claim, want.anyOf));
     if (matched.length === 0) {
@@ -372,6 +740,8 @@ async function capture(
   viewport: "desktop" | "mobile",
   url: string,
   dir: string,
+  /** 전체 페이지 캡처. 채용 리포트·인터뷰 키트처럼 긴 문서는 첫 화면만 담는다 (T-708) */
+  fullPage = true,
 ): Promise<ScreenCheck> {
   const consoleErrors: string[] = [];
   const onConsole = (msg: { type(): string; text(): string }) => {
@@ -388,7 +758,7 @@ async function capture(
   );
   const bodyText = await page.locator("body").innerText();
   const file = path.join(dir, `${name}-${viewport}.png`);
-  await page.screenshot({ path: file, fullPage: true });
+  await page.screenshot({ path: file, fullPage });
   page.off("console", onConsole);
   const status = response?.status() ?? null;
   const problems: string[] = [];
@@ -437,6 +807,64 @@ async function captureScreens(
   return checks;
 }
 
+/** 인쇄 설정 (T-706 E2E와 같은 A4 14mm 여백) */
+const A4_PRINT = {
+  format: "A4",
+  printBackground: true,
+  margin: { top: "14mm", bottom: "14mm", left: "14mm", right: "14mm" },
+} as const;
+
+/** PDF 쪽 수. 페이지 트리의 `/Count`를 먼저 보고, 없으면 `/Type /Page` 객체를 센다 */
+export function countPdfPages(pdf: string): number {
+  const count = /\/Type\s*\/Pages[\s\S]{0,400}?\/Count\s+(\d+)/.exec(pdf);
+  if (count) return Number(count[1]);
+  return (pdf.match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+}
+
+/** 채용 담당자 시점: 페르소나마다 채용 리포트와 인터뷰 키트 인쇄용 보기를 캡처하고 PDF 쪽 수를 센다 (T-708) */
+async function capturePersonaDocs(
+  browser: Browser,
+  baseUrl: string,
+  dir: string,
+  handle: string,
+  evaluationId: string,
+): Promise<PersonaDocCapture> {
+  await mkdir(dir, { recursive: true });
+  const pages: [string, string][] = [
+    [`report-${handle}`, `/evaluations/${evaluationId}/report`],
+    [`interview-kit-${handle}`, `/evaluations/${evaluationId}/interview-kit`],
+  ];
+  const screens: ScreenCheck[] = [];
+  for (const viewport of ["desktop", "mobile"] as const) {
+    const context = await browser.newContext(VIEWPORTS[viewport]);
+    const page = await context.newPage();
+    for (const [name, pathname] of pages) {
+      // 문서 화면은 1쪽(첫 화면)만 담는다. 쪽 수와 전문은 아래 PDF와 기록의 키트 전문이 맡는다
+      screens.push(
+        await capture(page, name, viewport, new URL(pathname, baseUrl).toString(), dir, false),
+      );
+    }
+    await context.close();
+  }
+  const context = await browser.newContext(VIEWPORTS.desktop);
+  const page = await context.newPage();
+  const pdfOf = async (name: string, pathname: string) => {
+    await page.goto(new URL(pathname, baseUrl).toString(), { waitUntil: "networkidle" });
+    const file = path.join(dir, `${name}.pdf`);
+    const buffer = await page.pdf({ path: file, ...A4_PRINT });
+    return { file: path.relative(repoRoot, file), pages: countPdfPages(buffer.toString("latin1")) };
+  };
+  try {
+    return {
+      screens,
+      reportPdf: await pdfOf(`report-${handle}`, `/evaluations/${evaluationId}/report`),
+      kitPdf: await pdfOf(`interview-kit-${handle}`, `/evaluations/${evaluationId}/interview-kit`),
+    };
+  } finally {
+    await context.close();
+  }
+}
+
 // ── 실행 ───────────────────────────────────────────────────────────────────────
 
 export interface PersonaRun {
@@ -447,6 +875,19 @@ export interface PersonaRun {
   waitMs: number;
   comparison: PersonaComparison | null;
   error: string | null;
+  /** 저장된 키트 원본 (기록의 키트 전문에 쓴다) */
+  kit: InterviewKit | null;
+  kitError: string | null;
+  reportError: string | null;
+  /** 채용 리포트·인터뷰 키트 인쇄 캡처 (T-708) */
+  docs: PersonaDocCapture | null;
+}
+
+/** 페르소나별 채용 리포트·인터뷰 키트 화면 캡처와 PDF 쪽 수 (T-708) */
+export interface PersonaDocCapture {
+  screens: ScreenCheck[];
+  reportPdf: { file: string; pages: number } | null;
+  kitPdf: { file: string; pages: number } | null;
 }
 
 export interface PersonaGateSummary {
@@ -467,6 +908,8 @@ export interface PersonaGateOptions {
   handles: string[];
   matrixPath: string;
   screenshotsDir: string | null;
+  /** 페르소나별 채용 리포트·인터뷰 키트 캡처를 둘 디렉터리 (T-708). null이면 캡처하지 않는다 */
+  docsDir: string | null;
   timeoutMs: number;
   pollMs: number;
   /** 이미 제출한 페르소나의 제출 ID. 있으면 폼으로 다시 제출하지 않고 결과만 기다려 대조한다 */
@@ -514,6 +957,10 @@ export async function runPersonaGate(options: PersonaGateOptions): Promise<Perso
         waitMs: 0,
         comparison: null,
         error: null,
+        kit: null,
+        kitError: null,
+        reportError: null,
+        docs: null,
       };
       runs.push(run);
       try {
@@ -548,11 +995,38 @@ export async function runPersonaGate(options: PersonaGateOptions): Promise<Perso
           `GET /api/evaluations/${run.evaluationId}/context`,
         );
         rubricVersion = report.evaluation.rubricVersion;
+        const facts = factsOf(report, context);
+        // 인터뷰 키트(T-704)와 채용 리포트(T-705). 조회가 실패하면 대조에서 불일치로 남긴다
+        try {
+          const kitReport = unwrap(
+            await client.getJson(
+              `/api/evaluations/${run.evaluationId}/interview-kit`,
+              InterviewKitReportResponseSchema,
+            ),
+            `GET /api/evaluations/${run.evaluationId}/interview-kit`,
+          );
+          run.kit = kitReport.kit;
+          facts.kit = kitFactsOf(kitReport.kit);
+        } catch (error) {
+          run.kitError = error instanceof Error ? error.message : String(error);
+        }
+        try {
+          const hiring = unwrap(
+            await client.getJson(
+              `/api/evaluations/${run.evaluationId}/hiring-report`,
+              HiringReportResponseSchema,
+            ),
+            `GET /api/evaluations/${run.evaluationId}/hiring-report`,
+          );
+          facts.report = reportFactsOf(hiring, run.kit);
+        } catch (error) {
+          run.reportError = error instanceof Error ? error.message : String(error);
+        }
         const comparison = comparePersona(
           matrix,
           handle,
           new Map(report.rubric.criteria.map((c) => [c.id, c.maxPoints])),
-          factsOf(report, context),
+          facts,
         );
         if (report.evaluation.rubricVersion !== matrix.rubricVersion) {
           comparison.mismatches.push(
@@ -578,6 +1052,21 @@ export async function runPersonaGate(options: PersonaGateOptions): Promise<Perso
         evaluationId: target.evaluationId,
       });
     }
+    if (options.docsDir) {
+      for (const run of runs) {
+        if (!run.evaluationId) continue;
+        run.docs = await capturePersonaDocs(
+          browser,
+          options.baseUrl,
+          options.docsDir,
+          run.handle,
+          run.evaluationId,
+        );
+        log(
+          `문서 캡처 ${run.handle}: 리포트 ${run.docs.reportPdf?.pages ?? "-"}쪽, 키트 ${run.docs.kitPdf?.pages ?? "-"}쪽`,
+        );
+      }
+    }
   } finally {
     await browser.close();
   }
@@ -587,7 +1076,8 @@ export async function runPersonaGate(options: PersonaGateOptions): Promise<Perso
     runs.every(
       (r) => r.status === "COMPLETED" && !r.error && r.comparison?.mismatches.length === 0,
     ) &&
-    screens.every((s) => s.problems.length === 0);
+    screens.every((s) => s.problems.length === 0) &&
+    runs.every((r) => (r.docs?.screens ?? []).every((s) => s.problems.length === 0));
   const finishedAtMs = Date.now();
   return {
     baseUrl: options.baseUrl,
@@ -766,6 +1256,115 @@ export function renderPersonaReport(matrix: PersonaMatrix, summary: PersonaGateS
   return lines.join("\n");
 }
 
+/**
+ * 7단계 게이트 기록 (T-708): 페르소나별 키트 전문(질문·의도·꼬리 질문·신호·근거), 채용 리포트 캡처와 PDF 쪽 수,
+ * 버린 항목 통계, 면접관 검토표. 6단계 기록(`docs/gates/personas.md`)이 판정·변이·맥락 연결을 담고, 이 기록은 키트와 리포트를 담는다.
+ */
+export function renderStage7Report(matrix: PersonaMatrix, summary: PersonaGateSummary): string {
+  const lines: string[] = [];
+  lines.push("# 7단계 게이트: 페르소나 4종의 키트·리포트 회귀 (T-708)");
+  lines.push("");
+  lines.push(
+    "`pnpm gate:personas`가 만든 기록이다. 배포 환경에 페르소나 4종을 제출해 실제 LLM으로 인터뷰 키트(T-702·T-704)와 채용 리포트(T-705·T-706)를 만들고, 키트의 질문 슬롯·우선순위·유형별 질문 수를 `samples/personas/expected-matrix.json`의 기대값과 대조한다. 질문은 모두 결정적 검사(`lintInterviewQuestion`)를 통과하고 저장된 근거를 하나 이상 참조해야 하며, 리포트의 판정·점수는 워크벤치(평가 조회 API)의 값과 같아야 하고 시스템이 쓴 문장에 금지 표현(PRD 14.4)이 없어야 한다. 기본 질문 대체와 버린 LLM 출력은 품질 관찰이라 경고로 남긴다.",
+  );
+  lines.push("");
+  lines.push(`- 결과: **${summary.ok ? "통과" : "실패"}**`);
+  lines.push(`- 배포: ${summary.baseUrl}`);
+  lines.push(`- 실행 일시: ${summary.startedAt} ~ ${summary.finishedAt}`);
+  lines.push(`- rubric: \`${summary.rubricVersion ?? "-"}\``);
+  lines.push("");
+  lines.push("## 키트 생성 요약");
+  lines.push("");
+  lines.push(
+    "| 페르소나 | 평가 | 질문 수 | 기본 질문 대체 | LLM | 모델 · 프롬프트 | 버린 항목 | 진행안(45·60분) |",
+  );
+  lines.push("|---|---|---:|---:|---|---|---|---|");
+  for (const r of summary.runs) {
+    const k = r.comparison?.facts.kit;
+    lines.push(
+      `| ${r.handle} | ${r.evaluationId ? `[\`${r.evaluationId.slice(0, 8)}\`](${new URL(`/evaluations/${r.evaluationId}`, summary.baseUrl).toString()})` : "-"} | ${k?.questions.length ?? "-"} | ${k ? `${k.templateCount}/${k.slotCount}` : "-"} | ${k?.llm ?? "-"} | ${k ? `${k.model ?? "-"} · ${k.promptVersion}` : "-"} | ${k ? (k.dropped.length === 0 ? "없음" : k.dropped.map((d) => `${d.slotId ?? `#${d.index ?? "?"}`} ${d.reason}`).join(", ")) : "-"} | ${k ? k.plans.map((p) => `${p.durationMinutes}분 ${p.totalMinutes}분·${p.questionCount}문`).join(" / ") : "-"} |`,
+    );
+  }
+  lines.push("");
+  lines.push("## 채용 리포트");
+  lines.push("");
+  lines.push(
+    "| 페르소나 | 점수 표시(워크벤치 = 리포트) | 판정 분포 | 필수 질문 | 이력서 연결 | 설계 검토 | PDF 쪽 수 (리포트 / 키트) | 금지 표현 |",
+  );
+  lines.push("|---|---|---|---:|---|---|---|---|");
+  for (const r of summary.runs) {
+    const rep = r.comparison?.facts.report;
+    const counts = rep
+      ? Object.entries(rep.verdictCounts)
+          .filter(([, n]) => n > 0)
+          .map(([k, n]) => `${k} ${n}`)
+          .join(", ")
+      : "-";
+    lines.push(
+      `| ${r.handle} | ${rep?.scoreDisplay ?? "-"} | ${counts} | ${rep?.mustQuestions.length ?? "-"} | ${rep ? `${rep.resumeLinksStatus} ${rep.resumeLinkCount}건` : "-"} | ${rep?.designReviewStatus ?? "-"} | ${r.docs ? `${r.docs.reportPdf?.pages ?? "-"} / ${r.docs.kitPdf?.pages ?? "-"}` : "-"} | ${rep ? (rep.forbidden.length === 0 ? "0건" : rep.forbidden.join(", ")) : "-"} |`,
+    );
+  }
+  lines.push("");
+  const docScreens = summary.runs.flatMap((r) => r.docs?.screens ?? []);
+  if (docScreens.length > 0) {
+    lines.push("### 화면 캡처 (채용 리포트 · 인터뷰 키트)");
+    lines.push("");
+    lines.push("| 화면 | 뷰포트 | HTTP | 가로 넘침 | 콘솔 오류 | 파일 | 문제 |");
+    lines.push("|---|---|---:|---:|---:|---|---|");
+    for (const s of docScreens) {
+      lines.push(
+        `| ${s.name} | ${s.viewport} | ${s.status ?? "-"} | ${s.horizontalOverflowPx}px | ${s.consoleErrors.length} | \`${s.file}\` | ${s.problems.join(", ") || "없음"} |`,
+      );
+    }
+    lines.push("");
+  }
+  lines.push("## 페르소나별 키트 전문");
+  lines.push("");
+  for (const r of summary.runs) {
+    const kit = r.comparison?.facts.kit;
+    const persona = matrix.personas[r.handle];
+    lines.push(`### ${r.handle}${persona ? ` · ${repoNameOf(persona.repoUrl)}` : ""}`);
+    lines.push("");
+    if (!kit) {
+      lines.push(`키트 없음${r.kitError ? ` (${r.kitError})` : ""}`);
+      lines.push("");
+      continue;
+    }
+    for (const q of kit.questions) {
+      lines.push(
+        `#### Q${q.number}. ${q.question} <sub>${INTERVIEW_QUESTION_KIND_LABELS[q.kind as keyof typeof INTERVIEW_QUESTION_KIND_LABELS] ?? q.kind} · ${q.priority} · ${q.minutes}분 · ${q.competency} · ${q.source}</sub>`,
+      );
+      lines.push("");
+      lines.push(`- 슬롯: \`${q.id}\``);
+      lines.push(`- 의도: ${q.intent}`);
+      lines.push(`- 꼬리 질문: ${q.probes.map((p) => `${p}`).join(" / ")}`);
+      lines.push(`- 좋은 답변의 신호: ${q.positiveSignals.join(" / ")}`);
+      lines.push(`- 우려 신호: ${q.concernSignals.join(" / ")}`);
+      lines.push(`- 근거: ${q.refs.join(", ")}`);
+      lines.push("");
+    }
+  }
+  lines.push("## 면접관 검토표 (사람 확인)");
+  lines.push("");
+  lines.push(
+    '기술 면접관이 필수 질문을 읽고 "그대로 면접에 쓸 수 있는가"를 질문별로 표시한다. 고칠 점이 있으면 메모에 적는다.',
+  );
+  lines.push("");
+  lines.push("| 페르소나 | 질문 | 유형 | 그대로 쓸 수 있는가 (예/아니오) | 메모 |");
+  lines.push("|---|---|---|---|---|");
+  for (const r of summary.runs) {
+    for (const q of (r.comparison?.facts.kit?.questions ?? []).filter(
+      (q) => q.priority === "MUST",
+    )) {
+      lines.push(
+        `| ${r.handle} | Q${q.number}. ${oneLine(q.question, 200)} | ${INTERVIEW_QUESTION_KIND_LABELS[q.kind as keyof typeof INTERVIEW_QUESTION_KIND_LABELS] ?? q.kind} |  |  |`,
+      );
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
 export function personaGateJson(summary: PersonaGateSummary): unknown {
   return {
     ok: summary.ok,
@@ -782,6 +1381,9 @@ export function personaGateJson(summary: PersonaGateSummary): unknown {
       mismatches: r.comparison?.mismatches ?? [],
       warnings: r.comparison?.warnings ?? [],
       error: r.error,
+      kitError: r.kitError,
+      reportError: r.reportError,
+      docs: r.docs,
       facts: r.comparison?.facts ?? null,
     })),
     screens: summary.screens,
@@ -804,7 +1406,7 @@ export function parseExistingSubmissions(text: string): Record<string, string> |
 
 function usage(): never {
   console.error(
-    "사용법: gate:personas --base-url <url> [--password <pw>] [--personas seojin,taeyun,gaeun,dohyun] [--matrix <path>] [--out <file>] [--json <file>] [--screenshots <dir>] [--skip-screenshots] [--timeout-ms <ms>] [--poll-ms <ms>] [--submissions handle=<id>,...]",
+    "사용법: gate:personas --base-url <url> [--password <pw>] [--personas seojin,taeyun,gaeun,dohyun] [--matrix <path>] [--out <file>] [--json <file>] [--screenshots <dir>] [--stage7 <file>] [--stage7-docs <dir>] [--skip-screenshots] [--timeout-ms <ms>] [--poll-ms <ms>] [--submissions handle=<id>,...]",
   );
   process.exit(1);
 }
@@ -821,6 +1423,8 @@ async function main(): Promise<void> {
       json: { type: "string", default: DEFAULT_JSON_OUT },
       screenshots: { type: "string", default: DEFAULT_SCREENSHOTS },
       "skip-screenshots": { type: "boolean", default: false },
+      stage7: { type: "string", default: DEFAULT_STAGE7_OUT },
+      "stage7-docs": { type: "string", default: DEFAULT_STAGE7_DOCS },
       "timeout-ms": { type: "string", default: String(DEFAULT_TIMEOUT_MS) },
       "poll-ms": { type: "string", default: String(DEFAULT_POLL_MS) },
       submissions: { type: "string" },
@@ -854,6 +1458,7 @@ async function main(): Promise<void> {
     handles,
     matrixPath,
     screenshotsDir: values["skip-screenshots"] ? null : path.resolve(values.screenshots),
+    docsDir: values["skip-screenshots"] ? null : path.resolve(values["stage7-docs"]),
     timeoutMs,
     pollMs,
     existingSubmissions,
@@ -877,6 +1482,13 @@ async function main(): Promise<void> {
   });
   await mkdir(path.dirname(outPath), { recursive: true });
   await writeFile(outPath, markdown, "utf8");
+  const stage7Path = path.resolve(values.stage7);
+  const stage7Markdown = await prettierFormat(`${renderStage7Report(matrix, summary)}\n`, {
+    ...((await prettierResolveConfig(stage7Path)) ?? {}),
+    parser: "markdown",
+  });
+  await mkdir(path.dirname(stage7Path), { recursive: true });
+  await writeFile(stage7Path, stage7Markdown, "utf8");
   const jsonPath = path.resolve(values.json);
   const json = await prettierFormat(JSON.stringify(personaGateJson(summary)), {
     ...((await prettierResolveConfig(jsonPath)) ?? {}),
@@ -884,7 +1496,7 @@ async function main(): Promise<void> {
   });
   await writeFile(jsonPath, json, "utf8");
   console.log(
-    `gate:personas ${summary.ok ? "OK" : "실패"} — ${(summary.totalMs / 1000 / 60).toFixed(1)}분, 기록 ${path.relative(process.cwd(), outPath)}, 요약 ${path.relative(process.cwd(), jsonPath)}`,
+    `gate:personas ${summary.ok ? "OK" : "실패"} — ${(summary.totalMs / 1000 / 60).toFixed(1)}분, 기록 ${path.relative(process.cwd(), outPath)}, 7단계 기록 ${path.relative(process.cwd(), stage7Path)}, 요약 ${path.relative(process.cwd(), jsonPath)}`,
   );
   process.exit(summary.ok ? 0 : 1);
 }

@@ -195,7 +195,9 @@ test.beforeAll(async () => {
 
   // 샘플 과제의 리포트 프로필(T-705)을 붙여 영향 문장이 화면에 보이게 한다
   const profile = ReportProfileSchema.parse(
-    JSON.parse(await readFile(path.join(repoRoot, "samples/order-api/report-profile.json"), "utf8")),
+    JSON.parse(
+      await readFile(path.join(repoRoot, "samples/order-api/report-profile.json"), "utf8"),
+    ),
   );
   await setAssignmentVersionReportProfile(handle.db, version!.id, {
     ...profile,
@@ -404,17 +406,13 @@ test("조회 API와 리포트 화면의 점수 표기가 같은 저장값에서 
   const body = HiringReportResponseSchema.parse(await res.json());
   if (!body.ok) throw new Error("채용 리포트 응답이 ok가 아닙니다");
   await expect(page.getByTestId("report-score")).toHaveText(body.data.summary.score!.display);
-  await expect(page.getByTestId("report-disclaimer")).toContainText(
-    "채용 결정은 사람이 합니다",
-  );
+  await expect(page.getByTestId("report-disclaimer")).toContainText("채용 결정은 사람이 합니다");
   // 검토 대기와 미확정 기준이 각각 보인다 (G-14)
   await expect(page.getByTestId("report-pending-review")).toContainText("R-12");
   await expect(page.getByTestId("report-inconclusive")).toContainText("G1");
   // 인터뷰 키트 질문은 슬롯 ID가 아니라 번호와 주 질문 문장으로 보인다
   await expect(page.getByTestId("report-guide")).toContainText("Q1");
-  await expect(page.getByTestId("report-guide")).toContainText(
-    "R-05 재생 기록을 함께 보겠습니다.",
-  );
+  await expect(page.getByTestId("report-guide")).toContainText("R-05 재생 기록을 함께 보겠습니다.");
   await expect(page.getByTestId("report-guide")).not.toContainText("FAILURE_DEBRIEF:R-05");
 });
 
@@ -471,7 +469,10 @@ test("PDF가 A4 4쪽 이내이고 1쪽에 점수 표기와 핵심 관측이 들�
 
   await page.emulateMedia({ media: "screen" });
   await page.setViewportSize({ width: 1440, height: 1400 });
-  await page.screenshot({ path: path.join(SHOT_DIR, "t706-hiring-report-print.png"), fullPage: true });
+  await page.screenshot({
+    path: path.join(SHOT_DIR, "t706-hiring-report-print.png"),
+    fullPage: true,
+  });
 });
 
 test("데스크톱(1440px)·모바일(390px)에서 문서가 깨지지 않는다 (T-706)", async ({ page }) => {

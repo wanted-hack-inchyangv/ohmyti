@@ -15,6 +15,7 @@ import {
   CONTEXT_LINK_LLM_NOT_CONFIGURED_REASON,
   CONTEXT_MAX_LINKS,
   CONTEXT_NO_RESUME_CLAIM,
+  ContextLinkLenientOutputSchema,
   ContextLinkOutputSchema,
   ContextLinkSchema,
   ContextQuestionSchema,
@@ -425,6 +426,79 @@ describe("질문 구조 v3 (context-link, T-703)", () => {
       ]
     `);
     expect(CONTEXT_LINK_PROMPT.system).not.toContain("followUpQuestion");
+  });
+});
+
+describe("관대한 출력 스키마 (context-link, T-708)", () => {
+  it("형식이 맞지 않는 연결 하나만 버리고 나머지 연결은 그대로 쓴다", () => {
+    const parsed = ContextLinkLenientOutputSchema.parse({
+      links: [
+        { claim: CLAIM_IDEMPOTENT, claimSource: "APPLICANT", status: "NEEDS_CHECK" }, // claimSource가 계약과 다름
+        link({ claim: CLAIM_ORDER_API }),
+      ],
+      unassessedAreas: ["운영 경험은 확인할 수 없음"],
+    });
+    const processed = runPostprocess(parsed);
+    expect(processed.links).toHaveLength(1);
+    expect(processed.links[0]!.claim).toContain(CLAIM_ORDER_API.slice(0, 10));
+    expect(processed.dropped).toContainEqual({
+      index: 0,
+      field: "link",
+      reason: "LINK_SCHEMA_INVALID",
+      note: "claimSource",
+    });
+  });
+
+  it("질문 구조만 계약과 다르면 연결은 살리고 기본 질문으로 바꾼다", () => {
+    const parsed = ContextLinkLenientOutputSchema.parse({
+      links: [
+        {
+          claim: CLAIM_ORDER_API,
+          claimSource: "RESUME",
+          status: "NEEDS_CHECK",
+          question: "이번 경험에서 무엇이 가장 어려웠나요?", // 구조 대신 문자열
+        },
+      ],
+      unassessedAreas: [],
+    });
+    const processed = runPostprocess(parsed);
+    expect(processed.links).toHaveLength(1);
+    expect(processed.links[0]!.question).toEqual(CONTEXT_DEFAULT_QUESTION);
+    expect(processed.dropped).toEqual([
+      {
+        index: 0,
+        field: "question",
+        reason: "QUESTION_SCHEMA_INVALID",
+        note: "question,intent,probes,positiveSignals,concernSignals,competency",
+      },
+    ]);
+  });
+
+  it("계약에 없는 키가 붙어 있어도 연결을 버리지 않는다", () => {
+    const parsed = ContextLinkLenientOutputSchema.parse({
+      links: [{ ...link({ claim: CLAIM_ORDER_API }), relevance: 0.9, id: "l1" }],
+      unassessedAreas: [],
+    });
+    const processed = runPostprocess(parsed);
+    expect(processed.links).toHaveLength(1);
+    expect(processed.dropped).toEqual([]);
+  });
+
+  it("LLM에 보이는 출력 형식에는 연결의 필드가 그대로 남는다", () => {
+    const schema = JSON.stringify(outputJsonSchema(ContextLinkLenientOutputSchema));
+    for (const field of [
+      "claim",
+      "claimSource",
+      "evidence",
+      "observedInAssignment",
+      "status",
+      "question",
+      "probes",
+      "competency",
+      "unassessedAreas",
+    ]) {
+      expect(schema, field).toContain(`"${field}"`);
+    }
   });
 });
 

@@ -25,7 +25,8 @@ import {
   CONTEXT_NO_RESUME_CLAIM,
   CONTEXT_TEXT_MAX_CHARS,
   CompetencySchema,
-  ContextLinkOutputSchema,
+  ContextLinkLenientOutputSchema,
+  isInvalidContextLink,
   ContextQuestionSchema,
   GitHubSourcesSchema,
   findForbiddenContextExpression,
@@ -67,7 +68,7 @@ export const CONTEXT_LINK_PROMPT = definePrompt({
     "사용자 메시지에 지원자 이력서 텍스트, (있으면) 직무 설명, 지원자가 공개한 GitHub 저장소 자료, 과제 기준별 관측이 주어진다.",
     "",
     "작성 규칙:",
-    "1. links: 이력서에서 과제나 GitHub 자료와 이어서 확인할 만한 기술 주장을 최대 8개 고른다. claim은 이력서 텍스트의 문장이나 구절을 한 글자도 바꾸지 않고 그대로 인용한다(300자 이내). 요약·번역·의역하지 않는다.",
+    "1. links: 이력서에서 과제나 GitHub 자료와 이어서 확인할 만한 기술 주장을 최대 5개 고른다. claim은 이력서 텍스트의 문장이나 구절을 한 글자도 바꾸지 않고 그대로 인용한다(300자 이내). 요약·번역·의역하지 않는다.",
     "2. claim은 이력서 블록에서만 가져온다. GitHub README·커밋·과제 관측·직무 설명의 문장은 claim이 될 수 없다. claimSource는 항상 RESUME이다.",
     "3. evidence: 그 주장과 관련된 GitHub 자료가 있으면 'GitHub 근거 URL' 목록에 있는 URL 하나와 무엇을 확인할 수 있는지 요약을 쓴다. 목록에 없는 URL을 만들지 않는다. 없으면 null이다.",
     "4. observedInAssignment: 그 주장과 관련된 과제 관측이 있으면 '과제 관측'의 기준 ID와 관련 내용을 쓴다. 없으면 null이다.",
@@ -87,8 +88,11 @@ export const CONTEXT_LINK_PROMPT = definePrompt({
   ].join("\n"),
 });
 
-/** 출력 토큰 상한 */
-export const CONTEXT_LINK_MAX_TOKENS = 3_000;
+/**
+ * 출력 토큰 상한. v3(T-703)부터 연결마다 구조화된 질문(의도·꼬리 질문·신호)을 함께 쓰므로 v2보다 출력이 서너 배 길다.
+ * 7단계 게이트(T-708)에서 페르소나 4종이 모두 `finish_reason=length`로 잘려 연결이 0건이 되어 3,000에서 8,000으로 올렸다.
+ */
+export const CONTEXT_LINK_MAX_TOKENS = 8_000;
 
 /** 입력 길이 상한 */
 export const CONTEXT_INPUT_LIMITS = {
@@ -384,6 +388,17 @@ export function postprocessContextLinks(
   const seen = new Set<string>();
 
   output.links.forEach((draft, index) => {
+    // 관대한 출력 스키마가 표지로 바꾼 항목 (T-708). 그 항목만 버리고 나머지 연결은 그대로 쓴다
+    if (isInvalidContextLink(draft)) {
+      const note = draft.invalidLink.join(",");
+      dropped.push({
+        index,
+        field: "link",
+        reason: "LINK_SCHEMA_INVALID",
+        ...(note ? { note } : {}),
+      });
+      return;
+    }
     if (!isResumeQuote(draft.claim, normalizedResume)) {
       dropped.push({ index, field: "link", reason: "CLAIM_NOT_IN_RESUME" });
       return;
@@ -620,7 +635,7 @@ export async function runContextLinkStage(
         observations,
         criteria: input.criteria,
       }),
-      schema: ContextLinkOutputSchema,
+      schema: ContextLinkLenientOutputSchema,
       example: CONTEXT_LINK_EXAMPLE,
       maxTokens: CONTEXT_LINK_MAX_TOKENS,
     }),

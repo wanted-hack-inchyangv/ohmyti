@@ -135,6 +135,48 @@
 - `pnpm demo:rehearsal --base-url https://ohmyti.vercel.app`: `docs/demo.md` 구간별 화면 10개를 순서대로 열어 스크린샷과 기대 문구 확인 결과를 `docs/demo/`에 남긴다. 기록은 `docs/demo/rehearsal.md`
 - 사람 확인: `docs/demo/rehearsal.md` 끝의 체크리스트(진행자·일시, 화면 일치, 90초 안 진행, 홍보 수치 없음)
 
+## PRD 14.5 인수 기준: 인터뷰 키트와 채용 리포트 (T-708)
+
+7단계(T-701 ~ T-707)의 인수 기준 6개다. 항목마다 증거를 적는다. 배포 환경 증거는 `pnpm gate:personas`(7단계 대조 포함) 기록인 `docs/gates/stage7.md`·`docs/gates/personas.md`에 있다.
+
+| #   | PRD 14.5 인수 기준                                             | 상태                  | 주 증거                                                                |
+| --- | -------------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
+| 1   | 이력서 없이 제출해도 과제 관측에서 나온 키트가 만들어진다      | 충족                  | 파이프라인 테스트(샘플 A, 이력서 없음), 키트 계획 테스트               |
+| 2   | 이력서가 달라져도 과제 기반 질문을 만드는 입력이 같다          | 충족                  | 이력서 X/Y 다이제스트 동일 테스트, 격리 검사                           |
+| 3   | 모든 질문이 저장된 근거를 참조하고 화면에서 그 근거로 이동한다 | 충족                  | 계약 스키마(`refs` 1개 이상), 딥링크 테스트, E2E, 배포 환경 게이트     |
+| 4   | LLM을 부르지 못해도 기본 질문으로 완성되고 그 사실이 표시된다  | 충족                  | 예산 초과 파이프라인 테스트, 화면·리포트 표시 테스트                   |
+| 5   | 리포트의 점수·판정·근거가 워크벤치와 같은 저장값에서 나온다    | 충족                  | 조립 테스트, E2E, 배포 환경 게이트의 리포트 ↔ 평가 조회 API 대조       |
+| 6   | 리포트와 키트에 13장·14.4의 금지 항목이 없다                   | 충족 · 사람 확인 대기 | 금지 표현·판단 키 테스트, `copy:check`, 배포 환경 게이트 금지 표현 0건 |
+
+1. **이력서 없이도 키트가 만들어진다**
+   - `apps/worker/src/pipeline/interview-kit.test.ts` — "A: 이력서 없이 제출해도 키트가 저장되고, 실패 디브리핑 없이 강점 확인 2개와 요구사항 확장 1개가 필수다"
+   - `apps/worker/src/interview-kit/interview-kit.test.ts` — "정답 구현(A): 실패 디브리핑이 없고 강점 확인 2개와 요구사항 확장 1개가 필수다"
+   - 배포 환경: 한서진(이력서는 있지만 실패가 없는 제출)의 키트가 강점 확인 2개·요구사항 확장 1개를 필수로 만들었다(`docs/gates/stage7.md`)
+2. **이력서가 달라도 과제 기반 질문의 입력이 같다**
+   - `apps/worker/src/pipeline/interview-kit.test.ts` — "같은 스냅샷을 이력서 Y로 평가해도 INTERVIEW_KIT의 LLM 입력 다이제스트와 질문 계획이 같다"
+   - `apps/worker/src/interview-kit/interview-kit.test.ts` — "제출물 문자열은 비신뢰 블록에 넣고 실행 기록 ID·점수·이력서는 넣지 않는다", "격리 검사: 입력 생성 파일은 점수·이력서·맥락 연결을, 단계 파일은 이력서·GitHub를 읽지 않는다"
+   - `pnpm context:isolation-check`가 같은 규칙을 AST로 확인한다
+3. **모든 질문이 근거를 참조하고 화면에서 이동한다**
+   - `packages/core/src/interview.ts`의 계약: `refs`는 1개 이상 8개 이하이며 `lintInterviewQuestion`의 `NO_REFS` 규칙이 빈 참조를 잡는다
+   - `apps/web/app/evaluations/[id]/interview-kit.test.tsx` — "근거 참조를 기존 워크벤치 딥링크로 바꾼다 (기준·재생·코드 위치·이력서 연결)"
+   - `e2e/workbench-interview-kit.spec.ts` — "실패 디브리핑 카드의 근거를 누르면 그 기준의 재생이 열린다 (T-704)"
+   - 배포 환경: 게이트가 페르소나 4종의 모든 질문에 대해 근거 참조 1개 이상과 질문 검사 통과를 실패 조건으로 확인한다
+4. **LLM을 부르지 못해도 기본 질문으로 완성된다**
+   - `apps/worker/src/pipeline/interview-kit.test.ts` — "예산 초과: 모든 슬롯이 기본 질문이고 단계는 DONE + 사유다"
+   - `apps/web/app/evaluations/[id]/interview-kit.test.tsx` — "LLM 미실행이면 상단에 사유를 보이고 모든 질문이 기본 질문이다", "LLM 문장 일부가 검사에 걸리면 기본 질문으로 바꿨다고 알린다"
+   - `apps/web/lib/reports/hiring-report.test.ts` — "LLM을 부르지 못한 키트도 리포트의 면접 안내에 사실 그대로 표시된다"
+   - 배포 환경: 게이트가 기본 질문 대체 비율을 경고로 기록한다(`docs/gates/stage7.md`의 "기본 질문 대체" 열)
+5. **리포트의 점수·판정·근거가 워크벤치와 같은 저장값이다**
+   - `apps/web/lib/reports/hiring-report.test.ts` — "점수 표기·영역 소계·판정이 평가 조회 API와 같다", "평가 조회 API와 같은 저장값으로 조립하고 없는 자료는 자료 없음으로 둔다", "aggregateScore를 부르지 않고 배점을 더하지 않는다"
+   - `e2e/workbench-hiring-report.spec.ts` — "조회 API와 리포트 화면의 점수 표기가 같은 저장값에서 나온다 (T-706)", "확인된 결함을 누르면 워크벤치의 그 기준 재생이 열린다 (T-706)"
+   - 배포 환경: 게이트가 리포트의 기준별 판정·획득 점수·점수 표기를 평가 조회 API 값과 하나씩 대조한다(불일치 0건)
+6. **금지 항목이 없다**
+   - `apps/web/lib/reports/hiring-report.test.ts` — "JSON·Markdown 출력 전체에 금지 표현이 없다", "리포트 스키마에 판단을 담는 키가 없다", "금지 표현이 있는 LLM 초안은 버린다"
+   - `e2e/workbench-hiring-report.spec.ts` — "Markdown 복사 결과에 아홉 개 절이 있고 금지 표현이 없다 (T-706)"
+   - `packages/core/src/interview-lint.test.ts`의 표현 규칙(추궁 어조·개인 신상·인상 표현)과 `pnpm copy:check`
+   - 배포 환경: 게이트가 시스템이 쓴 문장(키트 질문·리포트 서술·스코어카드 양식)에서 금지 표현 0건을 확인한다
+   - 사람 확인: 페르소나 4종의 필수 질문을 기술 면접관이 읽고 그대로 쓸 수 있는지 표시한다(`docs/gates/stage7.md`의 검토표)
+
 ## 배포 환경 게이트 (T-507)
 
 `pnpm copy:check && pnpm gate:phase2 --base-url https://ohmyti.vercel.app --repeat 3` 결과는 `docs/gates/phase2.md`와 `docs/gates/phase2.json`에 있다.

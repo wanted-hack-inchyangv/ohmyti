@@ -233,6 +233,21 @@ pnpm gate:personas --base-url https://ohmyti.vercel.app
 - 끝나면 첫 화면 → 제출 → 제출 상태 → 워크벤치(R-12 포함)를 데스크톱·모바일로 캡처해 `docs/gates/personas/`에 두고 HTTP 상태·가로 넘침·오류 문구·콘솔 오류를 점검한다. 결과는 `docs/gates/personas.md`·`personas.json`에 남는다.
 - 워커에 `GITHUB_TOKEN`이 없으면 GitHub API 한도가 IP당 시간 60회다. 페르소나 한 건은 프로필 보충 조회에 11회 안팎을 쓰므로 다른 게이트와 겹쳐 돌리기 전에 한도를 확인한다(`railway ssh --service worker -- node -e "fetch('https://api.github.com/rate_limit').then(r=>r.json()).then(j=>console.log(j.rate))"`).
 
+## 7단계 게이트: 키트·리포트 회귀 (T-708)
+
+같은 `pnpm gate:personas`가 6단계 대조에 더해 인터뷰 키트(T-702·T-704)와 채용 리포트(T-705·T-706)를 대조한다. 워커·웹이 모두 최신 커밋이어야 한다.
+
+```bash
+pnpm gate:personas --base-url https://ohmyti.vercel.app
+```
+
+- 더 읽는 API: `GET /api/evaluations/[id]/interview-kit`, `GET /api/evaluations/[id]/hiring-report`.
+- 기대값: `samples/personas/expected-matrix.json`의 `kit`(유형별 질문 수, 있어야 하는 슬롯 ID·우선순위·근거 키워드). 이력서 연결 질문 수만 범위로 적는다.
+- 실패 조건: `INTERVIEW_KIT` 단계 DONE과 LLM `OK`, 유형별 질문 수와 기대 슬롯의 우선순위, 질문마다 결정적 검사(`lintInterviewQuestion`) 통과와 근거 참조 1개 이상, 관측 기준이 없는 이력서 연결 질문이 과제와 비교하지 않음, 진행안 구간 합이 길이 이내, 리포트의 판정·점수가 워크벤치와 같음, 리포트 면접 안내가 키트의 필수 질문과 같은 수, 시스템이 쓴 문장에 금지 표현 0건.
+- 경고(실패 아님): 기본 질문(`TEMPLATE`) 대체 비율, 후처리가 버린 LLM 출력(`LINT_VIOLATION` 등).
+- 기록: `docs/gates/stage7.md`(키트 전문, 생성 요약, 리포트 표, 면접관 검토표)와 `docs/gates/stage7/`(페르소나별 채용 리포트·인터뷰 키트 데스크톱·모바일 캡처와 A4 PDF). 6단계 기록(`docs/gates/personas.md`·`.json`)도 함께 갱신된다.
+- 주의: 워커 서비스에 `watchPatterns`가 남아 있으면 그 목록 밖의 패키지(`packages/context` 등)만 고친 `railway up`이 `SKIPPED`로 끝난다. `railway config apply`로 현재 설정을 맞춘 뒤 다시 올린다.
+
 ## Vercel Sandbox 러너 (T-209)
 
 `SANDBOX_RUNNER=vercel`이면 워커는 제출 코드를 Railway 컨테이너 안이 아니라 Vercel Sandbox(Firecracker microVM, `@vercel/sandbox` 3.3.0)에서 실행한다. 인터페이스는 `LocalProcessRunner`와 같고 파이프라인·게이트 코드는 바뀌지 않는다. MVP 기본값은 여전히 `local`이며(TICKET.md 1.4), 전환은 워커 변수 하나로 한다.

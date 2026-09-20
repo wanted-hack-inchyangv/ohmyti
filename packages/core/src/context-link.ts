@@ -59,6 +59,19 @@ export const ContextQuestionDraftSchema = z.strictObject({
 export type ContextQuestionDraft = z.infer<typeof ContextQuestionDraftSchema>;
 
 /**
+ * 질문 구조가 계약과 아주 다를 때(문자열 하나만 돌려주는 등) 쓰는 빈 초안. 후처리가 `QUESTION_SCHEMA_INVALID`로 보고
+ * 기본 질문으로 바꾼다. 연결 자체(주장·근거·관측)는 살린다 (T-708).
+ */
+export const EMPTY_CONTEXT_QUESTION_DRAFT: ContextQuestionDraft = {
+  question: "",
+  intent: "",
+  probes: [],
+  positiveSignals: [],
+  concernSignals: [],
+  competency: "",
+};
+
+/**
  * LLM 질문이 검사에 걸리거나 형식이 맞지 않을 때 쓰는 기본 질문 (티켓 문구 그대로). 연결은 유지하고 질문만 바꾼다.
  * 특정 경험을 전제하지 않으므로 어느 주장에나 쓸 수 있다.
  */
@@ -114,6 +127,49 @@ export const ContextLinkOutputSchema = z.strictObject({
   unassessedAreas: z.array(z.string().min(1)),
 });
 export type ContextLinkOutput = z.infer<typeof ContextLinkOutputSchema>;
+
+/** 스키마에 맞지 않는 연결 자리에 들어가는 표지. 본문은 담지 않는다 (T-708) */
+export interface InvalidContextLink {
+  /** 계약과 어긋난 필드 경로 (예: `question.probes`). 문장은 담지 않는다 */
+  invalidLink: string[];
+}
+
+/**
+ * 관대한 출력 스키마 (T-702의 인터뷰 키트와 같은 방식). 연결 하나의 형식 오류가 출력 전체를 버리게 하지 않는다.
+ * 항목마다 검증해 맞지 않는 항목만 표지로 바꾸고, 후처리가 `LINK_SCHEMA_INVALID`로 그 항목만 버린다.
+ * 계약에 없는 키는 무시한다(후처리는 아는 필드만 읽는다). 7단계 게이트에서 DeepSeek이 연결마다 덧붙인 키 하나로
+ * 연결 8건이 모두 버려지는 것을 봤다.
+ * 바깥 두 필드도 빠지거나 형태가 다르면 빈 목록으로 받는다(단계는 연결 0건 + 사유로 끝난다).
+ * `catch`는 JSON Schema에 드러나지 않으므로 LLM에 보이는 출력 형식은 엄격 스키마와 같다.
+ */
+export const ContextLinkLenientOutputSchema = z.object({
+  links: z
+    .array(
+      z
+        .looseObject({
+          ...ContextLinkDraftSchema.shape,
+          // 질문 구조만 어긋나면 연결을 살리고 후처리가 기본 질문으로 바꾼다 (T-708)
+          question: z
+            .looseObject(ContextQuestionDraftSchema.shape)
+            .catch(EMPTY_CONTEXT_QUESTION_DRAFT),
+          evidence: ContextLinkDraftSchema.shape.evidence.catch(null),
+          observedInAssignment: ContextLinkDraftSchema.shape.observedInAssignment.catch(null),
+        })
+        .catch((ctx): ContextLinkDraft => {
+          const paths = [
+            ...new Set(ctx.error.issues.map((issue) => issue.path.join(".") || issue.code)),
+          ];
+          const marker: InvalidContextLink = { invalidLink: paths.slice(0, 5) };
+          return marker as unknown as ContextLinkDraft;
+        }),
+    )
+    .catch([]),
+  unassessedAreas: z.array(z.string().catch("")).catch([]),
+});
+
+export function isInvalidContextLink(link: unknown): link is InvalidContextLink {
+  return typeof link === "object" && link !== null && "invalidLink" in link;
+}
 
 /**
  * 저장하지 않는 판단 표현 (G-13: 이력서 진위·AI 작성률·기여율·합격 판정·순위를 만들지 않는다).
@@ -188,6 +244,8 @@ export const ContextLinkDroppedSchema = z.strictObject({
     "QUESTION_LINT_VIOLATION",
     /** 질문 구조의 개수·역량 값이 계약과 달라 기본 질문으로 바꿨다 (T-703) */
     "QUESTION_SCHEMA_INVALID",
+    /** 연결 자체가 출력 스키마와 달라 그 항목만 버렸다 (T-708의 관대한 출력 스키마) */
+    "LINK_SCHEMA_INVALID",
   ]),
   /** 금지 표현 라벨·검사 규칙 등 부가 설명. 이력서 본문과 질문 문장은 담지 않는다 */
   note: z.string().optional(),
