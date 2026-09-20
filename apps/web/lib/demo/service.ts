@@ -19,6 +19,7 @@ import {
   DEMO_SAMPLE_IDS,
   enqueueSubmissionEvaluation,
   findLatestEvaluation,
+  findEvaluationByRepoAndProfile,
   findSavedDemoEvaluation,
   findSubmissionJob,
   getAssignment,
@@ -41,6 +42,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { formatVersionLabel } from "@/lib/assignments/service";
 import { specExcerpt } from "@/lib/spec-excerpt";
+import { PERSONA_HANDLES, PERSONA_INFO, type PersonaInfo } from "./personas";
 import { matchSavedRun, normalizeRepoUrl, type SavedRunMatch } from "./saved-run";
 import { formatSavedAt, savedRunLabel } from "./format";
 import {
@@ -278,6 +280,58 @@ export async function readDemoOverview(deps: DemoDeps): Promise<DemoOverview> {
     assignment: latest ? await readAssignmentSummary(deps, latest.assignmentVersionId) : null,
     recommendedOrder: DEMO_RECOMMENDED_ORDER,
   };
+}
+
+// ── 지원자 맥락 예시 (T-905) ────────────────────────────────────────────────────
+
+export interface DemoPersonaCardView extends PersonaInfo {
+  /** 저장된 실행이 있을 때만 채워진다. 평가 ID는 하드코딩하지 않고 DB에서 찾는다 */
+  saved: {
+    evaluationId: string;
+    label: string;
+    /** 워크벤치 하단 `이력서 연결` 탭 */
+    contextHref: string;
+    interviewKitHref: string;
+    reportHref: string;
+  } | null;
+  /** 이 페르소나로 채점을 요청하는 프리필 링크 (T-902) */
+  prefillHref: string;
+}
+
+/**
+ * 페르소나 4종의 카드. 저장소 URL과 GitHub 프로필이 모두 일치하는 최신 성공 실행을 DB에서 찾는다.
+ * 찾지 못한 페르소나는 프리필 링크만 보인다 (오류로 만들지 않는다, G-14).
+ */
+export async function readDemoPersonas(
+  deps: Pick<DemoDeps, "db">,
+): Promise<DemoPersonaCardView[]> {
+  return Promise.all(
+    PERSONA_HANDLES.map(async (handle) => {
+      const info = PERSONA_INFO[handle];
+      const found = await findEvaluationByRepoAndProfile(deps.db, {
+        repoUrl: info.repoUrl,
+        githubLogin: personaProfileLogin(info.githubProfileUrl),
+      }).catch(() => null);
+      return {
+        ...info,
+        saved: found
+          ? {
+              evaluationId: found.evaluationId,
+              label: savedRunLabel(found.finishedAt),
+              contextHref: `/evaluations/${found.evaluationId}?tab=resume`,
+              interviewKitHref: `/evaluations/${found.evaluationId}/interview-kit`,
+              reportHref: `/evaluations/${found.evaluationId}/report`,
+            }
+          : null,
+        prefillHref: `/submissions/new?persona=${handle}`,
+      };
+    }),
+  );
+}
+
+/** `https://github.com/<login>` → `<login>` */
+export function personaProfileLogin(profileUrl: string): string {
+  return profileUrl.replace(/\/+$/, "").split("/").pop() ?? "";
 }
 
 // ── 같은 입력의 저장된 실행 · 단계별 실측 시간 (T-904) ──────────────────────────

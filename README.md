@@ -51,14 +51,14 @@
 4. 헤더의 `채용 리포트`를 열면 점수 표기·핵심 관측·역량별 관측·면접 안내가 한 문서로 정리됩니다. 인쇄(PDF)와 Markdown 복사를 지원합니다.
 5. 리포트 6절에서 `인터뷰 키트`로 넘어가면 실패 디브리핑·테스트 설계·이력서 연결 질문이 의도·꼬리 질문·좋은 답변의 신호·근거와 함께 우선순위대로 나옵니다.
 
-가상 지원자 페르소나가 실제로 제출해 채점받은 결과도 바로 열어 볼 수 있습니다. 백도현은 실행 기준(75점)을 한서진과 똑같이 만점 받았지만, 제출 테스트가 주입한 결함 다섯 개를 하나도 잡지 못해 테스트 실효성에서 점수 차이가 납니다. `설계·변경 용이성` 기준을 누르면 AST로 센 코드 신호(`any` 사용 위치, 바쁜 대기, 중복 블록, 약한 단언)를 코드 위치와 함께 볼 수 있습니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
+가상 지원자 페르소나가 실제로 제출해 채점받은 결과는 [샘플 체험의 `지원자 맥락 예시`](https://ohmyti.vercel.app/demo#지원자-맥락-예시) 섹션에서 바로 열 수 있습니다. 평가 링크는 배포된 서비스가 저장된 실행에서 찾아 보여 주므로 다시 시드해도 끊기지 않습니다. 백도현은 실행 기준(75점)을 한서진과 똑같이 만점 받았지만, 제출 테스트가 주입한 결함 다섯 개를 하나도 잡지 못해 테스트 실효성에서 점수 차이가 납니다. `설계·변경 용이성` 기준을 누르면 AST로 센 코드 신호(`any` 사용 위치, 바쁜 대기, 중복 블록, 약한 단언)를 코드 위치와 함께 볼 수 있습니다. 페르소나 설명과 이력서는 [samples/personas](samples/personas)에 있습니다.
 
 | 페르소나        | 과제 제출물                                                                     | 설계한 결함                                                                       | 채점 결과                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                                                              | [90~100/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0) |
-| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청                                                   | [78~88/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/65711c8c-7660-4c69-9517-fb80911f499a)  |
-| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구                                         | [37~57/100 · 20점 검토 대기](https://ohmyti.vercel.app/evaluations/069a839f-ad1b-43a0-8d98-80adffad73a6)  |
-| 백도현 · 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | 요구사항은 모두 통과하지만 테스트가 결함을 잡지 못하고 구조가 한 파일에 몰려 있음 | [75~85/100 · 10점 검토 대기](https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162)  |
+| 한서진 · 시니어 | [`seojin-order-api`](https://github.com/wanted-hack-inchyangv/seojin-order-api) | 없음                                                                              | 90~100/100 · 10점 검토 대기 ([샘플 체험](https://ohmyti.vercel.app/demo)에서 워크벤치·인터뷰 키트·채용 리포트로 이동) |
+| 오태윤 · 주니어 | [`taeyun-order-api`](https://github.com/wanted-hack-inchyangv/taeyun-order-api) | 멱등 키 충돌, 같은 키 동시 요청                                                   | 78~88/100 · 10점 검토 대기 ([샘플 체험](https://ohmyti.vercel.app/demo)에서 워크벤치·인터뷰 키트·채용 리포트로 이동) |
+| 문가은 · 신입   | [`gaeun-order-api`](https://github.com/wanted-hack-inchyangv/gaeun-order-api)   | 입력 검증, 멱등성 전체, 취소 시 재고 복구                                         | 37~57/100 · 20점 검토 대기 ([샘플 체험](https://ohmyti.vercel.app/demo)에서 워크벤치·인터뷰 키트·채용 리포트로 이동) |
+| 백도현 · 미들   | [`dohyun-order-api`](https://github.com/wanted-hack-inchyangv/dohyun-order-api) | 요구사항은 모두 통과하지만 테스트가 결함을 잡지 못하고 구조가 한 파일에 몰려 있음 | 75~85/100 · 10점 검토 대기 ([샘플 체험](https://ohmyti.vercel.app/demo)에서 워크벤치·인터뷰 키트·채용 리포트로 이동) |
 
 ## 화면
 

@@ -6,8 +6,10 @@ import { getDb } from "@/lib/db";
 import {
   isDemoModeEnabled,
   readDemoOverview,
+  readDemoPersonas,
   type DemoAssignmentSummary,
   type DemoOverview,
+  type DemoPersonaCardView,
   type DemoSampleCardView,
 } from "@/lib/demo/service";
 import { ApprovalBadge } from "./approval-badge";
@@ -24,8 +26,10 @@ export const dynamic = "force-dynamic";
 export default async function DemoPage() {
   if (!isDemoModeEnabled()) notFound();
   let overview: DemoOverview;
+  let personas: DemoPersonaCardView[];
   try {
     overview = await readDemoOverview({ db: getDb().db, store: getArtifactStore() });
+    personas = await readDemoPersonas({ db: getDb().db });
   } catch {
     return (
       <PageContainer>
@@ -77,6 +81,21 @@ export default async function DemoPage() {
           <SampleCard key={sample.id} sample={sample} />
         ))}
       </ul>
+
+      <section className="flex flex-col gap-4 border-t border-neutral-200 pt-6" data-testid="demo-personas">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-bold tracking-tight">지원자 맥락 예시</h2>
+          <p className="text-sm leading-relaxed text-neutral-500">
+            지어낸 지원자 네 명이 같은 과제를 제출하고 이력서·GitHub 프로필까지 함께 낸 결과입니다.
+            인물·이력서·저장소는 모두 이 프로젝트를 위해 만든 것이며 실존 인물과 관련이 없습니다.
+          </p>
+        </div>
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+          {personas.map((persona) => (
+            <PersonaCard key={persona.handle} persona={persona} />
+          ))}
+        </ul>
+      </section>
 
       <div className="flex flex-col gap-4 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl text-[13px] leading-relaxed text-neutral-500">
@@ -248,6 +267,87 @@ function SampleCard({ sample }: { sample: DemoSampleCardView }) {
           이 샘플로 채점 요청
         </a>
         <DemoRunButton sampleId={sample.id} disabled={!sample.saved} />
+      </div>
+    </li>
+  );
+}
+
+/** 지원자 맥락 예시 카드 (T-905). 평가 ID는 DB에서 찾은 값이며 화면에 점수·판정을 적지 않는다 */
+function PersonaCard({ persona }: { persona: DemoPersonaCardView }) {
+  return (
+    <li
+      className="flex min-w-0 flex-col gap-4 rounded-xl border border-neutral-200 bg-surface p-5 sm:p-6"
+      data-testid={`demo-persona-${persona.handle}`}
+    >
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-base font-bold tracking-tight">{persona.name}</h3>
+          <Badge tone="neutral">가상 지원자</Badge>
+        </div>
+        <p className="text-sm leading-relaxed text-neutral-600">{persona.profile}</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <h4 className="text-[13px] font-bold text-neutral-500">이력서와 GitHub 활동</h4>
+        <p className="text-sm leading-relaxed text-neutral-700">{persona.context}</p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <h4 className="text-[13px] font-bold text-neutral-500">확인할 것</h4>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-sm leading-relaxed text-neutral-700">
+          {persona.checks.map((check) => (
+            <li key={check}>{check}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-auto flex flex-col gap-2">
+        {persona.saved ? (
+          <>
+            <span className="self-start">
+              <Badge tone="neutral" data-testid={`demo-persona-badge-${persona.handle}`}>
+                {persona.saved.label}
+              </Badge>
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={persona.saved.contextHref}
+                className={buttonClass("secondary", "sm")}
+                data-testid={`demo-persona-context-${persona.handle}`}
+              >
+                이력서 연결 탭
+              </a>
+              <a
+                href={persona.saved.interviewKitHref}
+                className={buttonClass("secondary", "sm")}
+                data-testid={`demo-persona-kit-${persona.handle}`}
+              >
+                인터뷰 키트
+              </a>
+              <a
+                href={persona.saved.reportHref}
+                className={buttonClass("secondary", "sm")}
+                data-testid={`demo-persona-report-${persona.handle}`}
+              >
+                채용 리포트
+              </a>
+            </div>
+          </>
+        ) : (
+          <p
+            className="text-[13px] leading-relaxed text-neutral-500"
+            data-testid={`demo-persona-missing-${persona.handle}`}
+          >
+            이 지원자의 저장된 실행이 아직 없습니다. 아래 링크로 직접 채점을 요청할 수 있습니다.
+          </p>
+        )}
+        <a
+          href={persona.prefillHref}
+          className="text-[13px] font-semibold text-primary hover:underline"
+          data-testid={`demo-persona-prefill-${persona.handle}`}
+        >
+          이 지원자로 채점 요청
+        </a>
       </div>
     </li>
   );

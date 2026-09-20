@@ -7,7 +7,14 @@ import {
 import { and, desc, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import type { Database } from "./client";
 import type { JobRow } from "./queue";
-import { assignmentVersions, evaluations, jobs, submissions, validationSamples } from "./schema";
+import {
+  assignmentVersions,
+  evaluations,
+  jobs,
+  submissionContext,
+  submissions,
+  validationSamples,
+} from "./schema";
 
 /**
  * 샘플 체험 (TICKET.md T-505, PRD 7장 데모 데이터 원칙).
@@ -109,6 +116,47 @@ export async function findSavedDemoEvaluation(
     .orderBy(desc(evaluations.finishedAt), desc(evaluations.id))
     .limit(1);
   return row ? toSaved(row) : null;
+}
+
+/** 페르소나 진입점(T-905)이 찾는 저장된 실행 */
+export interface PersonaEvaluation {
+  evaluationId: string;
+  submissionId: string;
+  submissionSha: string;
+  finishedAt: Date;
+}
+
+/**
+ * 저장소 URL과 GitHub 프로필 로그인이 모두 같은 가장 최근 성공 실행 (T-905).
+ * 평가 ID를 문서·화면에 하드코딩하지 않으려고 DB에서 찾는다. 완료된 제출의 끝난 평가만 센다.
+ */
+export async function findEvaluationByRepoAndProfile(
+  db: Database,
+  input: { repoUrl: string; githubLogin: string },
+): Promise<PersonaEvaluation | null> {
+  const [row] = await db
+    .select({
+      evaluationId: evaluations.id,
+      submissionId: submissions.id,
+      submissionSha: evaluations.submissionSha,
+      finishedAt: evaluations.finishedAt,
+    })
+    .from(evaluations)
+    .innerJoin(submissions, eq(evaluations.submissionId, submissions.id))
+    .innerJoin(submissionContext, eq(submissionContext.submissionId, submissions.id))
+    .where(
+      and(
+        eq(submissions.status, "COMPLETED"),
+        isNull(submissions.deletedAt),
+        isNotNull(evaluations.finishedAt),
+        sql`lower(${submissions.repoUrl}) = lower(${input.repoUrl})`,
+        sql`lower(${submissionContext.githubLogin}) = lower(${input.githubLogin})`,
+      ),
+    )
+    .orderBy(desc(evaluations.finishedAt), desc(evaluations.id))
+    .limit(1);
+  if (!row || !(row.finishedAt instanceof Date)) return null;
+  return { ...row, finishedAt: row.finishedAt };
 }
 
 /** 제출의 가장 최근 `EVALUATE_SUBMISSION` job */

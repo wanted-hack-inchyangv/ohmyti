@@ -26,6 +26,7 @@ import {
   formatSavedAt,
   isDemoModeEnabled,
   readDemoOverview,
+  readDemoPersonas,
   readDemoRunStatus,
   savedRunLabel,
   specExcerptOf,
@@ -330,6 +331,20 @@ describe("새 실행 (DB·fs 스토어)", () => {
       totalPoints: criteria.reduce((sum, c) => sum + c.maxPoints, 0),
     });
   });
+});
+
+describe("T-905 readDemoPersonas (DB)", () => {
+  it("저장된 실행이 없는 페르소나는 프리필 링크만 보이고 오류가 나지 않는다", async () => {
+    const tdb = await createTestDatabase();
+    try {
+      const personas = await readDemoPersonas({ db: tdb.db });
+      expect(personas.map((p) => p.handle)).toEqual(["seojin", "taeyun", "gaeun", "dohyun"]);
+      expect(personas.every((p) => p.saved === null)).toBe(true);
+      expect(personas[0]!.prefillHref).toBe("/submissions/new?persona=seojin");
+    } finally {
+      await tdb.destroy();
+    }
+  }, 60_000);
 });
 
 describe("specExcerptOf", () => {
