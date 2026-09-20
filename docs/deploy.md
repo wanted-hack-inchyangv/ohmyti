@@ -246,6 +246,16 @@ pnpm gate:personas --base-url https://ohmyti.vercel.app
 - 실패 조건: `INTERVIEW_KIT` 단계 DONE과 LLM `OK`, 유형별 질문 수와 기대 슬롯의 우선순위, 질문마다 결정적 검사(`lintInterviewQuestion`) 통과와 근거 참조 1개 이상, 관측 기준이 없는 이력서 연결 질문이 과제와 비교하지 않음, 진행안 구간 합이 길이 이내, 리포트의 판정·점수가 워크벤치와 같음, 리포트 면접 안내가 키트의 필수 질문과 같은 수, 시스템이 쓴 문장에 금지 표현 0건.
 - 경고(실패 아님): 기본 질문(`TEMPLATE`) 대체 비율, 후처리가 버린 LLM 출력(`LINT_VIOLATION` 등).
 - 기록: `docs/gates/stage7.md`(키트 전문, 생성 요약, 리포트 표, 면접관 검토표)와 `docs/gates/stage7/`(페르소나별 채용 리포트·인터뷰 키트 데스크톱·모바일 캡처와 A4 PDF). 6단계 기록(`docs/gates/personas.md`·`.json`)도 함께 갱신된다.
+
+## 8단계 게이트: 산출물 품질 개선 (T-803)
+
+같은 `pnpm gate:personas`를 배포 뒤에 다시 돌린다. 8단계는 새 기대값을 넣지 않고 7단계의 기대 행렬을 그대로 쓰며, 확인하는 것은 개선 폭이다.
+
+- 기본 질문(`TEMPLATE`) 대체가 페르소나당 1개 이하인지 (T-801, 8단계 결과는 4종 모두 0)
+- 채용 리포트 PDF가 5쪽 이내이고 1쪽에 점수 표기와 확인된 결함 카드가 있는지 (T-802)
+- 데모 샘플의 저장된 실행에도 새 프롬프트가 반영되도록 `ARTIFACT_STORE=blob pnpm demo:seed --env-store --external-worker`로 시드를 다시 만든다(프로덕션 `DATABASE_URL` 필요).
+- 기록: `docs/gates/stage8.md`(전후 비교)와 `docs/gates/stage8/`(공개 경로 캡처). `docs/gates/stage7.md`는 게이트를 돌릴 때마다 최신 회차로 덮어쓴다.
+
 - 주의: 워커 서비스에 `watchPatterns`가 남아 있으면 그 목록 밖의 패키지(`packages/context` 등)만 고친 `railway up`이 `SKIPPED`로 끝난다. `railway config apply`로 현재 설정을 맞춘 뒤 다시 올린다.
 
 ## Vercel Sandbox 러너 (T-209)

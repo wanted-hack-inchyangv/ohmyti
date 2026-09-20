@@ -1266,6 +1266,8 @@ export function renderStage7Report(matrix: PersonaMatrix, summary: PersonaGateSu
   lines.push("");
   lines.push(
     "`pnpm gate:personas`가 만든 기록이다. 배포 환경에 페르소나 4종을 제출해 실제 LLM으로 인터뷰 키트(T-702·T-704)와 채용 리포트(T-705·T-706)를 만들고, 키트의 질문 슬롯·우선순위·유형별 질문 수를 `samples/personas/expected-matrix.json`의 기대값과 대조한다. 질문은 모두 결정적 검사(`lintInterviewQuestion`)를 통과하고 저장된 근거를 하나 이상 참조해야 하며, 리포트의 판정·점수는 워크벤치(평가 조회 API)의 값과 같아야 하고 시스템이 쓴 문장에 금지 표현(PRD 14.4)이 없어야 한다. 기본 질문 대체와 버린 LLM 출력은 품질 관찰이라 경고로 남긴다.",
+    "",
+    "이 파일은 게이트를 돌릴 때마다 덮어쓴다. 8단계(T-801·T-802) 개선의 전후 비교는 [`docs/gates/stage8.md`](stage8.md)에 있다.",
   );
   lines.push("");
   lines.push(`- 결과: **${summary.ok ? "통과" : "실패"}**`);

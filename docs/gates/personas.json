@@ -1,21 +1,18 @@
 {
   "ok": true,
   "baseUrl": "https://ohmyti.vercel.app",
-  "startedAt": "2026-09-20T01:36:50.996Z",
-  "finishedAt": "2026-09-20T01:49:01.238Z",
+  "startedAt": "2026-09-20T04:34:56.292Z",
+  "finishedAt": "2026-09-20T04:47:49.387Z",
   "rubricVersion": "v2-be07fb44",
   "runs": [
     {
       "handle": "seojin",
-      "submissionId": "2b458a6a-c41d-47d1-ad31-42c49dfc0078",
-      "evaluationId": "0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0",
+      "submissionId": "a21def92-ee82-4335-a6fd-8349ffacbcf8",
+      "evaluationId": "1bc69b13-00c6-4283-aa1b-52e6f5616362",
       "status": "COMPLETED",
-      "waitMs": 163225,
+      "waitMs": 186119,
       "mismatches": [],
-      "warnings": [
-        "기본 질문(TEMPLATE) 대체 1/9",
-        "주장(Kafka·카프카): 기대 NO_DATA, 실제 NEEDS_CHECK"
-      ],
+      "warnings": [],
       "error": null,
       "kitError": null,
       "reportError": null,
@@ -24,7 +21,7 @@
           {
             "name": "report-seojin",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0/report",
+            "url": "https://ohmyti.vercel.app/evaluations/1bc69b13-00c6-4283-aa1b-52e6f5616362/report",
             "file": "docs/gates/stage7/report-seojin-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -34,7 +31,7 @@
           {
             "name": "interview-kit-seojin",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/1bc69b13-00c6-4283-aa1b-52e6f5616362/interview-kit",
             "file": "docs/gates/stage7/interview-kit-seojin-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -44,7 +41,7 @@
           {
             "name": "report-seojin",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0/report",
+            "url": "https://ohmyti.vercel.app/evaluations/1bc69b13-00c6-4283-aa1b-52e6f5616362/report",
             "file": "docs/gates/stage7/report-seojin-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -54,7 +51,7 @@
           {
             "name": "interview-kit-seojin",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/0f3b8cbe-c5a1-4f64-a9c5-6a1ccee20fa0/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/1bc69b13-00c6-4283-aa1b-52e6f5616362/interview-kit",
             "file": "docs/gates/stage7/interview-kit-seojin-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -62,7 +59,7 @@
             "problems": []
           }
         ],
-        "reportPdf": { "file": "docs/gates/stage7/report-seojin.pdf", "pages": 6 },
+        "reportPdf": { "file": "docs/gates/stage7/report-seojin.pdf", "pages": 4 },
         "kitPdf": { "file": "docs/gates/stage7/interview-kit-seojin.pdf", "pages": 8 }
       },
       "facts": {
@@ -121,7 +118,7 @@
           "r12Draft": {
             "suggestedPoints": 9,
             "maxPoints": 10,
-            "rationale": "(a) 계층 분리: src/http/routes.ts의 핸들러는 헤더·본문 파싱과 zod 검증(46-59행)만 하고 도메인 규칙은 orderService.createOrder/cancelOrder/getProduct/getOrder 호출로 위임한다(40-79행). 도메인 규칙은 src/application/order-service.ts에 모여 있고 HTTP 요청·응답 객체에 의존하지 않는다. domain/errors.ts가 오류 코드↔상태 매핑을 담당한다는 구조가 파일 목록과 README 구조 설명에서 확인된다. 다만 routes.ts의 registerRoutes가 51줄로 가장 긴 함수이고 라우트 등록·검증·서비스 호출이 한 함수에 몰려 있어 완전한 분리는 아니다. (b) 멱등성 저장소 추상화: src/application/ports.ts에 IdempotencyStore 인터페이스가 있고 infra/in-memory-repositories.ts가 이를 구현하며 OrderService가 생성자 주입을 받는 구조로, 저장소 교체 시 주문 생성 로직 수정이 불필요하다. (c) 변경 용이성: 오류 코드·상태 매핑이 domain/errors.ts 한 곳, 검증 규칙이 http/schemas.ts 한 곳에 모여 있고, routes.ts에서 AppError 서브클래스를 던지는 패턴이 일관된다. 다만 검증 실패 메시지 조합(57행)과 키 검증(49-52행)이 라우트 핸들러에 남아 있어 새 검증 규칙 추가 시 schemas.ts와 routes.ts 두 곳을 볼 수 있다. AST 신호상 명시적 any 0곳, strict 켜짐, 약한 단언 0%로 타입·테스트 품질도 설계를 뒷받침한다."
+            "rationale": "(a) 계층 분리: src/http/routes.ts의 핸들러는 헤더·본문 파싱과 zod 검증(48-59행)만 하고 도메인 규칙은 orderService.createOrder/cancelOrder 호출(61-65, 77행)로 위임한다. 라우트 핸들러는 RequestContext만 알고 도메인 규칙을 담지 않으며, application/order-service.ts는 req/res를 참조하지 않는 구조로 보인다(파일 목록·README 구조 설명과 일치). (b) 멱등성 저장소 추상화: application/ports.ts에 IdempotencyStore 인터페이스가 있고 infra/in-memory-repositories.ts가 구현하며 OrderService가 생성자 주입을 받는 구조다. 저장소 교체 시 주문 생성 로직 수정이 불필요하다는 점이 파일 분리로 확인된다. (c) 변경 용이성: domain/errors.ts에 오류 코드↔상태 매핑이 모이고 http/schemas.ts에 검증 스키마가 모이며, 라우트는 AppError를 상태 코드로 변환하는 단일 지점을 통과한다. 다만 오류 코드 추가 시 errors.ts와 각 라우트의 throw 지점을 함께 손대야 하는 부분은 남아 있어 만점은 아니다. AST 신호(명시적 any 0, strict 켜짐, 약한 단언 0%)는 타입 안정성과 테스트 구체성에 부합한다."
           }
         },
         "github": {
@@ -145,38 +142,44 @@
         },
         "links": [
           {
-            "claim": "주문·재고 서비스의 동시 주문 처리 구간에서 초과 판매(overselling)가 반복적으로 발생하는 문제를 맡아, 상품 단위 재고 선점(stock reservation) 시스템을 설계해 도입했습니다.",
+            "claim": "TTL 기반 예약과 버전 비교(version check) 기반의 낙관적 잠금(optimistic locking)으로 재고 차감을 직렬화한 결과, 피크 트래픽 구간에서 동시 주문 때문에 생긴 초과 판매를 0건으로 줄였습니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "상품 단위 재고 선점 시스템에서 재고 차감을 직렬화할 때 어떤 지점에서 충돌을 감지하고 재시도하도록 설계하셨나요?",
+            "followUpQuestion": "재고 선점 시스템에서 낙관적 잠금 충돌이 났을 때 재시도는 어떤 조건으로 몇 번까지 수행하도록 설계하셨나요?",
             "criterionId": "R-08"
           },
           {
             "claim": "결제·주문 생성 API에 멱등성 키(Idempotency-Key) 미들웨어를 도입해, 클라이언트 재시도·네트워크 재전송으로 발생하던 중복 주문을 제거했습니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
+            "followUpQuestion": "결제·주문 생성 API에 붙인 멱등성 키 미들웨어에서 같은 키로 진행 중인 요청이 두 번 들어오면 어떻게 병합하도록 구현하셨나요?",
             "criterionId": "R-05"
           },
           {
-            "claim": "운송장 조회 API의 응답 지연을 인덱스 재설계와 캐시 도입으로 개선해 p95 응답 시간을 1.2초에서 180ms로 단축했습니다.",
+            "claim": "도입 후 3개월간 중복 주문 때문에 생긴 결제 취소·환불 처리 건수가 0건으로 유지되고 있습니다.",
             "status": "NEEDS_CHECK",
-            "followUpQuestion": "운송장 조회 API의 p95 응답 시간을 1.2초에서 180ms로 단축했다고 하셨는데, 그 수치는 어떤 부하 조건에서 어떻게 측정한 값인가요?",
-            "criterionId": null
+            "followUpQuestion": "중복 주문으로 인한 결제 취소·환불 건수 0건은 어떤 지표와 기간으로 집계하셨나요?",
+            "criterionId": "R-06"
           },
           {
             "claim": "주문 생성부터 배송 상태 변경까지의 도메인 이벤트를 Kafka 기반 이벤트 파이프라인으로 전환해 주문·재고·정산 서비스 간 동기 호출 의존을 제거했습니다.",
-            "status": "NEEDS_CHECK",
-            "followUpQuestion": "주문·재고·정산 서비스 간 동기 호출 의존을 Kafka 기반 이벤트 파이프라인으로 제거하셨는데, 이벤트 발행과 소비 사이의 정합성은 어떻게 맞추셨나요?",
+            "status": "NO_DATA",
+            "followUpQuestion": "주문·재고·정산 서비스 간 동기 호출을 Kafka 이벤트로 전환할 때 어떤 이벤트 단위와 순서 보장 기준을 세우셨나요?",
+            "criterionId": null
+          },
+          {
+            "claim": "운송장 조회 API의 응답 지연을 인덱스 재설계와 캐시 도입으로 개선해 p95 응답 시간을 1.2초에서 180ms로 단축했습니다.",
+            "status": "NO_DATA",
+            "followUpQuestion": "운송장 조회 API의 p95 응답 시간 1.2초에서 180ms 단축은 어떤 측정 환경과 트래픽 조건에서 확인하셨나요?",
             "criterionId": null
           }
         ],
         "kit": {
           "slotCount": 9,
-          "templateCount": 1,
+          "templateCount": 0,
           "llm": "OK",
           "llmReason": null,
-          "promptVersion": "interview-kit@v1+9129ad0e",
+          "promptVersion": "interview-kit@v2+fcd7f772",
           "model": "deepseek-flash",
-          "inputDigest": "f8a2f908ecb5e7c20317768bc51a68ea2f1114eae1c836bd03c46f15ac5e960b",
+          "inputDigest": "e2cf14def0744ad1fff661fcb642d50db983504e7a5c661b7525d77bd0011bc8",
           "dropped": [],
           "plans": [
             { "durationMinutes": 45, "totalMinutes": 45, "questionCount": 6 },
@@ -190,25 +193,24 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "재고 부족으로 주문이 거절되는 경로를 구현하셨는데, 재고 확인과 차감이 어느 시점에 어떤 순서로 일어나는지 설명해 주시겠어요?",
-              "intent": "재고 부족 거절이 성립하는 조건과 재고가 변하지 않게 하는 처리 순서를 지원자가 설명할 수 있는지 확인한다.",
+              "question": "R-03 재고 부족 거절이 기대대로 동작했습니다. 재고와 요청 수량을 비교하는 판단을 코드의 어느 지점에 두셨나요?",
+              "intent": "통과한 재고 검증 동작을 스스로 설명할 수 있는지, 판단 위치를 짚을 수 있는지 확인한다.",
               "probes": [
-                "재고와 같은 수량의 주문이 통과하려면 비교 조건을 어떻게 두셨나요?",
-                "재고 확인과 차감 사이에 다른 요청이 끼어들면 어떤 일이 생기나요?",
-                "거절 응답을 만들 때 재고를 먼저 건드리지 않도록 어떤 순서를 택하셨나요?"
+                "재고 확인과 차감 사이의 순서는 어떻게 되나요?",
+                "재고가 0인 상품과 수량이 재고를 넘는 경우를 같은 경로로 처리하셨나요?",
+                "이 판단을 다른 계층으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "재고 비교와 차감의 순서를 코드 흐름으로 구체적으로 설명한다.",
-                "거절 시 재고가 그대로 남는 이유를 상태 변화 관점에서 말한다.",
-                "재고와 같은 수량이 통과하는 경계 조건을 명시적으로 언급한다."
+                "재고 확인과 차감의 순서를 코드 위치와 함께 설명한다.",
+                "재고 0과 초과 요청을 같은 조건으로 처리하는지 구분해 말한다."
               ],
               "concernSignals": [
-                "재고 확인과 차감의 순서를 구분하지 않고 뭉뚱그려 말한다.",
-                "거절 경로에서 재고가 변하지 않는 이유를 설명하지 못한다."
+                "통과 결과만 말하고 판단 위치를 짚지 못한다.",
+                "재고 확인 시점을 상황에 따라 다르게 말한다."
               ],
               "refs": [
                 "기준 R-03",
-                "실행 기록 a1dfd914 · R-03",
+                "실행 기록 ff2fa0ae · R-03",
                 "코드 src/http/routes.ts:46-67",
                 "코드 src/http/routes.ts:40-44"
               ],
@@ -223,25 +225,24 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "주문 생성 요청의 입력 검증을 구현하셨는데, 어떤 입력들을 어떤 기준으로 걸러내는지 설명해 주시겠어요?",
-              "intent": "검증 대상과 판정 기준을 지원자가 스스로 열거하고, 검증 실패가 이후 상태에 영향을 주지 않는지 확인한다.",
+              "question": "R-04 입력 검증이 기대대로 동작했습니다. quantity와 productId를 검사하는 규칙을 어디에 모아 두셨나요?",
+              "intent": "검증 규칙의 위치와 적용 범위를 스스로 설명하는지 확인한다.",
               "probes": [
-                "수량의 타입과 범위를 판정할 때 어떤 조건을 쓰셨나요?",
-                "헤더가 비어 있는 경우와 없는 경우를 어떻게 구분하셨나요?",
-                "검증 실패한 요청의 키가 이후 재사용될 때 어떤 일이 일어나나요?"
+                "검증 실패로 끝난 요청의 키를 기록에 남기지 않으려면 어떤 조건이 필요했나요?",
+                "JSON이 아닌 본문은 어느 단계에서 걸러지나요?",
+                "검증 규칙을 하나 더 추가한다면 어느 파일을 고치시겠어요?"
               ],
               "positiveSignals": [
-                "검증 항목을 타입·범위·필수 여부로 나누어 설명한다.",
-                "검증 실패 시 상태가 변하지 않는다는 점을 근거와 함께 말한다.",
-                "실패한 요청이 멱등성 기록에 남지 않는 흐름을 설명한다."
+                "검증 규칙의 위치와 실패 시 기록 처리 조건을 함께 설명한다.",
+                "본문 파싱 실패와 필드 검증 실패를 구분해 말한다."
               ],
               "concernSignals": [
-                "검증 항목을 일부만 언급하고 나머지는 확인하지 않는다.",
-                "검증 실패 요청이 이후 같은 키 처리에 미치는 영향을 말하지 못한다."
+                "검증 항목을 나열만 하고 위치를 말하지 않는다.",
+                "실패한 요청의 키가 기록에 남는지 여부를 모른다."
               ],
               "refs": [
                 "기준 R-04",
-                "실행 기록 e8cbec12 · R-04",
+                "실행 기록 a16a7904 · R-04",
                 "코드 src/http/routes.ts:46-67",
                 "코드 src/http/routes.ts:40-44"
               ],
@@ -256,21 +257,20 @@
               "competency": "TRADEOFFS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어오는 상황을 가정해 보겠습니다. 지금 구조에서 어떤 지점이 가장 먼저 문제가 될지 어떻게 판단하시겠어요?",
-              "intent": "인메모리 상태를 가진 구조에서 다중 인스턴스로 확장할 때의 병목 지점과 판단 근거를 확인한다.",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어오는 상황을 가정하겠습니다. 지금 구조에서 가장 먼저 문제가 드러날 지점은 어디인가요?",
+              "intent": "인스턴스가 늘어날 때 현재 구조의 한계를 어디로 짚는지 확인한다.",
               "probes": [
-                "인스턴스마다 상태가 따로 존재할 때 멱등성 보장은 어떻게 달라지나요?",
-                "재고 차감의 원자성을 인스턴스 간에 유지하려면 무엇이 필요하다고 보시나요?",
-                "지금 구조를 유지하면서 확장하는 방식과 저장소를 분리하는 방식의 비용 차이는 무엇인가요?"
+                "그 지점을 먼저 고르신 이유는 무엇인가요?",
+                "인스턴스 간에 무엇을 공유해야 같은 키 요청이 한 번만 처리되나요?",
+                "공유 저장소를 두면 응답 시간과 실패 처리에서 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "공유 상태의 위치를 기준으로 문제 지점을 특정한다.",
-                "멱등성과 재고 차감을 각각 다른 문제로 구분해 설명한다.",
-                "확장 방식의 비용과 제약을 함께 언급한다."
+                "인메모리 상태가 인스턴스마다 갈라지는 지점을 구체적으로 짚는다.",
+                "멱등성 기록과 재고를 어디에 두어야 하는지 구분해 설명한다."
               ],
               "concernSignals": [
-                "다중 인스턴스에서 상태 불일치 가능성을 인식하지 못한다.",
-                "확장을 언급하면서 기존 보장이 어떻게 유지되는지 설명하지 않는다."
+                "인스턴스를 늘리면 된다는 수준에서 멈춘다.",
+                "공유 저장소 도입 시 생기는 실패 상황을 말하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-05", "기준 R-06"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
@@ -284,21 +284,20 @@
               "competency": "DESIGN",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "라우트 등록 함수가 가장 긴 함수로 관측되었는데, 이 함수가 담당하는 일을 어떻게 나누어 보고 계신지 설명해 주시겠어요?",
-              "intent": "가장 긴 함수의 책임 범위와 분리 기준을 지원자가 어떻게 인식하는지 확인한다.",
+              "question": "registerRoutes가 51줄로 가장 긴 함수입니다. 이 함수 안에서 라우팅과 도메인 규칙이 어떻게 나뉘어 있는지 설명해 주시겠어요?",
+              "intent": "가장 긴 함수의 책임 구성을 스스로 설명하는지 확인한다.",
               "probes": [
-                "이 함수 안에서 요청 파싱과 도메인 규칙이 어디에서 갈라지나요?",
-                "함수를 나눈다면 어떤 기준으로 경계를 정하시겠어요?",
-                "지금 길이를 유지할 때와 나눌 때 각각 어떤 비용이 있다고 보시나요?"
+                "이 함수에서 HTTP 요청·응답 객체를 직접 다루는 부분은 어디까지인가요?",
+                "재고 차감이나 멱등성 판단이 이 함수 밖에 있다면 어느 모듈인가요?",
+                "이 함수를 나눈다면 어떤 경계를 먼저 그으시겠어요?"
               ],
               "positiveSignals": [
-                "함수 내부의 책임을 종류별로 구분해 설명한다.",
-                "분리 기준을 변경 빈도나 의존 방향 같은 근거로 제시한다.",
-                "유지와 분리의 비용을 함께 비교한다."
+                "라우팅과 도메인 규칙의 경계를 코드 위치로 구분해 말한다.",
+                "도메인 규칙이 요청·응답 객체에 의존하는지 여부를 구체적으로 답한다."
               ],
               "concernSignals": [
-                "함수의 책임을 구분하지 않고 하나로 설명한다.",
-                "분리 기준을 근거 없이 일반론으로만 말한다."
+                "함수 길이를 문제로 인식하지 않는다.",
+                "경계를 말하면서 실제 코드 위치를 짚지 못한다."
               ],
               "refs": ["코드 src/http/routes.ts:30-80", "기준 R-12"],
               "refKinds": ["SOURCE", "CRITERION"],
@@ -312,21 +311,20 @@
               "competency": "TRADEOFFS",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 저장 구조에서 무엇을 바꿔야 한다고 보시는지 설명해 주시겠어요?",
-              "intent": "인메모리 저장을 영속 저장으로 바꿀 때의 변경 범위와 초기화 경로 처리 방식을 확인한다.",
+              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정하겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "저장 방식이 바뀔 때 구조를 어디부터 손대는지 확인한다.",
               "probes": [
-                "저장소를 바꿀 때 주문 생성 로직에서 수정이 필요한 부분은 어디인가요?",
-                "재시작 후 멱등성 기록은 어떻게 다루어야 한다고 보시나요?",
-                "상태 초기화 경로는 영속 저장에서 어떻게 동작해야 하나요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "저장 위치를 바꾸면 기존 동작 중 무엇을 다시 확인하시겠어요?",
+                "초기화 경로는 저장 방식이 바뀌면 어떻게 달라져야 하나요?"
               ],
               "positiveSignals": [
-                "저장소 교체 시 영향받는 모듈 범위를 구체적으로 짚는다.",
-                "멱등성 기록의 영속 필요성을 별도로 언급한다.",
-                "초기화 경로와 영속 저장의 관계를 설명한다."
+                "바꿀 범위를 코드의 구체적인 위치로 말한다.",
+                "저장 위치를 옮길 때 새로 생기는 실패 상황을 든다."
               ],
               "concernSignals": [
-                "저장소 교체가 주문 생성 로직 전체 수정을 요구한다고만 말한다.",
-                "재시작 후 멱등성 기록 처리에 대해 언급하지 않는다."
+                "도구 이름만 대고 코드에서 바꿀 부분을 말하지 않는다.",
+                "초기화 경로의 변화를 고려하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-02", "기준 R-05"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
@@ -340,22 +338,22 @@
               "competency": "DATA_INTEGRITY",
               "priority": "SHOULD",
               "minutes": 5,
-              "question": "상품 단위 재고 선점 시스템에서 재고 차감을 직렬화할 때 어떤 지점에서 충돌을 감지하고 재시도하도록 설계하셨나요?",
-              "intent": "이력서에 적은 재고 선점 설계의 충돌 감지·재시도 구조를 본인이 설명할 수 있는지 확인한다.",
+              "question": "재고 선점 시스템에서 낙관적 잠금 충돌이 났을 때 재시도는 어떤 조건으로 몇 번까지 수행하도록 설계하셨나요?",
+              "intent": "이력서의 낙관적 잠금·재시도 설계가 실제로 어떤 충돌 조건과 한도를 다뤘는지 확인한다.",
               "probes": [
-                "TTL 기반 예약과 버전 비교 기반 낙관적 잠금을 각각 어느 조건에서 선택했나요?",
-                "동시에 같은 상품을 선점하려는 요청이 겹칠 때 어느 단계에서 하나만 통과시키나요?",
-                "재시도 횟수와 백오프를 늘리면 정합성과 지연이 각각 어떻게 달라지나요?"
+                "버전 비교는 어느 저장소 계층에서 수행되나요?",
+                "재시도 사이에 지연이나 백오프를 두었나요?",
+                "TTL 만료로 회수된 예약과 충돌한 요청은 어떻게 처리되나요?"
               ],
               "positiveSignals": [
-                "충돌 감지 지점과 재시도 조건을 코드 수준에서 구분해 설명한다",
-                "TTL 만료와 회수 작업이 선점 수량 계산에 어떻게 반영되는지 설명한다"
+                "충돌 감지 지점과 재시도 횟수·백오프를 구체적으로 설명한다",
+                "TTL 만료 회수와 재시도가 겹치는 경우의 처리 순서를 설명한다"
               ],
               "concernSignals": [
-                "낙관적 잠금을 '충돌하면 다시 시도한다'는 일반론으로만 설명한다",
-                "TTL 만료 후 재고 복구 시점을 설명하지 않는다"
+                "재시도를 '충돌하면 다시 시도한다' 수준으로만 설명한다",
+                "재시도 상한이나 실패 시 응답을 설명하지 않는다"
               ],
-              "refs": ["맥락 연결 4f22f08f", "기준 R-08"],
+              "refs": ["맥락 연결 cd8cb39b", "기준 R-08"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
@@ -367,21 +365,20 @@
               "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "오류 코드나 검증 규칙을 새로 추가할 때 수정할 위치가 어디까지 퍼지는지, 지금 코드 기준으로 설명해 주시겠어요?",
-              "intent": "오류 코드와 검증 규칙의 변경 지점이 한 곳에 모여 있는지 지원자가 스스로 판단하는지 확인한다.",
+              "question": "R-12 설계 항목을 보겠습니다. 새 오류 코드를 하나 추가한다면 어느 위치를 고치게 되는지 설명해 주시겠어요?",
+              "intent": "오류 코드와 상태 코드 매핑이 한 곳에 모여 있는지 확인한다.",
               "probes": [
-                "상태 코드와 오류 코드의 매핑은 어디에서 관리되고 있나요?",
-                "도메인 규칙이 HTTP 요청·응답 객체에 의존하는 부분이 있나요?",
-                "멱등성 저장을 다른 구현으로 바꿀 때 주문 생성 로직에서 고칠 곳이 있나요?"
+                "상태 코드와 오류 코드의 매핑은 어디에 정의되어 있나요?",
+                "멱등성 기록의 저장과 조회는 어떤 경계 뒤에 있나요?",
+                "저장 구현을 바꿀 때 주문 생성 로직에서 고칠 부분이 있나요?"
               ],
               "positiveSignals": [
-                "변경 지점을 모듈 단위로 특정해 설명한다.",
-                "오류 코드 매핑의 위치를 명확히 말한다.",
-                "도메인 규칙과 HTTP 처리의 의존 방향을 구분해 설명한다."
+                "오류 코드 추가 시 수정할 위치를 구체적으로 짚는다.",
+                "멱등성 저장소의 경계와 교체 비용을 함께 설명한다."
               ],
               "concernSignals": [
-                "변경 지점이 여러 곳에 흩어져 있음을 인식하지 못한다.",
-                "도메인 규칙과 HTTP 계층의 의존 관계를 구분하지 않는다."
+                "매핑이 여러 곳에 흩어져 있음을 인지하지 못한다.",
+                "저장소 교체 시 주문 생성 로직 수정 여부를 판단하지 못한다."
               ],
               "refs": ["기준 R-12"],
               "refKinds": ["CRITERION"],
@@ -392,27 +389,27 @@
               "id": "RESUME_BRIDGE:2",
               "number": 8,
               "kind": "RESUME_BRIDGE",
-              "competency": "TRADEOFFS",
+              "competency": "DATA_INTEGRITY",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
-              "intent": "이력서에 적힌 경험에서 지원자가 직접 맡은 범위와 기술적 판단의 근거를 확인한다.",
+              "question": "결제·주문 생성 API에 붙인 멱등성 키 미들웨어에서 같은 키로 진행 중인 요청이 두 번 들어오면 어떻게 병합하도록 구현하셨나요?",
+              "intent": "이력서의 멱등성 미들웨어가 동시 요청 병합을 어떤 방식으로 보장했는지 확인한다.",
               "probes": [
-                "그 작업에서 본인이 직접 설계하거나 구현한 부분은 어디까지였나요?",
-                "그 결정을 내릴 때 어떤 기준으로 대안을 비교하셨나요?",
-                "지금 다시 한다면 어떤 부분을 다르게 선택하시겠어요?"
+                "진행 중 요청의 상태는 어디에 저장했나요?",
+                "첫 요청이 실패하면 대기 중이던 요청은 어떤 응답을 받나요?",
+                "같은 키에 다른 본문이 오면 어떤 기준으로 충돌을 판정하나요?"
               ],
               "positiveSignals": [
-                "본인이 맡은 범위와 팀이 맡은 범위를 구분해 설명한다",
-                "결정의 근거로 당시의 제약 조건과 비교한 대안을 구체적으로 든다"
+                "in-flight 상태 저장 위치와 병합 시점을 구체적으로 설명한다",
+                "첫 요청 실패 시 대기 요청의 응답 정책을 설명한다"
               ],
               "concernSignals": [
-                "맡은 범위를 물어도 팀 전체의 결과만 설명한다",
-                "결정의 이유를 물으면 기술 이름만 나열하고 적용 조건을 말하지 않는다"
+                "병합을 '락을 건다' 수준으로만 설명한다",
+                "키 충돌 판정 기준(메서드·경로·본문 해시)을 언급하지 않는다"
               ],
-              "refs": ["맥락 연결 924e5724", "기준 R-05"],
+              "refs": ["맥락 연결 5147a131", "기준 R-05"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -422,23 +419,20 @@
               "competency": "OPERABILITY",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "운송장 조회 API의 p95 응답 시간을 1.2초에서 180ms로 단축했다고 하셨는데, 그 수치는 어떤 부하 조건에서 어떻게 측정한 값인가요?",
-              "intent": "성능 개선 수치의 측정 조건과 개선 수단을 본인이 설명할 수 있는지 확인한다.",
+              "question": "중복 주문으로 인한 결제 취소·환불 건수 0건은 어떤 지표와 기간으로 집계하셨나요?",
+              "intent": "수치 주장의 측정 방식과 집계 범위를 확인한다.",
               "probes": [
-                "p95는 어떤 도구로 어느 구간에서 측정했나요?",
-                "인덱스 재설계와 캐시 도입이 각각 지연 개선에 얼마나 기여했나요?",
-                "캐시 만료나 무효화는 어떻게 처리했나요?"
+                "환불 건수는 어떤 로그나 대시보드에서 집계했나요?",
+                "멱등성 키 도입 전후 비교 기준 기간은 어떻게 잡았나요?",
+                "키가 없는 클라이언트 요청도 집계에 포함되었나요?"
               ],
               "positiveSignals": [
-                "측정 도구, 부하 조건, 측정 구간을 구체적으로 설명한다",
-                "인덱스와 캐시의 기여를 분리해 설명한다"
+                "집계 대상 지표와 데이터 출처를 구체적으로 설명한다",
+                "도입 전후 비교 기간과 조건을 설명한다"
               ],
-              "concernSignals": [
-                "측정 방법을 설명하지 못한다",
-                "캐시 무효화 전략을 설명하지 않는다"
-              ],
-              "refs": ["맥락 연결 ef6ca64b"],
-              "refKinds": ["CONTEXT_LINK"],
+              "concernSignals": ["수치의 출처를 설명하지 못한다", "측정 기준 없이 결과만 반복한다"],
+              "refs": ["맥락 연결 9852b802", "기준 R-06"],
+              "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
             }
@@ -467,23 +461,23 @@
           "mustQuestions": [
             {
               "number": 1,
-              "question": "재고 부족으로 주문이 거절되는 경로를 구현하셨는데, 재고 확인과 차감이 어느 시점에 어떤 순서로 일어나는지 설명해 주시겠어요?",
+              "question": "R-03 재고 부족 거절이 기대대로 동작했습니다. 재고와 요청 수량을 비교하는 판단을 코드의 어느 지점에 두셨나요?",
               "source": "LLM"
             },
             {
               "number": 2,
-              "question": "주문 생성 요청의 입력 검증을 구현하셨는데, 어떤 입력들을 어떤 기준으로 걸러내는지 설명해 주시겠어요?",
+              "question": "R-04 입력 검증이 기대대로 동작했습니다. quantity와 productId를 검사하는 규칙을 어디에 모아 두셨나요?",
               "source": "LLM"
             },
             {
               "number": 3,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어오는 상황을 가정해 보겠습니다. 지금 구조에서 어떤 지점이 가장 먼저 문제가 될지 어떻게 판단하시겠어요?",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어오는 상황을 가정하겠습니다. 지금 구조에서 가장 먼저 문제가 드러날 지점은 어디인가요?",
               "source": "LLM"
             }
           ],
           "interviewGuideStatus": "AVAILABLE",
           "resumeLinksStatus": "AVAILABLE",
-          "resumeLinkCount": 4,
+          "resumeLinkCount": 5,
           "designReviewStatus": "AVAILABLE",
           "forbidden": []
         }
@@ -491,17 +485,12 @@
     },
     {
       "handle": "taeyun",
-      "submissionId": "106fc323-3bdc-4014-acf3-dbec7d7d5f8e",
-      "evaluationId": "65711c8c-7660-4c69-9517-fb80911f499a",
+      "submissionId": "822b60c3-4982-4e1c-bcaf-ab830a3d20fb",
+      "evaluationId": "f9d4d72a-72d0-4a2f-9907-11563827bcf4",
       "status": "COMPLETED",
-      "waitMs": 330444,
+      "waitMs": 361196,
       "mismatches": [],
       "warnings": [
-        "기본 질문(TEMPLATE) 대체 5/11",
-        "버린 LLM 출력 STRENGTH_DEPTH:R-03: LINT_VIOLATION (COMPOUND_QUESTION)",
-        "버린 LLM 출력 STRENGTH_DEPTH:R-04: LINT_VIOLATION (COMPOUND_QUESTION)",
-        "버린 LLM 출력 DESIGN_TRADEOFF:R-12: LINT_VIOLATION (COMPOUND_QUESTION)",
-        "버린 LLM 출력 EXTENSION:persistent-store: LINT_VIOLATION (COMPOUND_QUESTION)",
         "주장(웹훅·webhook): 기대 NO_DATA, 실제 NEEDS_CHECK",
         "주장(CLI): 기대 NEEDS_CHECK, 실제 EVIDENCE_FOUND"
       ],
@@ -513,7 +502,7 @@
           {
             "name": "report-taeyun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/65711c8c-7660-4c69-9517-fb80911f499a/report",
+            "url": "https://ohmyti.vercel.app/evaluations/f9d4d72a-72d0-4a2f-9907-11563827bcf4/report",
             "file": "docs/gates/stage7/report-taeyun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -523,7 +512,7 @@
           {
             "name": "interview-kit-taeyun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/65711c8c-7660-4c69-9517-fb80911f499a/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/f9d4d72a-72d0-4a2f-9907-11563827bcf4/interview-kit",
             "file": "docs/gates/stage7/interview-kit-taeyun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -533,7 +522,7 @@
           {
             "name": "report-taeyun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/65711c8c-7660-4c69-9517-fb80911f499a/report",
+            "url": "https://ohmyti.vercel.app/evaluations/f9d4d72a-72d0-4a2f-9907-11563827bcf4/report",
             "file": "docs/gates/stage7/report-taeyun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -543,7 +532,7 @@
           {
             "name": "interview-kit-taeyun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/65711c8c-7660-4c69-9517-fb80911f499a/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/f9d4d72a-72d0-4a2f-9907-11563827bcf4/interview-kit",
             "file": "docs/gates/stage7/interview-kit-taeyun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -551,7 +540,7 @@
             "problems": []
           }
         ],
-        "reportPdf": { "file": "docs/gates/stage7/report-taeyun.pdf", "pages": 6 },
+        "reportPdf": { "file": "docs/gates/stage7/report-taeyun.pdf", "pages": 5 },
         "kitPdf": { "file": "docs/gates/stage7/interview-kit-taeyun.pdf", "pages": 8 }
       },
       "facts": {
@@ -610,7 +599,7 @@
           "r12Draft": {
             "suggestedPoints": 7,
             "maxPoints": 10,
-            "rationale": "(a) 계층 분리: 라우트 핸들러는 req.header/req.body/req.params에서 값을 꺼내 서비스에 넘기고 응답 직렬화만 하며, 도메인 규칙은 OrderService에 모여 있어 req/res에 직접 의존하지 않는다. 다만 라우트가 상태 코드 201/200을 직접 지정하고 오류는 error-handler로 위임하는 구조라 분리는 대체로 지켜진다. (b) 멱등성 저장소 추상화: idempotency.get/set이 별도 저장소 모듈 뒤에 있고 서비스는 인터페이스 메서드만 호출하므로 인메모리 구현 교체 시 createOrder 본문을 고칠 필요는 없다. 다만 저장소가 '키→주문' 단순 매핑이라 본문 비교·동시성 제어 같은 멱등성 정책을 담을 자리가 없고, 그 정책 부재가 R-06·R-07 실패로 드러났다. (c) 변경 용이성: 오류 코드는 errors.ts의 AppError로, 검증 규칙은 validation.ts로 모여 있고 상태 코드 매핑도 errors.ts 한 곳에 있어 새 오류 코드·검증 규칙 추가 지점이 비교적 한 곳에 모여 있다. 다만 IDEMPOTENCY_CONFLICT 같은 충돌 코드가 실제로 쓰이는 경로가 없어 매핑과 사용처가 어긋나 있다."
+            "rationale": "(a) 계층 분리: 라우트(order-routes.ts)는 req.header/req.body를 읽어 service.createOrder에 값으로 넘기고 응답 직렬화만 하며, 서비스는 req/res에 의존하지 않고 AppError를 던진다. HTTP와 도메인 규칙이 모듈로 나뉘어 있어 4점 기준은 충족한다. (b) 멱등성 저장소 추상화: idempotency.get/set이 별도 모듈(InMemoryIdempotencyRepository) 뒤에 있고 서비스는 인터페이스만 호출하므로 저장소 교체 시 createOrder를 고칠 필요가 없다. 다만 저장소가 키 존재 여부만 다루고 본문 비교·원자적 선점 같은 멱등성 의미론이 서비스에 흩어져 있어 3점 중 일부만 인정한다. (c) 변경 용이성: 오류 코드→HTTP 상태 매핑은 errors.ts 한 곳에 모여 있고 검증 규칙은 validation.ts에 집중되어 있으나, 멱등성 충돌 판정이 아예 없고 재고 부족 판정이 product-repository.reserveStock에 있어 새 오류 코드 추가 시 서비스·저장소를 함께 봐야 한다. 세 하위 기준을 종합해 만점 10 중 7을 제안한다."
           }
         },
         "github": {
@@ -636,68 +625,43 @@
           {
             "claim": "결제 웹훅(payment webhook) 수신을 맡아 같은 웹훅이 재전송돼도 결제가 중복 반영되지 않도록 멱등(idempotent) 처리를 담당했습니다.",
             "status": "NEEDS_CHECK",
-            "followUpQuestion": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
+            "followUpQuestion": "결제 웹훅 멱등 처리에서 같은 키로 다른 내용이 재전송되면 어떻게 처리하도록 설계하셨나요?",
             "criterionId": "R-05"
           },
           {
             "claim": "독서 모임 예약(booking) API를 개발하며 같은 시간대에 같은 장소·모임이 중복 예약되지 않도록 검증 로직을 구현했습니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "회사 예약 API에서 같은 시간대 중복 예약을 막는 검증 로직은 어떤 조건으로 판정하도록 구현하셨나요?",
-            "criterionId": "R-03"
+            "followUpQuestion": "회사 예약 API에서 중복 예약 검증은 어느 계층에서 어떤 조건으로 수행하셨나요?",
+            "criterionId": "R-08"
           },
           {
             "claim": "모임·예약·결제 도메인의 라우팅(routes)·서비스(services)·저장소(repository) 계층을 분리하는 리팩터링에 참여해 신규 기능 추가 시 변경 범위를 줄였습니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "라우팅·서비스·저장소 계층을 분리한 리팩터링에서 계층 간 경계는 어떤 기준으로 나누셨나요?",
+            "followUpQuestion": "계층을 분리한 뒤 신규 기능을 추가할 때 변경 범위가 실제로 어떻게 달라졌나요?",
             "criterionId": "R-12"
           },
           {
-            "claim": "회의실 예약 REST API. 같은 시간대 중복 예약(overlapping booking)을 막는 검사 로직, zod 기반 입력 검증, routes/services/repository 계층 분리, vitest 테스트를 포함합니다. Express + TypeScript로 만들었습니다. 다만 동시에 들어오는 예약 요청까지는 아직 다루지 못했습니다.",
+            "claim": "회의실 예약 REST API. 같은 시간대 중복 예약(overlapping booking)을 막는 검사 로직, zod 기반 입력 검증, routes/services/repository 계층 분리, vitest 테스트를 포함합니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "개인 프로젝트에서 동시에 들어오는 예약 요청을 아직 다루지 못했다고 하셨는데, 그 상황에서 어떤 문제가 생길 수 있다고 보시나요?",
-            "criterionId": "R-07"
+            "followUpQuestion": "중복 예약 검사 로직에서 어떤 경계 조건을 테스트로 고정하셨나요?",
+            "criterionId": "G1"
           },
           {
             "claim": "TIL(Today I Learned) 마크다운을 관리하는 Node.js CLI 도구입니다. 기록 작성, 태그 검색, 주간 요약 기능을 붙여서 팀의 개발 생산성을 높이는 데 도움이 됐습니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "TIL CLI에서 주간 요약과 태그 검색 기능은 어떤 기준으로 데이터를 모으고 출력하도록 구현하셨나요?",
+            "followUpQuestion": "주간 요약 기능은 어떤 기간 기준과 데이터 소스로 동작하도록 만드셨나요?",
             "criterionId": null
           }
         ],
         "kit": {
           "slotCount": 11,
-          "templateCount": 5,
+          "templateCount": 0,
           "llm": "OK",
           "llmReason": null,
-          "promptVersion": "interview-kit@v1+9129ad0e",
+          "promptVersion": "interview-kit@v2+fcd7f772",
           "model": "deepseek-flash",
-          "inputDigest": "b2ece563437a90ff0599dfd9561b175c975cd5795155f5ca4f425a38f57d3ec9",
-          "dropped": [
-            {
-              "index": 2,
-              "slotId": "STRENGTH_DEPTH:R-03",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            },
-            {
-              "index": 4,
-              "slotId": "STRENGTH_DEPTH:R-04",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            },
-            {
-              "index": 6,
-              "slotId": "DESIGN_TRADEOFF:R-12",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            },
-            {
-              "index": 7,
-              "slotId": "EXTENSION:persistent-store",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            }
-          ],
+          "inputDigest": "7658eccca0d835ca8f2f7437c01d41a36d5afd724c8f9ebdd86ab34d3a308d3f",
+          "dropped": [],
           "plans": [
             { "durationMinutes": 45, "totalMinutes": 44, "questionCount": 5 },
             { "durationMinutes": 60, "totalMinutes": 55, "questionCount": 7 }
@@ -710,24 +674,24 @@
               "competency": "DEBUGGING",
               "priority": "MUST",
               "minutes": 8,
-              "question": "R-06 실행 기록에서 같은 키로 다른 본문을 보낸 두 요청이 모두 201로 처리됐습니다. 주문 생성 경로에서 키와 본문을 비교하는 판단이 어디에서 이뤄지고 있는지 설명해 주시겠어요?",
-              "intent": "멱등 키 충돌을 걸러내는 판단 지점을 지원자가 코드에서 어떻게 짚어내는지 확인한다.",
+              "question": "R-06 실행 기록에서 같은 키로 다른 본문을 보냈을 때 201이 돌아왔습니다. 요청이 들어온 뒤 저장된 기록과 본문을 비교하는 지점을 코드 어디에 두셨나요?",
+              "intent": "멱등 키 충돌을 걸러내는 판단이 코드 어디에서 일어나는지 지원자가 스스로 짚는지 확인한다.",
               "probes": [
-                "같은 키로 들어온 두 번째 요청이 처리되는 순서를 코드 흐름대로 말씀해 주시겠어요?",
-                "키에 저장된 본문과 새 본문을 비교할 때 무엇을 기준으로 같다·다르다를 정하나요?",
-                "충돌을 거절로 바꿀 때 재고 차감과 주문 저장 중 어느 시점에 검사를 두시겠어요?"
+                "저장된 기록과 새 본문이 다르다는 것을 어떤 값으로 판단하시나요?",
+                "그 비교가 실행되지 않는 경로는 무엇인가요?",
+                "비교 시점을 저장 전후 어디에 둘지 정할 때 어떤 기준을 쓰시겠어요?"
               ],
               "positiveSignals": [
-                "키 조회와 본문 비교가 어느 단계에서 일어나는지 코드 위치를 들어 설명한다.",
-                "충돌 판정을 재고 차감 이전에 두어야 하는 이유를 부작용 관점에서 말한다."
+                "멱등 기록 조회와 본문 비교가 일어나는 위치를 코드에서 짚는다.",
+                "충돌 판정과 새 주문 생성이 갈라지는 조건을 구분해 설명한다."
               ],
               "concernSignals": [
-                "키 존재 여부만 확인하고 본문 비교가 없다는 점을 짚지 못한다.",
-                "충돌 응답을 만들 위치를 말하면서 기존 주문·재고에 미치는 영향을 언급하지 않는다."
+                "201이 나온 이유를 도구나 하네스 문제로 돌린다.",
+                "기록 조회와 본문 비교 중 어느 쪽이 빠졌는지 말하지 못한다."
               ],
               "refs": [
                 "기준 R-06",
-                "실행 기록 db787431 · R-06",
+                "실행 기록 8cdc4c86 · R-06",
                 "코드 src/routes/order-routes.ts:25-28",
                 "코드 src/routes/order-routes.ts:20-23",
                 "코드 src/routes/order-routes.ts:30-33"
@@ -743,24 +707,24 @@
               "competency": "DEBUGGING",
               "priority": "MUST",
               "minutes": 8,
-              "question": "R-07 실행 기록에서 같은 키의 동시 요청 10건 중 5건만 201이고 응답 id도 서로 달랐으며 재고가 0까지 줄었습니다. 같은 키의 요청들이 겹칠 때 어떤 순서로 처리되는지 설명해 주시겠어요?",
-              "intent": "동시 요청에서 키 기록과 재고 차감이 어떤 순서로 얽히는지 지원자가 분석하는지 확인한다.",
+              "question": "R-07 실행 기록에서 같은 키의 동시 요청 10건 중 5건만 201이고 응답 id가 서로 달랐습니다. 같은 키의 요청이 동시에 들어올 때 주문 생성이 어떤 순서로 진행되는지 설명해 주시겠어요?",
+              "intent": "동시 요청에서 멱등성 기록과 재고 차감이 어떤 순서로 일어나는지 지원자가 설명하는지 확인한다.",
               "probes": [
-                "두 요청이 거의 동시에 들어오면 키 조회와 키 저장 사이에 어떤 일이 생기나요?",
-                "재고 차감이 여러 번 일어난 경로를 실행 기록의 숫자로 어떻게 설명하시겠어요?",
-                "동시성을 다루는 방식을 바꿀 때 처리량과 정합성 중 무엇을 기준으로 정하시겠어요?"
+                "기록을 확인하는 시점과 기록을 남기는 시점 사이에 다른 요청이 끼어들면 어떤 일이 생기나요?",
+                "재고가 0이 된 결과는 어느 단계에서 발생했다고 보시나요?",
+                "같은 키의 요청을 한 번만 처리하도록 만들려면 어느 지점을 먼저 바꾸시겠어요?"
               ],
               "positiveSignals": [
-                "키 조회와 저장 사이의 경합 구간을 짚고 재고 차감 횟수와 연결해 설명한다.",
-                "동시성 제어를 도입할 때 비용과 정합성의 맞바꿈을 언급한다."
+                "기록 확인과 기록 저장 사이의 간격을 문제 지점으로 짚는다.",
+                "동시 요청에서 재고 차감이 여러 번 일어나는 경로를 설명한다."
               ],
               "concernSignals": [
-                "동시 요청을 순차 요청과 같은 상황으로 설명한다.",
-                "재고가 0이 된 이유를 키 처리와 연결하지 못한다."
+                "동시성 문제를 언급하지 않고 순차 호출만 가정한다.",
+                "재고가 0이 된 이유를 설명하지 못한다."
               ],
               "refs": [
                 "기준 R-07",
-                "실행 기록 7c641beb · R-07",
+                "실행 기록 8ea0a2f4 · R-07",
                 "코드 src/routes/order-routes.ts:25-28",
                 "코드 src/routes/order-routes.ts:20-23"
               ],
@@ -775,29 +739,29 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "R-03 재고 부족 거절 기준은 통과했습니다. 이 요구사항을 보장하는 코드가 어떻게 동작하는지 설명해 주시겠어요?",
-              "intent": "통과한 R-03 재고 부족 거절 기준을 지원자가 직접 설명할 수 있는지, 경계 조건에서 깨지는 조건까지 알고 있는지 확인한다.",
+              "question": "R-03은 재고 부족 요청을 409로 거절하고 재고를 그대로 두었습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
+              "intent": "통과한 거절 동작의 판단 위치와 기준을 지원자가 스스로 설명하는지 확인한다.",
               "probes": [
-                "이 경우를 처리하는 코드는 어느 파일과 함수에 있나요?",
-                "그 처리가 올바르게 동작하는 원리는 무엇인가요?",
-                "다른 구현 방식과 비교하면 지금 방식의 장단점은 무엇인가요?"
+                "재고와 같은 수량의 요청을 허용으로 본 기준은 무엇인가요?",
+                "거절로 끝난 요청이 재고를 건드리지 않도록 어떤 순서를 쓰셨나요?",
+                "이 판단을 다른 계층으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "처리 코드의 위치를 스스로 찾고 동작 순서를 정확히 설명한다.",
-                "이 처리가 깨지는 입력이나 동시 요청 조건을 스스로 말한다."
+                "비교 조건과 차감 순서를 구분해 설명한다.",
+                "재고와 같은 수량을 허용한 기준을 수치로 말한다."
               ],
               "concernSignals": [
-                "통과한 결과만 말하고 코드의 동작 원리를 설명하지 않는다.",
-                "다른 구현 방식과의 차이를 구체적으로 비교하지 않는다."
+                "통과 결과만 말하고 판단 위치를 짚지 못한다.",
+                "거절과 차감의 순서를 뒤바꿔 설명한다."
               ],
               "refs": [
                 "기준 R-03",
-                "실행 기록 ce8791ed · R-03",
+                "실행 기록 a9f2d522 · R-03",
                 "코드 src/routes/order-routes.ts:25-28",
                 "코드 src/routes/order-routes.ts:20-23"
               ],
               "refKinds": ["CRITERION", "EXECUTION_RECORD", "SOURCE", "SOURCE"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -807,20 +771,20 @@
               "competency": "DESIGN",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "가장 긴 함수가 라우트 파일의 createOrderRoutes로 34줄이라는 신호가 있습니다. 이 함수가 맡은 일을 나열해 주시고, 그중 어디까지를 라우트 계층에 두기로 정했는지 설명해 주시겠어요?",
-              "intent": "라우트 함수에 섞인 책임을 지원자가 어떻게 구분하고 경계를 정하는지 확인한다.",
+              "question": "가장 긴 함수가 라우팅 파일의 createOrderRoutes로 34줄입니다. 이 함수 안에서 HTTP 처리와 도메인 규칙이 어떻게 나뉘어 있는지 설명해 주시겠어요?",
+              "intent": "라우팅 함수 안에서 HTTP 처리와 도메인 규칙의 경계를 지원자가 어떻게 인식하는지 확인한다.",
               "probes": [
-                "이 함수 안에서 요청 파싱과 도메인 판단이 각각 어디에서 이뤄지나요?",
-                "도메인 규칙을 별도 모듈로 옮긴다면 어떤 함수가 남고 무엇이 빠지나요?",
-                "계층을 나눌 때 얻는 것과 잃는 것을 어떤 기준으로 저울질하시겠어요?"
+                "이 함수에서 요청·응답 객체에 직접 닿는 부분은 어디까지인가요?",
+                "재고 차감과 멱등성 판단은 어느 모듈에 있나요?",
+                "이 함수를 나눈다면 어떤 경계를 먼저 그으시겠어요?"
               ],
               "positiveSignals": [
-                "함수 안의 단계를 나열하고 각 단계의 책임을 구분해 말한다.",
-                "분리했을 때의 이득과 비용을 구체적인 변경 시나리오로 설명한다."
+                "함수 안에서 HTTP 의존 부분과 규칙 부분을 구분해 짚는다.",
+                "도메인 규칙이 요청·응답 객체에 닿는지 여부를 스스로 판단한다."
               ],
               "concernSignals": [
-                "함수 길이를 줄이는 것 자체를 목표로 말한다.",
-                "요청·응답 객체에 도메인 규칙이 의존하는지 여부를 언급하지 않는다."
+                "함수 길이를 문제로 보지 않고 그대로 두겠다고만 말한다.",
+                "HTTP 처리와 도메인 규칙을 같은 것으로 본다."
               ],
               "refs": ["코드 src/routes/order-routes.ts:8-41", "기준 R-12"],
               "refKinds": ["SOURCE", "CRITERION"],
@@ -834,29 +798,29 @@
               "competency": "ROBUSTNESS",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "R-04 입력 검증 기준은 통과했습니다. 이 요구사항을 보장하는 코드가 어떻게 동작하는지 설명해 주시겠어요?",
-              "intent": "통과한 R-04 입력 검증 기준을 지원자가 직접 설명할 수 있는지, 경계 조건에서 깨지는 조건까지 알고 있는지 확인한다.",
+              "question": "R-04는 여러 잘못된 입력을 400으로 거절하고 재고를 그대로 두었습니다. 입력 검증을 통과한 요청만 멱등성 기록에 남도록 어떤 순서를 쓰셨나요?",
+              "intent": "검증과 멱등성 기록의 순서를 지원자가 설명하는지 확인한다.",
               "probes": [
-                "이 경우를 처리하는 코드는 어느 파일과 함수에 있나요?",
-                "그 처리가 올바르게 동작하는 원리는 무엇인가요?",
-                "다른 구현 방식과 비교하면 지금 방식의 장단점은 무엇인가요?"
+                "검증 실패로 끝난 요청의 키가 기록에 남지 않는 이유는 무엇인가요?",
+                "검증 항목을 추가할 때 수정할 위치는 어디인가요?",
+                "검증을 도메인 규칙 안으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "처리 코드의 위치를 스스로 찾고 동작 순서를 정확히 설명한다.",
-                "이 처리가 깨지는 입력이나 동시 요청 조건을 스스로 말한다."
+                "검증과 기록 저장의 순서를 단계로 나눠 설명한다.",
+                "검증 실패 시 재고가 변하지 않는 이유를 순서로 설명한다."
               ],
               "concernSignals": [
-                "통과한 결과만 말하고 코드의 동작 원리를 설명하지 않는다.",
-                "다른 구현 방식과의 차이를 구체적으로 비교하지 않는다."
+                "검증과 기록의 순서를 구분하지 않는다.",
+                "검증 항목이 어디에 모여 있는지 짚지 못한다."
               ],
               "refs": [
                 "기준 R-04",
-                "실행 기록 d0198e58 · R-04",
+                "실행 기록 4c931fe0 · R-04",
                 "코드 src/routes/order-routes.ts:25-28",
                 "코드 src/routes/order-routes.ts:20-23"
               ],
               "refKinds": ["CRITERION", "EXECUTION_RECORD", "SOURCE", "SOURCE"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -866,20 +830,20 @@
               "competency": "TRADEOFFS",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 멱등성과 재고 처리가 어떻게 달라질지 설명해 주시겠어요?",
-              "intent": "인메모리 상태를 전제한 설계가 다중 인스턴스에서 어떤 한계를 갖는지 지원자가 인식하는지 확인한다.",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "인스턴스가 늘어날 때 어떤 상태 공유 지점을 먼저 손대는지 확인한다.",
               "probes": [
-                "키 기록이 인스턴스마다 따로 존재할 때 같은 키의 두 요청은 어떻게 처리되나요?",
-                "재고 차감이 여러 인스턴스에 나뉘면 어떤 값이 관측될 수 있나요?",
-                "여러 인스턴스로 확장할 때 정합성과 응답 지연 중 무엇을 우선할지 어떤 기준으로 정하시겠어요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "인스턴스마다 상태가 따로 있으면 같은 키의 요청은 어떻게 되나요?",
+                "공유 저장소를 두는 대신 다른 방법을 쓴다면 무엇을 고려하시겠어요?"
               ],
               "positiveSignals": [
-                "인스턴스별 상태 분리가 멱등성과 재고에 미치는 영향을 구체적으로 말한다.",
-                "확장 시 필요한 공유 지점을 짚고 그에 따르는 비용을 언급한다."
+                "인스턴스 간에 공유되지 않는 상태를 구체적으로 짚는다.",
+                "같은 키의 요청이 다른 인스턴스로 갈 때 생기는 문제를 설명한다."
               ],
               "concernSignals": [
-                "인메모리 상태가 인스턴스마다 다르다는 점을 언급하지 않는다.",
-                "확장을 코드 수정 없이 가능하다고 단정한다."
+                "인스턴스를 늘리는 것만 언급하고 상태 공유를 말하지 않는다.",
+                "도구 이름만 대고 바꿀 지점을 짚지 못한다."
               ],
               "refs": ["기준 R-01", "기준 R-05", "기준 R-06"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
@@ -890,27 +854,27 @@
               "id": "RESUME_BRIDGE:1",
               "number": 7,
               "kind": "RESUME_BRIDGE",
-              "competency": "TRADEOFFS",
+              "competency": "DATA_INTEGRITY",
               "priority": "SHOULD",
               "minutes": 5,
-              "question": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
-              "intent": "이력서에 적힌 경험에서 지원자가 직접 맡은 범위와 기술적 판단의 근거를 확인한다.",
+              "question": "결제 웹훅 멱등 처리에서 같은 키로 다른 내용이 재전송되면 어떻게 처리하도록 설계하셨나요?",
+              "intent": "이력서에 적힌 웹훅 멱등 처리의 충돌·동시성 조건까지의 보장 범위를 확인한다.",
               "probes": [
-                "그 작업에서 본인이 직접 설계하거나 구현한 부분은 어디까지였나요?",
-                "그 결정을 내릴 때 어떤 기준으로 대안을 비교하셨나요?",
-                "지금 다시 한다면 어떤 부분을 다르게 선택하시겠어요?"
+                "그 서비스에서 멱등 키는 어떤 값으로 만드셨나요?",
+                "같은 키의 요청이 동시에 두 번 들어오면 어느 단계에서 하나로 정리되나요?",
+                "이번 과제의 인메모리 구현과 비교하면 저장 위치와 트랜잭션 경계에서 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "본인이 맡은 범위와 팀이 맡은 범위를 구분해 설명한다",
-                "결정의 근거로 당시의 제약 조건과 비교한 대안을 구체적으로 든다"
+                "키 저장 위치와 만료, 본문 비교 기준을 구체적으로 설명한다",
+                "동시 요청을 막는 지점(유일 제약·잠금)과 재시도 조건을 구분해 설명한다"
               ],
               "concernSignals": [
-                "맡은 범위를 물어도 팀 전체의 결과만 설명한다",
-                "결정의 이유를 물으면 기술 이름만 나열하고 적용 조건을 말하지 않는다"
+                "멱등성을 '같은 요청은 한 번만 처리한다'는 일반론으로만 설명한다",
+                "같은 키에 다른 본문이 오는 경우를 다루지 않는다"
               ],
-              "refs": ["맥락 연결 28cd7ebc", "기준 R-05"],
+              "refs": ["맥락 연결 8bfcb46b", "기준 R-05"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -920,24 +884,24 @@
               "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "R-12 설계 검토 항목을 함께 보겠습니다. 모듈과 책임을 나눈 기준은 무엇이었나요?",
-              "intent": "R-12 설계·변경 용이성 항목에서 구조를 정한 기준과 변경 비용에 대한 판단을 확인한다.",
+              "question": "R-12 설계 항목에서 멱등성 기록의 저장과 조회가 어디에 있는지 보겠습니다. 인메모리 구현을 다른 저장소로 바꿀 때 주문 생성 로직에서 고치지 않아도 되는 경계를 어떻게 그으셨나요?",
+              "intent": "멱등성 저장소를 교체할 때의 경계가 코드에서 어떻게 잡혀 있는지 확인한다.",
               "probes": [
-                "이 코드가 맡고 있는 책임을 나누어 설명해 주시겠어요?",
-                "요구사항이 하나 바뀌면 이 구조에서 어느 부분을 고치게 되나요?",
-                "구조를 더 나누면 얻는 것과 잃는 것은 무엇인가요?"
+                "저장소를 바꿀 때 주문 생성 로직이 의존하는 것은 무엇인가요?",
+                "새 오류 코드를 추가할 때 수정할 위치는 몇 곳인가요?",
+                "상태 코드와 오류 코드 매핑은 어디에 모여 있나요?"
               ],
               "positiveSignals": [
-                "코드의 책임을 함수와 파일 단위로 나누어 설명한다.",
-                "구조를 바꿀 때의 비용과 이득을 요구사항 변경 예시로 비교한다."
+                "저장소 교체 시 영향 범위를 코드 위치로 말한다.",
+                "오류 코드 매핑이 모인 위치를 짚는다."
               ],
               "concernSignals": [
-                "구조를 정한 이유를 설명하지 않고 선호로만 답한다.",
-                "변경 예시를 들 때 영향 범위를 짚지 않는다."
+                "계층 분리를 일반론으로만 설명한다.",
+                "저장소 교체 시 고칠 위치를 짚지 못한다."
               ],
               "refs": ["기준 R-12"],
               "refKinds": ["CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -947,51 +911,49 @@
               "competency": "TRADEOFFS",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구현에서 가장 먼저 바꿔야 할 부분은 어디인가요?",
-              "intent": "요구사항이 바뀌었을 때 현재 구현(R-01·R-02·R-05)에서 영향을 받는 부분과 필요한 보장을 판단하는지 확인한다.",
+              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "영속성이 필요해질 때 어떤 상태 저장 지점을 먼저 손대는지 확인한다.",
               "probes": [
-                "지금 구현에서 그 상황의 영향을 받는 상태는 무엇인가요?",
-                "그 상태를 안전하게 다루려면 어떤 보장이 필요한가요?",
-                "그 보장을 얻는 방법들 가운데 어떤 기준으로 하나를 고르시겠어요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "저장 위치를 바꾸면 기존 동작 중 무엇을 다시 확인하시겠어요?",
+                "초기화 경로는 새 저장 구조에서 어떻게 동작해야 한다고 보시나요?"
               ],
               "positiveSignals": [
-                "영향을 받는 상태와 코드 위치를 구체적으로 짚는다.",
-                "선택지마다 비용과 보장 수준을 비교해 하나를 고른다."
+                "메모리에만 있는 상태를 구체적인 위치로 짚는다.",
+                "저장 위치를 바꾼 뒤 재확인할 동작을 든다."
               ],
               "concernSignals": [
-                "특정 기술 이름만 말하고 필요한 보장을 설명하지 않는다.",
-                "현재 구현이 받는 영향을 구체적으로 짚지 않는다."
+                "도구 이름만 대고 바꿀 지점을 짚지 못한다.",
+                "초기화 경로와의 관계를 말하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-02", "기준 R-05"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
               "id": "RESUME_BRIDGE:2",
               "number": 10,
               "kind": "RESUME_BRIDGE",
-              "competency": "REQUIREMENTS",
+              "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "회사 예약 API에서 같은 시간대 중복 예약을 막는 검증 로직은 어떤 조건으로 판정하도록 구현하셨나요?",
-              "intent": "이력서의 중복 예약 검증이 어떤 경계 조건과 저장 구조를 전제로 했는지 확인한다.",
+              "question": "회사 예약 API에서 중복 예약 검증은 어느 계층에서 어떤 조건으로 수행하셨나요?",
+              "intent": "이력서의 중복 예약 검증이 어느 계층에 위치하고 어떤 경계 조건을 다루는지 확인한다.",
               "probes": [
-                "겹침 판정은 시작·종료 시각을 어떤 비교식으로 처리했나요?",
+                "겹침 판정은 시작·종료 시각을 어떤 비교식으로 처리하나요?",
                 "검증과 저장 사이에 다른 요청이 끼어들면 어떻게 되나요?",
-                "개인 프로젝트의 인메모리 저장 방식과 회사 구현은 어떤 차이가 있었나요?"
+                "개인 프로젝트의 인메모리 저장 방식과 비교하면 무엇을 포기하게 되나요?"
               ],
               "positiveSignals": [
-                "겹침 판정의 경계 조건(끝점 포함 여부)을 명확히 설명한다",
-                "검증 시점과 저장 시점의 순서, 트랜잭션 범위를 설명한다",
-                "회사 구현과 개인 프로젝트의 저장 구조 차이를 구분해 설명한다"
+                "겹침 조건의 경계(끝과 시작이 같은 경우)를 명시해 설명한다",
+                "검증 위치와 저장 시점의 순서를 근거와 함께 설명한다"
               ],
               "concernSignals": [
                 "겹침 판정을 '시간이 겹치면 거절'로만 설명한다",
-                "검증과 저장 사이의 경합 가능성을 고려하지 않는다",
-                "경계 조건(끝점)을 설명하지 못한다"
+                "검증과 저장 사이의 경합 가능성을 언급하지 않는다"
               ],
-              "refs": ["맥락 연결 7ddc9e41", "기준 R-03"],
+              "refs": ["맥락 연결 70c6e48e", "기준 R-08"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
@@ -1003,24 +965,22 @@
               "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "라우팅·서비스·저장소 계층을 분리한 리팩터링에서 계층 간 경계는 어떤 기준으로 나누셨나요?",
-              "intent": "이력서의 계층 분리 경험이 실제로 어떤 책임 분담과 변경 범위 축소로 이어졌는지 확인한다.",
+              "question": "계층을 분리한 뒤 신규 기능을 추가할 때 변경 범위가 실제로 어떻게 달라졌나요?",
+              "intent": "이력서의 계층 분리 리팩터링이 변경 범위에 미친 영향을 구체적 사례로 확인한다.",
               "probes": [
-                "각 계층이 책임지는 것과 책임지지 않는 것은 무엇이었나요?",
-                "신규 기능을 추가할 때 실제로 몇 개 계층을 수정하게 되었나요?",
-                "계층 분리 이후 테스트는 어느 계층에 두었나요?"
+                "그때 분리 기준은 무엇이었나요?",
+                "계층 간 의존 방향을 어떻게 강제하셨나요?",
+                "분리를 하지 않았을 때와 비교해 어떤 비용이 생겼나요?"
               ],
               "positiveSignals": [
-                "계층별 책임과 의존 방향을 구체적으로 설명한다",
-                "리팩터링 전후 변경 범위를 사례와 함께 설명한다",
-                "테스트 배치 기준을 계층과 연결해 설명한다"
+                "특정 기능 추가 시 수정한 파일과 계층을 구체적으로 제시한다",
+                "의존 방향과 테스트 대체 지점을 함께 설명한다"
               ],
               "concernSignals": [
-                "계층을 '폴더로 나눴다'는 수준으로만 설명한다",
-                "변경 범위가 줄었는지 사례를 들지 못한다",
-                "계층 간 의존 방향을 설명하지 못한다"
+                "'계층을 나눴다'는 수준에서 그친다",
+                "변경 범위가 줄었다는 근거를 제시하지 못한다"
               ],
-              "refs": ["맥락 연결 089bb6b7", "기준 R-12"],
+              "refs": ["맥락 연결 d6b041a6", "기준 R-12"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
@@ -1050,18 +1010,18 @@
           "mustQuestions": [
             {
               "number": 1,
-              "question": "R-06 실행 기록에서 같은 키로 다른 본문을 보낸 두 요청이 모두 201로 처리됐습니다. 주문 생성 경로에서 키와 본문을 비교하는 판단이 어디에서 이뤄지고 있는지 설명해 주시겠어요?",
+              "question": "R-06 실행 기록에서 같은 키로 다른 본문을 보냈을 때 201이 돌아왔습니다. 요청이 들어온 뒤 저장된 기록과 본문을 비교하는 지점을 코드 어디에 두셨나요?",
               "source": "LLM"
             },
             {
               "number": 2,
-              "question": "R-07 실행 기록에서 같은 키의 동시 요청 10건 중 5건만 201이고 응답 id도 서로 달랐으며 재고가 0까지 줄었습니다. 같은 키의 요청들이 겹칠 때 어떤 순서로 처리되는지 설명해 주시겠어요?",
+              "question": "R-07 실행 기록에서 같은 키의 동시 요청 10건 중 5건만 201이고 응답 id가 서로 달랐습니다. 같은 키의 요청이 동시에 들어올 때 주문 생성이 어떤 순서로 진행되는지 설명해 주시겠어요?",
               "source": "LLM"
             },
             {
               "number": 3,
-              "question": "R-03 재고 부족 거절 기준은 통과했습니다. 이 요구사항을 보장하는 코드가 어떻게 동작하는지 설명해 주시겠어요?",
-              "source": "TEMPLATE"
+              "question": "R-03은 재고 부족 요청을 409로 거절하고 재고를 그대로 두었습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
+              "source": "LLM"
             }
           ],
           "interviewGuideStatus": "AVAILABLE",
@@ -1074,16 +1034,12 @@
     },
     {
       "handle": "gaeun",
-      "submissionId": "6cba126e-1039-4118-9248-2734a18c780b",
-      "evaluationId": "069a839f-ad1b-43a0-8d98-80adffad73a6",
+      "submissionId": "69033fda-51af-47cc-9af1-6b4710131f5a",
+      "evaluationId": "855fa55b-8530-4782-8c12-745fdaefd9f4",
       "status": "COMPLETED",
-      "waitMs": 451289,
+      "waitMs": 487366,
       "mismatches": [],
-      "warnings": [
-        "기본 질문(TEMPLATE) 대체 3/14",
-        "버린 LLM 출력 EXTENSION:multi-instance: LINT_VIOLATION (COMPOUND_QUESTION)",
-        "버린 LLM 출력 EXTENSION:persistent-store: LINT_VIOLATION (COMPOUND_QUESTION)"
-      ],
+      "warnings": [],
       "error": null,
       "kitError": null,
       "reportError": null,
@@ -1092,7 +1048,7 @@
           {
             "name": "report-gaeun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/069a839f-ad1b-43a0-8d98-80adffad73a6/report",
+            "url": "https://ohmyti.vercel.app/evaluations/855fa55b-8530-4782-8c12-745fdaefd9f4/report",
             "file": "docs/gates/stage7/report-gaeun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1102,7 +1058,7 @@
           {
             "name": "interview-kit-gaeun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/069a839f-ad1b-43a0-8d98-80adffad73a6/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/855fa55b-8530-4782-8c12-745fdaefd9f4/interview-kit",
             "file": "docs/gates/stage7/interview-kit-gaeun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1112,7 +1068,7 @@
           {
             "name": "report-gaeun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/069a839f-ad1b-43a0-8d98-80adffad73a6/report",
+            "url": "https://ohmyti.vercel.app/evaluations/855fa55b-8530-4782-8c12-745fdaefd9f4/report",
             "file": "docs/gates/stage7/report-gaeun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1122,7 +1078,7 @@
           {
             "name": "interview-kit-gaeun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/069a839f-ad1b-43a0-8d98-80adffad73a6/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/855fa55b-8530-4782-8c12-745fdaefd9f4/interview-kit",
             "file": "docs/gates/stage7/interview-kit-gaeun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1130,7 +1086,7 @@
             "problems": []
           }
         ],
-        "reportPdf": { "file": "docs/gates/stage7/report-gaeun.pdf", "pages": 8 },
+        "reportPdf": { "file": "docs/gates/stage7/report-gaeun.pdf", "pages": 5 },
         "kitPdf": { "file": "docs/gates/stage7/interview-kit-gaeun.pdf", "pages": 8 }
       },
       "facts": {
@@ -1189,7 +1145,7 @@
           "r12Draft": {
             "suggestedPoints": 3,
             "maxPoints": 10,
-            "rationale": "(a) 계층 분리: 라우팅·응답 처리는 src/app.ts, 데이터 접근은 src/data.ts로 나뉘어 있고 도메인 함수가 req/res에 의존하지 않아 부분적으로 충족한다. 다만 재고 확인·차감·취소 같은 도메인 규칙이 핸들러 콜백 안에 직접 들어 있어 HTTP 계층과 도메인 규칙이 완전히 분리되지 않았다. (b) 멱등성 저장소 추상화: 멱등성 기록 저장·조회 코드가 아예 없어 인터페이스나 별도 모듈 뒤에 있다고 볼 수 없다. (c) 변경 용이성: 오류 코드·상태 코드 매핑이 각 핸들러에 인라인으로 흩어져 있고 검증 규칙도 핸들러 안에 있어 새 오류 코드·검증 규칙 추가 시 여러 위치를 고쳐야 한다."
+            "rationale": "(a) 계층 분리: 라우팅·응답 처리는 src/app.ts, 데이터 접근은 src/data.ts로 나뉘어 있으나 도메인 규칙(재고 차감, 재고 부족 판정, 취소)이 핸들러 콜백 안에 인라인되어 있고 createOrder가 product 객체를 직접 변경한다. 도메인 규칙이 HTTP 객체에 직접 의존하지는 않으므로 부분 충족으로 본다. (b) 멱등성 저장소 추상화: 멱등성 기록 저장·조회 코드가 아예 없어 인터페이스나 별도 모듈이 존재하지 않는다. (c) 변경 용이성: 오류 코드·상태 코드 매핑이 각 핸들러에 흩어져 있고 검증 규칙도 핸들러 내부에 있어 추가 시 여러 위치를 고쳐야 한다. 같은 모양의 연속 문장 블록 1건(조회 핸들러 3문장)과 명시적 any 3곳도 응집도가 낮은 신호로 확인된다."
           }
         },
         "github": {
@@ -1215,56 +1171,31 @@
           {
             "claim": "팀 프로젝트로 주문/예약 API를 설계하며 대용량 트래픽 환경을 고려한 동시성 제어와 멱등성 설계 경험을 쌓음",
             "status": "NEEDS_CHECK",
-            "followUpQuestion": "팀 프로젝트에서 멱등성 키를 도입해 같은 요청이 두 번 처리되지 않도록 설계하셨다고 하셨는데, 그때 키와 응답을 어디에 어떤 조건으로 저장하도록 정하셨나요?",
+            "followUpQuestion": "팀 프로젝트에서 멱등성은 어떤 기준으로 같은 요청인지 판단하도록 설계하셨나요?",
             "criterionId": "R-05"
           },
           {
-            "claim": "Node.js, Express를 이용한 REST API 설계와 구현 학습",
+            "claim": "부트캠프 백엔드 과정에서 만든 Express 기반 북마크(bookmark) CRUD API. 인메모리 저장소와 간단한 테스트 코드를 포함합니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
+            "followUpQuestion": "북마크 API에서 입력값 검증은 어떤 기준으로 어디에 두셨나요?",
             "criterionId": "R-04"
-          },
-          {
-            "claim": "인메모리 저장소와 간단한 테스트 코드를 포함합니다",
-            "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "북마크 API의 테스트는 어떤 입력과 기대 결과를 기준으로 작성하셨나요?",
-            "criterionId": "G1"
           },
           {
             "claim": "기존 jQuery 기반 화면 일부를 React + TypeScript 컴포넌트로 전환",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "jQuery 기반 화면을 React + TypeScript 컴포넌트로 전환할 때 상태 관리와 이벤트 처리는 어떤 기준으로 옮기셨나요?",
-            "criterionId": null
-          },
-          {
-            "claim": "반응형 레이아웃과 크로스 브라우저 이슈를 점검하고 수정",
-            "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "크로스 브라우저 이슈를 점검할 때 어떤 브라우저와 조건을 기준으로 확인하셨나요?",
+            "followUpQuestion": "jQuery 기반 화면을 React 컴포넌트로 전환할 때 상태 관리는 어떻게 옮기셨나요?",
             "criterionId": null
           }
         ],
         "kit": {
           "slotCount": 14,
-          "templateCount": 3,
+          "templateCount": 0,
           "llm": "OK",
           "llmReason": null,
-          "promptVersion": "interview-kit@v1+9129ad0e",
+          "promptVersion": "interview-kit@v2+fcd7f772",
           "model": "deepseek-flash",
-          "inputDigest": "2185e7254f26d78c6dd4f411fab1e75dcb6bcdee2ba3f9422e580f4dfe457418",
-          "dropped": [
-            {
-              "index": 7,
-              "slotId": "EXTENSION:multi-instance",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            },
-            {
-              "index": 10,
-              "slotId": "EXTENSION:persistent-store",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            }
-          ],
+          "inputDigest": "48c6b917fadb72715119680fe3cbc1296c002fb89d76ef970e7834478e3c8be2",
+          "dropped": [],
           "plans": [
             { "durationMinutes": 45, "totalMinutes": 44, "questionCount": 5 },
             { "durationMinutes": 60, "totalMinutes": 58, "questionCount": 7 }
@@ -1277,24 +1208,24 @@
               "competency": "DEBUGGING",
               "priority": "MUST",
               "minutes": 8,
-              "question": "R-05 실행 기록에서 같은 키로 두 번 보냈을 때 두 번째 응답의 id가 첫 번째와 달랐고 재고도 두 번 줄었습니다. 주문 생성 요청이 들어왔을 때 멱등성 기록을 어떤 순서로 확인하고 갱신하도록 코드를 구성하셨나요?",
-              "intent": "멱등 재전송에서 같은 키를 어떻게 조회·기록하는지, 그 순서가 중복 주문과 중복 차감을 어떻게 막는지 설명하는지 확인한다.",
+              "question": "R-05 재전송 케이스에서 두 번째 호출이 새 주문을 만들었고 재고도 두 번 줄었습니다. 같은 키의 두 번째 요청을 처리하는 흐름을 코드에서 어떻게 따라가 보시겠어요?",
+              "intent": "멱등 재전송이 깨진 원인을 코드 흐름에서 스스로 좁혀 가는지 확인한다.",
               "probes": [
-                "POST /orders 처리 흐름에서 키를 조회하는 시점과 기록을 남기는 시점은 각각 어디인가요?",
-                "재고 차감과 멱등성 기록 저장이 서로 다른 시점에 일어날 때 어떤 불일치가 생길 수 있나요?",
-                "기록을 남기는 시점을 앞당기거나 늦출 때 각각 어떤 비용이 생기나요?"
+                "첫 번째 요청의 결과를 어디에 남기고 있나요?",
+                "두 번째 요청이 들어올 때 그 기록을 어떤 조건으로 찾나요?",
+                "기록을 남기는 시점을 응답 직전으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "키 조회와 기록 저장의 순서를 코드 위치와 함께 구체적으로 설명한다.",
-                "두 번째 호출이 새 주문을 만들지 않으려면 무엇을 먼저 확인해야 하는지 스스로 짚는다."
+                "키 조회와 주문 생성 순서를 구분해 설명한다.",
+                "재고 차감이 두 번 일어난 경로를 코드 위치로 짚는다."
               ],
               "concernSignals": [
-                "재고 차감만 언급하고 멱등성 기록의 조회·저장 시점은 말하지 않는다.",
-                "응답 id가 달라진 이유를 코드 흐름과 연결하지 못한다."
+                "재고만 문제라고 말하고 키 처리 흐름을 언급하지 않는다.",
+                "기록 저장 시점을 말하지 못한다."
               ],
               "refs": [
                 "기준 R-05",
-                "실행 기록 9dc6589f · R-05",
+                "실행 기록 e639f2e2 · R-05",
                 "코드 src/app.ts:23-31",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:33-41"
@@ -1310,24 +1241,24 @@
               "competency": "DEBUGGING",
               "priority": "MUST",
               "minutes": 8,
-              "question": "R-06 실행 기록에서는 같은 키에 다른 본문을 보냈을 때 201과 409가 돌아왔고 재고도 함께 줄었습니다. 같은 키로 들어온 요청의 본문이 이전과 다를 때 어떤 값을 비교해 어떻게 판단하도록 작성하셨나요?",
-              "intent": "키 충돌 판정에서 무엇을 비교 대상으로 삼았는지, 충돌 시 새 주문과 재고 변경을 어떻게 막는지 확인한다.",
+              "question": "R-06 충돌 케이스에서 다른 본문의 재요청이 201로 통과했습니다. 같은 키로 들어온 요청의 본문이 이전과 같은지 판단하는 부분을 어디에 두셨나요?",
+              "intent": "멱등 키 충돌을 구분하는 판단 위치와 기준을 확인한다.",
               "probes": [
-                "저장해 둔 요청 내용과 새 요청을 비교할 때 어떤 필드를 기준으로 삼았나요?",
-                "본문 비교를 어느 시점에 수행하면 재고 차감 전에 충돌을 가려낼 수 있나요?",
-                "본문을 그대로 저장하는 방식과 해시로 저장하는 방식의 차이는 무엇인가요?"
+                "본문 비교에서 무엇을 같은 요청으로 보시나요?",
+                "비교 결과가 다를 때 어떤 응답을 돌려주시나요?",
+                "이 판단을 재고 검사보다 앞에 두면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "충돌 판정에 쓰는 비교 대상과 그 판정 위치를 코드 흐름으로 설명한다.",
-                "충돌로 끝난 요청이 재고와 주문 상태를 바꾸지 않아야 하는 이유를 말한다."
+                "키 조회와 본문 비교를 한 흐름으로 설명한다.",
+                "충돌 응답과 재고 부족 응답을 구분해 말한다."
               ],
               "concernSignals": [
-                "충돌 판정 없이 재고 검사만 먼저 수행한 흐름을 그대로 답한다.",
-                "다른 본문이 왜 다른 오류 코드로 이어져야 하는지 설명하지 못한다."
+                "충돌과 재고 부족을 같은 오류로 처리한다고 말한다.",
+                "본문 비교 기준을 말하지 못한다."
               ],
               "refs": [
                 "기준 R-06",
-                "실행 기록 d9d1a193 · R-06",
+                "실행 기록 22bd2961 · R-06",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:23-31",
                 "코드 src/app.ts:33-41"
@@ -1343,20 +1274,20 @@
               "competency": "TESTING",
               "priority": "MUST",
               "minutes": 6,
-              "question": "제출한 테스트는 기준 상태에서 통과했지만 재고 부족 검사를 없앤 변형을 잡아내지 못했습니다. 재고 부족과 수량 경계를 검증하는 테스트를 어떤 입력과 기대값으로 설계하셨나요?",
-              "intent": "경계·검증 규칙을 겨냥한 테스트 케이스를 어떤 입력과 단언으로 구성했는지, 변형을 잡아낼 만큼 촘촘한지 확인한다.",
+              "question": "G1 그룹에서 재고 부족 검사를 없앤 변형이 제출 테스트를 통과했습니다. 재고 부족 상황을 검증하는 테스트를 설계할 때 어떤 입력을 고르셨나요?",
+              "intent": "경계·검증 변이를 잡는 테스트 입력을 고르는 기준이 있는지 확인한다.",
               "probes": [
-                "재고와 같은 수량, 재고보다 큰 수량, 0과 음수 수량을 각각 어떤 케이스로 다루었나요?",
-                "재고가 변하지 않았다는 사실을 어떤 조회로 단언하나요?",
-                "검증 규칙이 사라졌을 때 실패할 단언을 지금 테스트에 추가한다면 무엇을 넣겠어요?"
+                "재고와 같은 수량을 쓰는 경우를 테스트에 넣으셨나요?",
+                "이 변형이 어떤 단언에서 걸렸어야 한다고 보시나요?",
+                "수량 경계값을 고를 때 어떤 기준을 쓰시나요?"
               ],
               "positiveSignals": [
-                "경계값과 그 기대 상태 코드를 케이스별로 구분해 설명한다.",
-                "재고 불변을 확인하는 단언을 테스트에 포함해 말한다."
+                "재고 초과와 재고 동일 수량을 구분해 테스트 입력으로 든다.",
+                "살아남은 변형을 잡을 단언을 구체적으로 말한다."
               ],
               "concernSignals": [
-                "정상 주문 성공 케이스만 언급하고 거절 케이스는 말하지 않는다.",
-                "단언 없이 상태 코드만 확인하는 수준에 머문다."
+                "테스트를 더 쓰겠다고만 말하고 입력을 정하지 않는다.",
+                "변이가 살아남은 이유를 도구 문제로 돌린다."
               ],
               "refs": ["기준 G1", "변이 M-01", "코드 src/app.ts:61-61"],
               "refKinds": ["CRITERION", "MUTATION", "SOURCE"],
@@ -1370,24 +1301,24 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "R-03은 재고 부족과 재고 0, 재고와 같은 수량 주문까지 모두 기대대로 통과했습니다. 재고와 요청 수량을 비교하는 조건을 어떤 기준으로 정하셨나요?",
-              "intent": "재고 부족 판정의 비교 기준과 경계 포함 여부를 어떤 근거로 정했는지 확인한다.",
+              "question": "R-03은 재고 부족 요청을 409로 거절하고 재고를 그대로 두었습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
+              "intent": "통과한 거절 동작의 판단 위치와 순서를 스스로 설명하는지 확인한다.",
               "probes": [
-                "재고와 같은 수량을 허용한 이유는 무엇인가요?",
-                "거절로 끝난 요청에서 재고를 건드리지 않으려면 차감을 어디에 두어야 하나요?",
-                "재고 확인과 차감 사이에 다른 요청이 끼어들면 어떤 문제가 생기나요?"
+                "비교와 차감 중 어느 것을 먼저 하나요?",
+                "재고가 0인 상품은 이 흐름에서 어떻게 처리되나요?",
+                "이 판단을 다른 계층으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "비교 연산의 경계 포함 여부를 명시적으로 설명한다.",
-                "거절 경로에서 재고 변경이 일어나지 않는 구조를 코드 흐름으로 말한다."
+                "비교와 차감의 순서를 구분해 설명한다.",
+                "재고 0과 재고 초과를 같은 경로로 설명한다."
               ],
               "concernSignals": [
-                "경계값을 우연히 맞춘 듯 설명하지 못한다.",
-                "거절과 차감의 순서를 구분하지 않는다."
+                "통과했다는 결과만 말하고 판단 위치를 말하지 못한다.",
+                "거절 시 재고를 건드리지 않는 이유를 설명하지 못한다."
               ],
               "refs": [
                 "기준 R-03",
-                "실행 기록 e23d429c · R-03",
+                "실행 기록 3b457efa · R-03",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:23-31"
               ],
@@ -1402,24 +1333,24 @@
               "competency": "DEBUGGING",
               "priority": "SHOULD",
               "minutes": 8,
-              "question": "R-09 실행 기록에서는 취소 후 재고가 시드 값으로 돌아오지 않고 1에 머물렀습니다. 취소 요청을 처리할 때 주문 상태와 재고를 어떤 순서로 갱신하도록 작성하셨나요?",
-              "intent": "취소 처리에서 상태 변경과 재고 복구의 순서, 중복 취소 방지 조건을 어떻게 구성했는지 확인한다.",
+              "question": "R-09 취소 케이스에서 취소 후 재고가 시드 값으로 돌아오지 않았습니다. 취소 요청을 처리하는 흐름에서 재고를 되돌리는 부분을 어떻게 찾아가시겠어요?",
+              "intent": "취소 시 재고 복구가 빠진 원인을 코드에서 좁혀 가는지 확인한다.",
               "probes": [
-                "취소 가능 여부를 판단하는 조건은 무엇인가요?",
-                "이미 취소된 주문에 다시 취소가 들어오면 재고 복구가 두 번 일어나지 않게 어떻게 막나요?",
-                "존재하지 않는 주문 id의 취소는 어느 지점에서 걸러지나요?"
+                "취소 상태를 바꾸는 시점과 재고를 되돌리는 시점이 어떻게 다른가요?",
+                "이미 취소된 주문의 재취소는 어디에서 걸러지나요?",
+                "복구를 두 번 하지 않도록 무엇을 확인하시겠어요?"
               ],
               "positiveSignals": [
-                "상태 확인과 재고 복구의 순서를 코드 위치와 함께 설명한다.",
-                "중복 취소 시 복구가 한 번만 일어나야 하는 이유를 말한다."
+                "상태 변경과 재고 복구를 한 흐름으로 설명한다.",
+                "재취소 차단 조건을 코드 위치로 짚는다."
               ],
               "concernSignals": [
-                "재고 복구 로직이 실행되지 않은 이유를 코드에서 찾지 못한다.",
-                "중복 취소와 미존재 주문 처리를 같은 조건으로 뭉뚱그린다."
+                "재고 복구 코드가 없다는 사실을 확인하지 않는다.",
+                "재취소 시 복구가 두 번 일어나는 조건을 말하지 못한다."
               ],
               "refs": [
                 "기준 R-09",
-                "실행 기록 a07f6a1b · R-09",
+                "실행 기록 e5399a97 · R-09",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:23-31",
                 "코드 src/app.ts:71-87",
@@ -1436,20 +1367,20 @@
               "competency": "DESIGN",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "가장 긴 함수가 POST /orders 콜백으로 27줄이라는 신호가 있습니다. 이 콜백 안에서 요청 파싱, 검증, 재고 차감, 멱등성 처리를 어떤 기준으로 나누거나 합치셨나요?",
-              "intent": "HTTP 처리와 도메인 규칙의 경계를 어떤 기준으로 나눴는지, 그 판단의 근거를 확인한다.",
+              "question": "가장 긴 함수가 POST /orders 처리 한 곳에 모여 있습니다. 이 함수 안에서 요청 파싱과 재고·멱등성 규칙을 나눌 때 어떤 경계를 기준으로 삼으셨나요?",
+              "intent": "긴 함수 안에서 책임을 나누는 기준이 있는지 확인한다.",
               "probes": [
-                "이 콜백에서 HTTP와 무관한 규칙은 어디에 두었나요?",
-                "규칙을 별도 함수로 빼면 어떤 점이 달라지나요?",
-                "지금 구조에서 새 검증 규칙을 추가하면 어느 파일을 고치게 되나요?"
+                "이 함수에서 변경이 가장 잦은 부분은 어디인가요?",
+                "규칙을 별도 모듈로 옮긴다면 어느 것부터 꺼내시겠어요?",
+                "그 경계를 옮길 때 감수해야 하는 비용은 무엇인가요?"
               ],
               "positiveSignals": [
-                "콜백이 담당하는 책임과 도메인 규칙의 경계를 구분해 설명한다.",
-                "분리했을 때의 이득과 비용을 함께 말한다."
+                "HTTP 처리와 도메인 규칙을 구분해 설명한다.",
+                "옮길 때 생기는 비용을 구체적으로 든다."
               ],
               "concernSignals": [
-                "모든 처리가 한 함수에 있는 이유를 설명하지 못한다.",
-                "도메인 규칙이 요청·응답 객체에 의존하는지 여부를 인식하지 못한다."
+                "계층 분리를 일반론으로만 설명한다.",
+                "현재 함수의 어느 부분을 말하는지 짚지 않는다."
               ],
               "refs": ["코드 src/app.ts:43-69", "기준 R-12"],
               "refKinds": ["SOURCE", "CRITERION"],
@@ -1463,24 +1394,24 @@
               "competency": "DATA_INTEGRITY",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "R-08은 서로 다른 키 10건 동시 요청에서 201 5건과 409 5건, 재고 0으로 기대대로 통과했습니다. 동시에 들어온 요청들 사이에서 재고 확인과 차감이 어긋나지 않게 어떤 방식으로 처리하셨나요?",
-              "intent": "동시 요청에서 재고 하한을 지키기 위해 어떤 직렬화나 원자적 처리를 택했는지 확인한다.",
+              "question": "R-08은 서로 다른 키의 동시 요청에서 201이 5건, 409가 5건으로 나왔습니다. 재고를 확인하고 줄이는 사이에 다른 요청이 끼어들지 않게 어떻게 하셨나요?",
+              "intent": "통과한 동시성 동작의 정합성 유지 방식을 스스로 설명하는지 확인한다.",
               "probes": [
-                "재고 확인과 차감 사이에 다른 요청이 끼어들 수 있는 지점은 어디인가요?",
-                "차감을 원자적으로 만들기 위해 어떤 언어 기능을 썼나요?",
-                "요청 수가 늘어날 때 이 방식의 처리량은 어떻게 달라지나요?"
+                "재고 확인과 차감 사이에 다른 요청이 끼어들면 어떤 값이 관측되나요?",
+                "이 처리가 비동기 경계를 넘는 지점이 있나요?",
+                "요청 수가 더 늘어나면 이 방식에서 무엇이 먼저 한계에 닿나요?"
               ],
               "positiveSignals": [
-                "확인과 차감 사이의 경합 지점을 정확히 짚는다.",
-                "동시성 제어 방식과 그 한계를 함께 설명한다."
+                "확인과 차감이 끼어들 수 없는 단위임을 설명한다.",
+                "동시 요청에서 재고가 음수가 되지 않는 조건을 든다."
               ],
               "concernSignals": [
-                "단일 스레드라 문제가 없다는 말로만 끝낸다.",
-                "재고가 음수가 될 수 있는 경로를 인식하지 못한다."
+                "결과 수치만 말하고 정합성 유지 방식을 설명하지 못한다.",
+                "비동기 경계에서의 위험을 인식하지 못한다."
               ],
               "refs": [
                 "기준 R-08",
-                "실행 기록 52a00cd4 · R-08",
+                "실행 기록 e56bf1b0 · R-08",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:23-31",
                 "코드 src/app.ts:33-41"
@@ -1496,24 +1427,24 @@
               "competency": "TRADEOFFS",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어오는 상황을 가정해 보겠습니다. 지금 구현에서 가장 먼저 바꿔야 할 부분은 어디인가요?",
-              "intent": "요구사항이 바뀌었을 때 현재 구현(R-01·R-05·R-06)에서 영향을 받는 부분과 필요한 보장을 판단하는지 확인한다.",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "인스턴스가 늘어날 때 구조를 어디부터 손대는지 확인한다.",
               "probes": [
-                "지금 구현에서 그 상황의 영향을 받는 상태는 무엇인가요?",
-                "그 상태를 안전하게 다루려면 어떤 보장이 필요한가요?",
-                "그 보장을 얻는 방법들 가운데 어떤 기준으로 하나를 고르시겠어요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "인스턴스 간에 공유되지 않는 상태는 무엇인가요?",
+                "공유 저장소를 두면 기존 동작 중 무엇을 다시 확인하시겠어요?"
               ],
               "positiveSignals": [
-                "영향을 받는 상태와 코드 위치를 구체적으로 짚는다.",
-                "선택지마다 비용과 보장 수준을 비교해 하나를 고른다."
+                "인스턴스 간에 공유되지 않는 상태를 구체적으로 짚는다.",
+                "바꿀 범위를 코드 위치로 말한다."
               ],
               "concernSignals": [
-                "특정 기술 이름만 말하고 필요한 보장을 설명하지 않는다.",
-                "현재 구현이 받는 영향을 구체적으로 짚지 않는다."
+                "도구 이름만 대고 코드에서 바꿀 부분을 말하지 않는다.",
+                "멱등성 기록의 공유 필요성을 언급하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-05", "기준 R-06"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -1523,22 +1454,22 @@
               "competency": "DATA_INTEGRITY",
               "priority": "SHOULD",
               "minutes": 5,
-              "question": "팀 프로젝트에서 멱등성 키를 도입해 같은 요청이 두 번 처리되지 않도록 설계하셨다고 하셨는데, 그때 키와 응답을 어디에 어떤 조건으로 저장하도록 정하셨나요?",
-              "intent": "이력서에 적힌 멱등성 설계 경험의 저장 위치·만료·충돌 처리 조건을 구체적으로 확인한다.",
+              "question": "팀 프로젝트에서 멱등성은 어떤 기준으로 같은 요청인지 판단하도록 설계하셨나요?",
+              "intent": "이력서에 적은 멱등성 설계 경험이 키와 요청 본문을 어떻게 비교하는 수준이었는지 확인한다.",
               "probes": [
-                "같은 키로 다른 본문이 들어오면 어떤 응답을 주도록 정했나요?",
-                "같은 키의 요청이 동시에 두 번 도착할 때 어느 지점에서 하나로 정리되나요?",
-                "그 설계에서 보장하려던 범위와 포기한 부분은 무엇이었나요?"
+                "멱등 키는 어떤 값으로 만드셨나요?",
+                "같은 키로 본문이 다른 요청이 오면 어떤 응답을 주도록 정했나요?",
+                "동시에 같은 키가 두 번 들어올 때 어느 지점에서 하나로 정리되나요?"
               ],
               "positiveSignals": [
-                "키 저장 위치와 보관 기간, 본문 비교 기준을 구체적으로 설명한다",
-                "동시 요청을 막는 지점(유일 제약·잠금)과 재시도 조건을 구분해 설명한다"
+                "키 저장 위치와 만료, 본문 비교 기준을 구체적으로 설명한다",
+                "동시 요청을 막는 지점과 재시도 조건을 구분해 설명한다"
               ],
               "concernSignals": [
                 "멱등성을 '같은 요청은 한 번만 처리한다'는 일반론으로만 설명한다",
-                "키 충돌 시 응답 코드나 본문 비교 기준을 제시하지 못한다"
+                "본문이 다른 재요청의 처리 기준을 설명하지 않는다"
               ],
-              "refs": ["맥락 연결 8a3e3b3f", "기준 R-05"],
+              "refs": ["맥락 연결 f0e84a96", "기준 R-05"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
@@ -1550,24 +1481,24 @@
               "competency": "DEBUGGING",
               "priority": "OPTIONAL",
               "minutes": 8,
-              "question": "R-04 실행 기록에서는 수량 누락·0·음수 같은 요청이 400이 아니라 201로 처리되었습니다. 주문 생성 전에 입력을 검사하는 절차를 어떤 순서와 기준으로 두셨나요?",
-              "intent": "검증 항목과 검증 시점을 어떻게 배치했는지, 검증 실패가 멱등성 기록과 재고에 남지 않는지 확인한다.",
+              "question": "R-04 검증 케이스에서 수량 누락과 0, 음수가 모두 201로 통과했습니다. 요청 본문을 검사하는 부분을 코드에서 어떻게 찾아가시겠어요?",
+              "intent": "입력 검증이 빠진 원인을 코드에서 좁혀 가는지 확인한다.",
               "probes": [
-                "수량과 상품 id, 헤더 중 무엇을 먼저 검사하나요?",
-                "검증 실패로 끝난 요청의 키를 기록에 남기지 않으려면 어느 시점에 기록해야 하나요?",
-                "JSON이 아닌 본문은 어느 단계에서 걸러지나요?"
+                "수량이 어떤 타입이어야 하는지 어디에서 정하나요?",
+                "검사에서 걸린 요청의 키는 이후 어떻게 처리되나요?",
+                "검증을 재고 확인보다 앞에 두면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "검증 항목과 순서를 구체적으로 나열한다.",
-                "검증 실패 요청이 상태를 바꾸지 않아야 하는 이유를 말한다."
+                "검증 항목과 순서를 구분해 설명한다.",
+                "400으로 끝난 요청이 멱등성 기록에 남지 않아야 하는 이유를 말한다."
               ],
               "concernSignals": [
-                "검증을 재고 확인 뒤에 두는 흐름을 그대로 답한다.",
-                "실패한 요청의 키가 기록에 남는지 여부를 고려하지 않는다."
+                "검증 코드가 없다는 사실을 확인하지 않는다.",
+                "검증 실패 요청이 기록에 남는 문제를 인식하지 못한다."
               ],
               "refs": [
                 "기준 R-04",
-                "실행 기록 c0856d5f · R-04",
+                "실행 기록 9679beaf · R-04",
                 "코드 src/app.ts:43-69",
                 "코드 src/app.ts:23-31"
               ],
@@ -1582,20 +1513,20 @@
               "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "코드에 명시적 any가 3곳 있다는 신호가 있습니다. 이 지점들에서 타입을 any로 둔 이유와, 대신 쓸 수 있었던 타입 정의를 어떻게 판단하셨나요?",
-              "intent": "any를 선택한 근거와 타입 경계 설계를 어떻게 판단했는지 확인한다.",
+              "question": "코드에 명시적 any가 세 곳 있습니다. 이 자리에서 타입을 좁히지 않고 any를 쓰기로 한 기준은 무엇이었나요?",
+              "intent": "타입을 느슨하게 둔 판단의 기준과 영향 범위를 확인한다.",
               "probes": [
-                "이 위치에서 타입을 좁히려면 어떤 정보가 더 필요했나요?",
-                "any를 남겨 둘 때 이후 변경에서 어떤 위험이 생기나요?",
-                "요청 본문 타입을 어디에 정의하면 검증과 타입이 함께 맞춰지나요?"
+                "이 값들에 어떤 타입이 들어올 수 있나요?",
+                "타입을 좁히면 어느 검증이 대신하게 되나요?",
+                "이 자리를 그대로 두면 이후 변경에서 무엇이 어려워지나요?"
               ],
               "positiveSignals": [
-                "any를 둔 지점과 이유를 구체적으로 설명한다.",
-                "타입 정의 위치와 검증 규칙의 관계를 말한다."
+                "any가 놓인 자리의 값 흐름을 설명한다.",
+                "타입을 좁힐 때 대체할 검증을 구체적으로 든다."
               ],
               "concernSignals": [
-                "타입 오류를 피하려고 any를 썼다고만 답한다.",
-                "해당 위치가 어디인지 짚지 못한다."
+                "any를 습관적으로 썼다고만 말한다.",
+                "해당 위치의 값이 무엇인지 설명하지 못한다."
               ],
               "refs": [
                 "코드 src/app.ts:44-44",
@@ -1614,77 +1545,77 @@
               "competency": "TRADEOFFS",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구현에서 가장 먼저 바꿔야 할 부분은 어디인가요?",
-              "intent": "요구사항이 바뀌었을 때 현재 구현(R-01·R-02·R-05)에서 영향을 받는 부분과 필요한 보장을 판단하는지 확인한다.",
+              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "저장 요구가 바뀔 때 구조를 어디부터 손대는지 확인한다.",
               "probes": [
-                "지금 구현에서 그 상황의 영향을 받는 상태는 무엇인가요?",
-                "그 상태를 안전하게 다루려면 어떤 보장이 필요한가요?",
-                "그 보장을 얻는 방법들 가운데 어떤 기준으로 하나를 고르시겠어요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "저장 위치를 바꾸면 기존 동작 중 무엇을 다시 확인하시겠어요?",
+                "초기화 경로는 이 변경과 어떻게 맞물리나요?"
               ],
               "positiveSignals": [
-                "영향을 받는 상태와 코드 위치를 구체적으로 짚는다.",
-                "선택지마다 비용과 보장 수준을 비교해 하나를 고른다."
+                "바꿀 범위를 코드의 구체적인 위치로 말한다.",
+                "저장 위치를 옮길 때 새로 생기는 실패 상황을 든다."
               ],
               "concernSignals": [
-                "특정 기술 이름만 말하고 필요한 보장을 설명하지 않는다.",
-                "현재 구현이 받는 영향을 구체적으로 짚지 않는다."
+                "도구 이름만 대고 코드에서 바꿀 부분을 말하지 않는다.",
+                "초기화 경로와의 관계를 언급하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-02", "기준 R-05"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
               "id": "RESUME_BRIDGE:2",
               "number": 13,
               "kind": "RESUME_BRIDGE",
-              "competency": "TRADEOFFS",
+              "competency": "REQUIREMENTS",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
-              "intent": "이력서에 적힌 경험에서 지원자가 직접 맡은 범위와 기술적 판단의 근거를 확인한다.",
+              "question": "북마크 API에서 입력값 검증은 어떤 기준으로 어디에 두셨나요?",
+              "intent": "이력서에 적은 검증 경험이 어떤 입력 조건까지 다뤘는지 확인한다.",
               "probes": [
-                "그 작업에서 본인이 직접 설계하거나 구현한 부분은 어디까지였나요?",
-                "그 결정을 내릴 때 어떤 기준으로 대안을 비교하셨나요?",
-                "지금 다시 한다면 어떤 부분을 다르게 선택하시겠어요?"
+                "검증 실패 시 응답 형식은 어떻게 정하셨나요?",
+                "검증 로직을 라우터와 저장소 중 어디에 두었나요?",
+                "숫자 필드의 경계값은 어떻게 정하셨나요?"
               ],
               "positiveSignals": [
-                "본인이 맡은 범위와 팀이 맡은 범위를 구분해 설명한다",
-                "결정의 근거로 당시의 제약 조건과 비교한 대안을 구체적으로 든다"
+                "검증 위치와 실패 응답 형식을 구체적으로 설명한다",
+                "경계값과 누락 입력을 구분해 설명한다"
               ],
               "concernSignals": [
-                "맡은 범위를 물어도 팀 전체의 결과만 설명한다",
-                "결정의 이유를 물으면 기술 이름만 나열하고 적용 조건을 말하지 않는다"
+                "검증을 '필수값 체크' 수준으로만 설명한다",
+                "실패 응답의 상태 코드와 본문 형식을 설명하지 않는다"
               ],
-              "refs": ["맥락 연결 7dc08579", "기준 R-04"],
+              "refs": ["맥락 연결 d6c91840", "기준 R-04"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
               "id": "RESUME_BRIDGE:3",
               "number": 14,
               "kind": "RESUME_BRIDGE",
-              "competency": "TESTING",
+              "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "북마크 API의 테스트는 어떤 입력과 기대 결과를 기준으로 작성하셨나요?",
-              "intent": "이력서에 적힌 테스트 코드의 검증 범위와 케이스 선정 기준을 확인한다.",
+              "question": "jQuery 기반 화면을 React 컴포넌트로 전환할 때 상태 관리는 어떻게 옮기셨나요?",
+              "intent": "이력서에 적은 전환 경험이 상태와 부수 효과를 어떻게 다뤘는지 확인한다.",
               "probes": [
-                "정상 경로 외에 어떤 실패 케이스를 테스트에 넣었나요?",
-                "테스트가 통과해도 실제 결함이 남을 수 있는 부분은 어디라고 보시나요?",
-                "인메모리 저장소를 쓰는 테스트에서 상태 초기화는 어떻게 처리했나요?"
+                "전환 전후로 상태를 누가 소유하는지 어떻게 달라졌나요?",
+                "DOM을 직접 조작하던 코드는 어떤 방식으로 바꾸셨나요?",
+                "전환 과정에서 기존 동작이 깨진 사례가 있었나요?"
               ],
               "positiveSignals": [
-                "경계값과 실패 케이스를 구체적으로 열거한다",
-                "테스트가 검증하지 못하는 범위를 스스로 구분해 설명한다"
+                "상태 소유 위치와 부수 효과 처리 방식을 구체적으로 설명한다",
+                "전환 중 깨진 동작과 대응을 설명한다"
               ],
               "concernSignals": [
-                "정상 경로 위주의 테스트만 언급한다",
-                "테스트 통과를 구현 정확성의 근거로만 설명한다"
+                "전환을 '컴포넌트로 나눴다' 수준으로만 설명한다",
+                "상태 관리 변경을 설명하지 않는다"
               ],
-              "refs": ["맥락 연결 108ba4f5", "기준 G1"],
-              "refKinds": ["CONTEXT_LINK", "CRITERION"],
+              "refs": ["맥락 연결 1f6941ab"],
+              "refKinds": ["CONTEXT_LINK"],
               "source": "LLM",
               "lint": []
             }
@@ -1713,28 +1644,28 @@
           "mustQuestions": [
             {
               "number": 1,
-              "question": "R-05 실행 기록에서 같은 키로 두 번 보냈을 때 두 번째 응답의 id가 첫 번째와 달랐고 재고도 두 번 줄었습니다. 주문 생성 요청이 들어왔을 때 멱등성 기록을 어떤 순서로 확인하고 갱신하도록 코드를 구성하셨나요?",
+              "question": "R-05 재전송 케이스에서 두 번째 호출이 새 주문을 만들었고 재고도 두 번 줄었습니다. 같은 키의 두 번째 요청을 처리하는 흐름을 코드에서 어떻게 따라가 보시겠어요?",
               "source": "LLM"
             },
             {
               "number": 2,
-              "question": "R-06 실행 기록에서는 같은 키에 다른 본문을 보냈을 때 201과 409가 돌아왔고 재고도 함께 줄었습니다. 같은 키로 들어온 요청의 본문이 이전과 다를 때 어떤 값을 비교해 어떻게 판단하도록 작성하셨나요?",
+              "question": "R-06 충돌 케이스에서 다른 본문의 재요청이 201로 통과했습니다. 같은 키로 들어온 요청의 본문이 이전과 같은지 판단하는 부분을 어디에 두셨나요?",
               "source": "LLM"
             },
             {
               "number": 3,
-              "question": "제출한 테스트는 기준 상태에서 통과했지만 재고 부족 검사를 없앤 변형을 잡아내지 못했습니다. 재고 부족과 수량 경계를 검증하는 테스트를 어떤 입력과 기대값으로 설계하셨나요?",
+              "question": "G1 그룹에서 재고 부족 검사를 없앤 변형이 제출 테스트를 통과했습니다. 재고 부족 상황을 검증하는 테스트를 설계할 때 어떤 입력을 고르셨나요?",
               "source": "LLM"
             },
             {
               "number": 4,
-              "question": "R-03은 재고 부족과 재고 0, 재고와 같은 수량 주문까지 모두 기대대로 통과했습니다. 재고와 요청 수량을 비교하는 조건을 어떤 기준으로 정하셨나요?",
+              "question": "R-03은 재고 부족 요청을 409로 거절하고 재고를 그대로 두었습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
               "source": "LLM"
             }
           ],
           "interviewGuideStatus": "AVAILABLE",
           "resumeLinksStatus": "AVAILABLE",
-          "resumeLinkCount": 5,
+          "resumeLinkCount": 3,
           "designReviewStatus": "AVAILABLE",
           "forbidden": []
         }
@@ -1742,15 +1673,13 @@
     },
     {
       "handle": "dohyun",
-      "submissionId": "8ee90138-edf1-4a99-ae6e-62d5acc524e7",
-      "evaluationId": "8b759d05-c1fb-4637-9fab-3786bbf35162",
+      "submissionId": "c98810b5-ea18-4583-8d3b-cd42d4c83082",
+      "evaluationId": "8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10",
       "status": "COMPLETED",
-      "waitMs": 627381,
+      "waitMs": 671393,
       "mismatches": [],
       "warnings": [
-        "기본 질문(TEMPLATE) 대체 2/11",
-        "버린 LLM 출력 EXTENSION:persistent-store: LINT_VIOLATION (COMPOUND_QUESTION)",
-        "주장(SI·납기): 기대 EVIDENCE_FOUND, 실제 NEEDS_CHECK",
+        "주장(SI·납기): 맥락 연결에서 찾지 못함 (기대 EVIDENCE_FOUND)",
         "주장(TDD·클린 아키텍처·Clean Architecture): 기대 NO_DATA, 실제 NEEDS_CHECK"
       ],
       "error": null,
@@ -1761,7 +1690,7 @@
           {
             "name": "report-dohyun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162/report",
+            "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10/report",
             "file": "docs/gates/stage7/report-dohyun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1771,7 +1700,7 @@
           {
             "name": "interview-kit-dohyun",
             "viewport": "desktop",
-            "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10/interview-kit",
             "file": "docs/gates/stage7/interview-kit-dohyun-desktop.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1781,7 +1710,7 @@
           {
             "name": "report-dohyun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162/report",
+            "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10/report",
             "file": "docs/gates/stage7/report-dohyun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1791,7 +1720,7 @@
           {
             "name": "interview-kit-dohyun",
             "viewport": "mobile",
-            "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162/interview-kit",
+            "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10/interview-kit",
             "file": "docs/gates/stage7/interview-kit-dohyun-mobile.png",
             "status": 200,
             "horizontalOverflowPx": 0,
@@ -1799,7 +1728,7 @@
             "problems": []
           }
         ],
-        "reportPdf": { "file": "docs/gates/stage7/report-dohyun.pdf", "pages": 7 },
+        "reportPdf": { "file": "docs/gates/stage7/report-dohyun.pdf", "pages": 4 },
         "kitPdf": { "file": "docs/gates/stage7/interview-kit-dohyun.pdf", "pages": 8 }
       },
       "facts": {
@@ -1858,7 +1787,7 @@
           "r12Draft": {
             "suggestedPoints": 3,
             "maxPoints": 10,
-            "rationale": "(a) 계층 분리: 라우팅·요청 파싱·응답 직렬화와 도메인 규칙이 모두 src/index.ts 한 파일에 있고, POST /orders 콜백이 133줄(src/index.ts:101-233)에 걸쳐 멱등키 검증·본문 검증·재고 차감·응답 생성을 직접 수행한다. 도메인 규칙이 Request/Response 객체에 직접 의존하므로 분리 미흡으로 판단해 4점 중 낮게 본다. (b) 멱등성 저장소 추상화: idemStore가 모듈 전역 배열이고 조회가 POST /orders 안의 for 루프(src/index.ts:168-174)로 인라인되어 있어 인터페이스나 별도 모듈 뒤에 있지 않다. 저장소 교체 시 주문 생성 로직을 고쳐야 하므로 3점 중 0에 가깝다. (c) 변경 용이성: 오류 응답이 핸들러마다 res.status(...).json({error:{code:...}}) 형태로 반복되고, 같은 모양의 연속 문장 블록이 src/index.ts:79-90과 241-252에 나타나 조회 로직이 중복되어 있다. 오류 코드·상태 코드 매핑이 한 곳에 모여 있지 않아 3점 중 낮게 본다. 명시적 any 12곳과 tsconfig strict 꺼짐도 타입 경계를 약화시켜 변경 용이성에 부정적 신호로 본다."
+            "rationale": "(a) 계층 분리: 라우팅·파싱·응답 직렬화와 도메인 규칙이 모두 src/index.ts 한 파일의 라우트 콜백 안에 섞여 있다. POST /orders 콜백이 133줄(src/index.ts:101-233)에 걸쳐 멱등키 검증, 본문 검증, 멱등 기록 조회, 재고 차감을 직접 수행하고, 취소 콜백도 재고 복구 로직을 인라인으로 담고 있다(src/index.ts:295-304). 도메인 규칙이 별도 모듈로 분리되지 않아 (a)는 미흡하다. (b) 멱등성 저장소 추상화: idemStore가 배열 변수로 선언되어 라우트 콜백에서 for 루프로 직접 순회·비교된다(src/index.ts:167-174). 인터페이스나 별도 모듈이 없어 저장소 교체 시 주문 생성 로직을 고쳐야 하므로 (b)는 미흡하다. (c) 변경 용이성: 오류 응답이 각 검증 분기마다 res.status(...).json({error:{code:...}}) 형태로 반복 하드코딩되어 있고, 같은 모양의 연속 문장 블록이 src/index.ts:79-90과 241-252에 나타난다. 상태 코드·오류 코드 매핑이 한 곳에 모여 있지 않아 (c)도 미흡하다. 다만 라우트별로 검증 순서가 읽히고 400/404/409/422 코드가 일관된 형태로 쓰인 점은 부분적 가점 요소다. 세 하위 기준 모두 뚜렷한 분리·추상화 근거가 없어 만점 10 중 낮은 제안 점수를 둔다."
           }
         },
         "github": {
@@ -1884,44 +1813,37 @@
           {
             "claim": "최근 참여한 프로젝트에서는 클린 아키텍처(Clean Architecture)와 TDD(Test-Driven Development)를 적용하여 유지보수성을 높였습니다.",
             "status": "NEEDS_CHECK",
-            "followUpQuestion": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
+            "followUpQuestion": "클린 아키텍처와 TDD를 적용한 프로젝트에서 계층을 나눈 기준은 무엇이었나요?",
             "criterionId": "G1"
+          },
+          {
+            "claim": "온라인몰 주문 API 고도화 B 유통사 2023.02 2023.12 백엔드 개발, 성능 개선 Java, Spring Boot, Oracle, Redis",
+            "status": "NEEDS_CHECK",
+            "followUpQuestion": "온라인몰 주문 API에서 성능 개선은 어떤 지표를 기준으로 진행하셨나요?",
+            "criterionId": "R-05"
           },
           {
             "claim": "매출 CSV 데이터를 집계해 보고서를 CSV와 HTML 요약으로 자동 생성하는 Node.js 배치 스크립트입니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "매출 CSV 집계 배치에서 입력 파일 형식이 예상과 다르거나 값이 비어 있을 때 어떻게 처리하도록 설계하셨나요?",
+            "followUpQuestion": "CSV 파싱을 외부 라이브러리 없이 직접 구현하신 이유는 무엇인가요?",
             "criterionId": null
           },
           {
             "claim": "게시글·댓글 CRUD와 페이징을 갖춘 게시판(board) REST API입니다. Express와 TypeScript로 구현했고 데이터는 JSON 파일에 저장합니다.",
             "status": "EVIDENCE_FOUND",
-            "followUpQuestion": "게시판 API에서 JSON 파일에 데이터를 저장할 때 동시에 여러 요청이 같은 파일에 쓰이면 어떻게 처리하도록 하셨나요?",
+            "followUpQuestion": "JSON 파일에 데이터를 저장할 때 동시 쓰기는 어떻게 다루셨나요?",
             "criterionId": null
-          },
-          {
-            "claim": "다수의 SI 프로젝트에서 REST API를 설계·개발하고, 정해진 일정 안에 요구사항을 빠짐없이 구현하여 납기를 준수해 왔습니다.",
-            "status": "NEEDS_CHECK",
-            "followUpQuestion": "REST API를 설계할 때 변경이 잦은 요구사항을 어떻게 반영할 수 있도록 구조를 잡으셨나요?",
-            "criterionId": "R-12"
           }
         ],
         "kit": {
           "slotCount": 11,
-          "templateCount": 2,
+          "templateCount": 0,
           "llm": "OK",
           "llmReason": null,
-          "promptVersion": "interview-kit@v1+9129ad0e",
+          "promptVersion": "interview-kit@v2+fcd7f772",
           "model": "deepseek-flash",
-          "inputDigest": "50518d91255d4a7e07fdbc97407774ae736b8a7e8de9c97c9dd2c4177ea77a16",
-          "dropped": [
-            {
-              "index": 5,
-              "slotId": "EXTENSION:persistent-store",
-              "reason": "LINT_VIOLATION",
-              "rules": ["COMPOUND_QUESTION"]
-            }
-          ],
+          "inputDigest": "9f8ac8a44bad0939cd9b7dd0f3f80785e5f18ab86f8fef540e10e6fb3070a68d",
+          "dropped": [],
           "plans": [
             { "durationMinutes": 45, "totalMinutes": 45, "questionCount": 6 },
             { "durationMinutes": 60, "totalMinutes": 51, "questionCount": 7 }
@@ -1934,25 +1856,24 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "재고 부족으로 주문이 거절되는 경로를 구현하셨는데, 재고와 요청 수량을 비교하는 판단을 어디에 두고 어떤 기준으로 정하셨나요?",
-              "intent": "재고 부족 거절 판단의 위치와 기준, 재고를 변동시키지 않는 처리 방식을 확인한다.",
+              "question": "R-03은 재고보다 많은 수량과 재고 0인 상품 요청을 모두 거절했습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
+              "intent": "통과한 거절 동작의 판단 위치와 경계 처리를 스스로 설명하는지 확인한다.",
               "probes": [
-                "재고와 같은 수량의 주문이 통과하는 경계는 코드에서 어떻게 표현되어 있나요?",
-                "재고 확인과 차감 사이에 다른 요청이 끼어들면 어떤 일이 생기나요?",
-                "재고 부족과 입력 오류를 같은 상태 코드로 묶지 않은 이유는 무엇인가요?"
+                "재고와 같은 수량을 허용하기로 한 기준은 무엇인가요?",
+                "거절한 요청이 재고 값을 바꾸지 않았다는 것을 어디서 확인하셨나요?",
+                "이 판단을 다른 계층으로 옮기면 무엇이 달라지나요?"
               ],
               "positiveSignals": [
-                "재고 비교 조건과 차감 시점을 구분해 설명한다.",
-                "거절 시 재고를 건드리지 않는 흐름을 코드 순서로 말한다.",
-                "경계값(재고와 같은 수량)을 직접 언급한다."
+                "비교 시점과 차감 시점의 순서를 구분해 설명한다.",
+                "재고와 같은 수량이 통과하는 이유를 경계 기준으로 말한다."
               ],
               "concernSignals": [
-                "재고 확인과 차감이 한 곳에서 뒤섞여 있다고만 답한다.",
-                "거절 경로에서 재고가 변하지 않는 이유를 설명하지 못한다."
+                "거절 결과만 말하고 판단 위치를 짚지 못한다.",
+                "재고 확인과 차감을 같은 시점으로 뭉뚱그려 설명한다."
               ],
               "refs": [
                 "기준 R-03",
-                "실행 기록 168234be · R-03",
+                "실행 기록 0a103a40 · R-03",
                 "코드 src/index.ts:101-233",
                 "코드 src/index.ts:78-92"
               ],
@@ -1967,25 +1888,24 @@
               "competency": "ROBUSTNESS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "주문 생성 요청의 입력 검증을 구현하셨는데, 어떤 항목을 어떤 순서로 검증하고 검증 실패 시 상태를 어떻게 남기지 않도록 하셨나요?",
-              "intent": "검증 항목의 범위와 순서, 실패 요청이 상태나 멱등성 기록에 남지 않게 하는 처리를 확인한다.",
+              "question": "R-04는 여러 잘못된 입력을 400으로 거절했습니다. 수량과 상품 식별자 검증을 어느 지점에서 하기로 정하셨나요?",
+              "intent": "입력 검증의 위치와 순서를 스스로 설명하는지 확인한다.",
               "probes": [
-                "수량의 타입과 범위를 판정하는 조건은 어떻게 작성하셨나요?",
-                "헤더 누락과 본문 형식 오류를 같은 오류 코드로 묶은 기준은 무엇인가요?",
-                "검증 실패 요청의 키가 이후 재사용될 때 어떤 일이 일어나나요?"
+                "수량 0과 음수를 같은 규칙으로 처리한 기준은 무엇인가요?",
+                "400으로 끝난 요청의 키를 기록에 남기지 않은 이유는 무엇인가요?",
+                "검증 규칙을 추가할 때 어느 파일을 고치시겠어요?"
               ],
               "positiveSignals": [
-                "검증 항목을 나열하고 각 판정 조건을 구체적으로 말한다.",
-                "실패 요청이 멱등성 기록에 남지 않는 이유를 설명한다.",
-                "검증 순서를 정한 기준을 말한다."
+                "검증 순서와 재고 확인의 선후를 구분해 설명한다.",
+                "거절된 요청이 상태를 바꾸지 않는 이유를 저장 시점으로 설명한다."
               ],
               "concernSignals": [
-                "검증 항목 일부만 언급하고 나머지는 확인하지 않는다.",
-                "검증 실패 시 재고나 기록에 미치는 영향을 말하지 못한다."
+                "검증 항목을 나열만 하고 위치를 말하지 않는다.",
+                "거절된 요청의 키가 기록에 남는지 여부를 모른다."
               ],
               "refs": [
                 "기준 R-04",
-                "실행 기록 9dcb336b · R-04",
+                "실행 기록 f1bb3993 · R-04",
                 "코드 src/index.ts:101-233",
                 "코드 src/index.ts:78-92"
               ],
@@ -2000,21 +1920,20 @@
               "competency": "TRADEOFFS",
               "priority": "MUST",
               "minutes": 6,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 멱등성과 재고 일관성을 유지하려면 무엇이 달라져야 한다고 보시나요?",
-              "intent": "인메모리 상태를 공유하지 않는 다중 인스턴스 환경에서의 일관성 확보 방안과 그 비용을 판단하는지 확인한다.",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "인스턴스가 늘어날 때 구조를 어디부터 손대는지 확인한다.",
               "probes": [
-                "인스턴스마다 상태가 따로 있으면 같은 키의 재전송이 어떻게 처리되나요?",
-                "재고 차감을 인스턴스 간에 조율하려면 어떤 지점을 바꿔야 하나요?",
-                "그 변경이 지금 구조에 주는 비용과 이점은 무엇인가요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "인스턴스가 둘일 때 같은 키의 두 요청이 각각 들어가면 지금 구조는 어떻게 동작하나요?",
+                "공유 저장소를 두면 새로 생기는 실패 상황은 무엇인가요?"
               ],
               "positiveSignals": [
-                "상태 공유 지점과 조율이 필요한 연산을 구분해 설명한다.",
-                "확장 시 바꿔야 할 모듈 경계를 짚는다.",
-                "일관성과 지연·복잡도 사이의 비용을 언급한다."
+                "인메모리 상태가 인스턴스마다 갈라지는 지점을 구체적으로 짚는다.",
+                "바꿀 범위를 코드의 구체적인 위치로 말한다."
               ],
               "concernSignals": [
-                "인메모리 상태를 그대로 두면 된다고만 답한다.",
-                "멱등성과 재고 중 한쪽만 언급하고 다른 쪽은 다루지 않는다."
+                "인스턴스를 늘리면 된다는 말만 하고 상태 공유를 언급하지 않는다.",
+                "멱등성 기록과 재고 중 무엇이 문제인지 구분하지 못한다."
               ],
               "refs": ["기준 R-01", "기준 R-05", "기준 R-06"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
@@ -2028,21 +1947,20 @@
               "competency": "TESTING",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "재고 부족 거절과 수량 경계를 검증하는 테스트를 작성하셨는데, 그 테스트가 어떤 입력을 다루고 어떤 결과를 확인하도록 설계하셨나요?",
-              "intent": "경계·검증 규칙을 겨냥한 테스트의 입력 선택과 단언 범위를 확인한다.",
+              "question": "G1 그룹에서 재고 부족 검사와 수량 하한을 바꾼 변형이 살아남았습니다. 이 그룹의 테스트를 설계할 때 어떤 입력을 먼저 고르셨나요?",
+              "intent": "경계·검증 테스트에서 입력을 고르는 기준이 있는지 확인한다.",
               "probes": [
-                "재고와 같은 수량, 재고보다 많은 수량, 0과 음수 수량을 각각 어떻게 다루나요?",
-                "상태 코드 외에 재고 값이나 오류 코드도 단언하나요?",
-                "검증 규칙이 바뀌면 어떤 테스트가 먼저 실패하도록 설계하셨나요?"
+                "수량 0을 받아들이는 변형은 어떤 테스트에서 걸렸어야 한다고 보시나요?",
+                "재고보다 많은 수량을 고를 때 어떤 기준을 쓰시나요?",
+                "단언을 더 촘촘하게 만든다면 무엇을 먼저 바꾸시겠어요?"
               ],
               "positiveSignals": [
-                "경계값을 입력으로 명시하고 단언 대상을 구체적으로 말한다.",
-                "상태 코드와 부수 효과(재고)를 함께 단언한다.",
-                "규칙 변경 시 실패할 테스트를 지목한다."
+                "살아남은 변형을 잡을 입력을 구체적인 값으로 말한다.",
+                "테스트가 확인하는 동작과 구현 세부를 구분해 설명한다."
               ],
               "concernSignals": [
-                "정상 경로 위주로만 테스트를 설명한다.",
-                "단언 대상을 상태 코드 하나로만 한정한다."
+                "테스트를 더 쓰겠다고만 말하고 대상을 정하지 않는다.",
+                "변형이 살아남은 이유를 도구 문제로 돌린다."
               ],
               "refs": [
                 "기준 G1",
@@ -2062,21 +1980,20 @@
               "competency": "DESIGN",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "src/index.ts:32-34에 플래그 조건을 반복하며 기다리는 코드가 있는데, 이 대기가 필요한 이유와 그 자리에서 기다리는 방식을 택한 기준을 설명해 주시겠어요?",
-              "intent": "대기 루프가 필요한 상황과 그 구현 선택의 근거, 대안과의 트레이드오프를 판단하는지 확인한다.",
+              "question": "src/index.ts:32-34에 플래그 조건을 반복하며 기다리는 코드가 있습니다. 이 반복이 필요한 상황을 어떻게 설명하시겠어요?",
+              "intent": "대기 반복을 둔 이유와 그 영향 범위를 스스로 설명하는지 확인한다.",
               "probes": [
-                "이 대기가 끝나는 조건은 무엇이고 누가 그 조건을 바꾸나요?",
-                "대기 중 다른 요청이 들어오면 어떤 일이 생기나요?",
-                "다른 동기화 방식과 비교해 이 방식을 택한 이유는 무엇인가요?"
+                "이 반복이 끝나는 조건은 무엇인가요?",
+                "같은 요청이 겹칠 때 이 대기가 어떤 영향을 주나요?",
+                "대기 방식을 바꾼다면 무엇을 먼저 고치시겠어요?"
               ],
               "positiveSignals": [
-                "대기가 걸리는 조건과 해제 조건을 구체적으로 설명한다.",
-                "대안 방식과의 비용 차이를 언급한다.",
-                "동시 요청에서의 동작을 설명한다."
+                "대기가 막으려는 경합 상황을 구체적으로 설명한다.",
+                "대기 중 다른 요청의 처리에 미치는 영향을 언급한다."
               ],
               "concernSignals": [
-                "대기가 왜 필요한지 설명하지 못한다.",
-                "대기 중 다른 요청의 영향을 고려하지 않는다."
+                "대기가 왜 있는지 설명하지 못한다.",
+                "반복 조건이 끝나지 않는 경우를 생각하지 않는다."
               ],
               "refs": ["코드 src/index.ts:32-34", "기준 R-12"],
               "refKinds": ["SOURCE", "CRITERION"],
@@ -2090,51 +2007,51 @@
               "competency": "TRADEOFFS",
               "priority": "SHOULD",
               "minutes": 6,
-              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구현에서 가장 먼저 바꿔야 할 부분은 어디인가요?",
-              "intent": "요구사항이 바뀌었을 때 현재 구현(R-01·R-02·R-05)에서 영향을 받는 부분과 필요한 보장을 판단하는지 확인한다.",
+              "question": "프로세스를 다시 시작해도 주문과 상태가 남아야 하는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
+              "intent": "저장 요구가 바뀔 때 구조를 어디부터 손대는지 확인한다.",
               "probes": [
-                "지금 구현에서 그 상황의 영향을 받는 상태는 무엇인가요?",
-                "그 상태를 안전하게 다루려면 어떤 보장이 필요한가요?",
-                "그 보장을 얻는 방법들 가운데 어떤 기준으로 하나를 고르시겠어요?"
+                "그 부분을 먼저 고르신 이유는 무엇인가요?",
+                "저장 위치를 바꾸면 기존 동작 중 무엇을 다시 확인하시겠어요?",
+                "초기화 경로는 새 저장 구조에서 어떻게 동작해야 하나요?"
               ],
               "positiveSignals": [
-                "영향을 받는 상태와 코드 위치를 구체적으로 짚는다.",
-                "선택지마다 비용과 보장 수준을 비교해 하나를 고른다."
+                "바꿀 범위를 코드의 구체적인 위치로 말한다.",
+                "저장 위치를 옮길 때 새로 생기는 실패 상황을 든다."
               ],
               "concernSignals": [
-                "특정 기술 이름만 말하고 필요한 보장을 설명하지 않는다.",
-                "현재 구현이 받는 영향을 구체적으로 짚지 않는다."
+                "도구 이름만 대고 코드에서 바꿀 부분을 말하지 않는다.",
+                "초기화 경로와의 관계를 언급하지 않는다."
               ],
               "refs": ["기준 R-01", "기준 R-02", "기준 R-05"],
               "refKinds": ["CRITERION", "CRITERION", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
               "id": "RESUME_BRIDGE:1",
               "number": 7,
               "kind": "RESUME_BRIDGE",
-              "competency": "TRADEOFFS",
+              "competency": "DESIGN",
               "priority": "SHOULD",
               "minutes": 5,
-              "question": "이 경험에서 본인이 맡은 범위와 가장 어려웠던 기술적 결정을 설명해 주시겠어요?",
-              "intent": "이력서에 적힌 경험에서 지원자가 직접 맡은 범위와 기술적 판단의 근거를 확인한다.",
+              "question": "클린 아키텍처와 TDD를 적용한 프로젝트에서 계층을 나눈 기준은 무엇이었나요?",
+              "intent": "이력서에 적힌 클린 아키텍처·TDD 적용 경험의 실제 범위와 판단 기준을 확인한다.",
               "probes": [
-                "그 작업에서 본인이 직접 설계하거나 구현한 부분은 어디까지였나요?",
-                "그 결정을 내릴 때 어떤 기준으로 대안을 비교하셨나요?",
-                "지금 다시 한다면 어떤 부분을 다르게 선택하시겠어요?"
+                "테스트를 먼저 작성한 범위는 어디까지였나요?",
+                "경계가 되는 검증 규칙은 어느 계층에 두었나요?",
+                "이번 과제처럼 테스트가 결함을 놓치는 상황을 어떻게 발견하고 보완하시나요?"
               ],
               "positiveSignals": [
-                "본인이 맡은 범위와 팀이 맡은 범위를 구분해 설명한다",
-                "결정의 근거로 당시의 제약 조건과 비교한 대안을 구체적으로 든다"
+                "계층별 책임과 의존 방향을 자기 프로젝트 예로 구체적으로 설명한다",
+                "테스트가 검증하는 대상과 검증하지 못하는 대상을 구분해 말한다"
               ],
               "concernSignals": [
-                "맡은 범위를 물어도 팀 전체의 결과만 설명한다",
-                "결정의 이유를 물으면 기술 이름만 나열하고 적용 조건을 말하지 않는다"
+                "클린 아키텍처를 폴더 구조 이야기로만 설명한다",
+                "테스트를 먼저 작성한 범위를 구체적으로 제시하지 못한다"
               ],
-              "refs": ["맥락 연결 dde624fb", "기준 G1"],
+              "refs": ["맥락 연결 c15a3fac", "기준 G1"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
-              "source": "TEMPLATE",
+              "source": "LLM",
               "lint": []
             },
             {
@@ -2144,21 +2061,20 @@
               "competency": "TESTING",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "멱등 재전송과 키 충돌을 검증하는 테스트를 작성하셨는데, 그 테스트가 어떤 호출 순서와 단언으로 두 동작을 구분하도록 설계하셨나요?",
-              "intent": "멱등 재전송과 충돌을 구분하는 테스트의 호출 순서와 단언 범위를 확인한다.",
+              "question": "G2 그룹에서 멱등 키 조회와 본문 비교를 건너뛰는 변형이 살아남았습니다. 이 그룹의 테스트를 설계할 때 어떤 호출 순서를 먼저 정하셨나요?",
+              "intent": "멱등성 테스트에서 재전송과 충돌을 구분하는 설계 기준이 있는지 확인한다.",
               "probes": [
-                "같은 키·같은 본문 재전송에서 응답 id 외에 무엇을 단언하나요?",
-                "같은 키·다른 본문 요청에서 재고가 변하지 않았음을 어떻게 확인하나요?",
-                "첫 호출이 실패한 뒤 같은 키를 다시 쓰는 경우도 다루나요?"
+                "같은 키로 다른 본문을 보내는 경우를 어떤 테스트로 확인하시겠어요?",
+                "재전송 후 재고가 한 번만 줄었는지 어떻게 확인하시겠어요?",
+                "두 호출의 응답 id를 비교하는 단언을 어디에 두셨나요?"
               ],
               "positiveSignals": [
-                "호출 순서를 명시하고 각 단계의 단언을 구분해 말한다.",
-                "응답 id와 재고 변화를 함께 단언한다.",
-                "충돌 시 새 주문이 생기지 않음을 확인하는 방법을 말한다."
+                "재전송과 충돌을 서로 다른 입력으로 나눠 설계한다.",
+                "재고 변화량까지 단언에 포함한다."
               ],
               "concernSignals": [
-                "재전송 테스트만 언급하고 충돌 테스트는 다루지 않는다.",
-                "단언 대상을 응답 상태 코드로만 한정한다."
+                "같은 키 재전송만 확인하고 본문이 다른 경우를 다루지 않는다.",
+                "응답 상태만 보고 id나 재고를 확인하지 않는다."
               ],
               "refs": [
                 "기준 G2",
@@ -2178,21 +2094,20 @@
               "competency": "DESIGN",
               "priority": "OPTIONAL",
               "minutes": 6,
-              "question": "src/index.ts:101-233의 주문 생성 핸들러가 133줄로 가장 긴 함수인데, 이 안에서 어떤 책임들을 함께 처리하고 있는지 설명해 주시겠어요?",
-              "intent": "긴 핸들러에 모인 책임의 종류와 분리 가능성에 대한 인식을 확인한다.",
+              "question": "src/index.ts:101-233의 주문 생성 처리가 133줄로 가장 깁니다. 이 안에서 요청 파싱과 도메인 규칙을 어떻게 나누셨나요?",
+              "intent": "한 함수 안에서 책임을 나눈 기준이 있는지 확인한다.",
               "probes": [
-                "이 함수 안에서 HTTP 처리와 도메인 규칙이 각각 어디에 있나요?",
-                "새 오류 코드를 추가할 때 이 함수에서 고칠 곳은 몇 군데인가요?",
-                "이 함수를 나눈다면 어떤 경계로 나누시겠어요?"
+                "재고 차감과 멱등성 기록 중 어느 쪽이 먼저 실행되나요?",
+                "이 함수에서 HTTP 요청·응답 객체에 의존하는 부분은 어디까지인가요?",
+                "책임을 나눈다면 어느 경계를 먼저 그으시겠어요?"
               ],
               "positiveSignals": [
-                "함수 안의 책임을 종류별로 구분해 설명한다.",
-                "변경 시 수정 지점을 구체적으로 짚는다.",
-                "분리 경계를 도메인 규칙 기준으로 제안한다."
+                "파싱과 도메인 규칙의 경계를 코드 위치로 구분해 설명한다.",
+                "지금 구조에서 생기는 구체적인 불편을 예로 든다."
               ],
               "concernSignals": [
-                "함수가 길다는 사실만 인정하고 책임 구분을 말하지 못한다.",
-                "변경 지점이 흩어져 있음을 인식하지 못한다."
+                "함수가 길다는 사실만 인정하고 나눌 기준을 말하지 않는다.",
+                "도메인 규칙이 요청 객체에 의존하는지 여부를 구분하지 못한다."
               ],
               "refs": ["코드 src/index.ts:101-233", "기준 R-12"],
               "refKinds": ["SOURCE", "CRITERION"],
@@ -2203,27 +2118,25 @@
               "id": "RESUME_BRIDGE:2",
               "number": 10,
               "kind": "RESUME_BRIDGE",
-              "competency": "DESIGN",
+              "competency": "TRADEOFFS",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "REST API를 설계할 때 변경이 잦은 요구사항을 어떻게 반영할 수 있도록 구조를 잡으셨나요?",
-              "intent": "REST API 설계에서 변경 용이성을 어떻게 확보했는지 확인한다.",
+              "question": "온라인몰 주문 API에서 성능 개선은 어떤 지표를 기준으로 진행하셨나요?",
+              "intent": "성능 개선 경험에서 측정 지표와 개선 판단 근거를 확인한다.",
               "probes": [
-                "API 스펙이 바뀔 때 어떤 부분을 먼저 수정하게 되나요?",
-                "설계를 문서화하거나 리뷰하는 절차가 있었나요?",
-                "변경이 잦은 프로젝트에서 설계를 단순하게 유지한 사례가 있나요?"
+                "개선 전후 수치는 어떤 도구로 측정했나요?",
+                "Redis는 어떤 데이터를 담당했나요?",
+                "캐시와 DB 정합성은 어떻게 맞추셨나요?"
               ],
               "positiveSignals": [
-                "변경 지점과 영향 범위를 구분해 설명한다",
-                "설계 문서나 리뷰 절차를 구체적으로 언급한다",
-                "변경 용이성을 위한 구조적 선택을 예로 든다"
+                "측정 도구와 측정 조건을 구체적으로 설명한다",
+                "캐시 적용 범위와 무효화 시점을 설명한다"
               ],
               "concernSignals": [
-                "설계 변경 대응 경험을 일반론으로만 말한다",
-                "구조적 선택의 이유를 설명하지 못한다",
-                "설계 문서화나 리뷰 경험을 말하지 못한다"
+                "개선 수치를 측정 방법 없이 제시한다",
+                "캐시 정합성 문제를 다뤄본 적 없다고 답한다"
               ],
-              "refs": ["맥락 연결 c6b99544", "기준 R-12"],
+              "refs": ["맥락 연결 4cb888c2", "기준 R-05"],
               "refKinds": ["CONTEXT_LINK", "CRITERION"],
               "source": "LLM",
               "lint": []
@@ -2232,27 +2145,25 @@
               "id": "RESUME_BRIDGE:3",
               "number": 11,
               "kind": "RESUME_BRIDGE",
-              "competency": "ROBUSTNESS",
+              "competency": "DATA_INTEGRITY",
               "priority": "OPTIONAL",
               "minutes": 5,
-              "question": "매출 CSV 집계 배치에서 입력 파일 형식이 예상과 다르거나 값이 비어 있을 때 어떻게 처리하도록 설계하셨나요?",
-              "intent": "배치 스크립트의 입력 검증과 오류 처리 방식을 확인한다.",
+              "question": "CSV 파싱을 외부 라이브러리 없이 직접 구현하신 이유는 무엇인가요?",
+              "intent": "직접 구현 선택의 근거와 입력 형식 가정의 한계 인식을 확인한다.",
               "probes": [
-                "CSV 파싱을 직접 구현하면서 어떤 형식 오류를 처리 대상으로 삼았나요?",
-                "집계 중 예외가 발생하면 이미 생성된 출력 파일은 어떻게 되나요?",
-                "외부 라이브러리 없이 구현한 선택의 장단점은 무엇이었나요?"
+                "따옴표로 감싼 필드나 값 안의 콤마는 어떻게 처리하나요?",
+                "입력 파일이 커지면 파싱 방식이 어떻게 달라져야 하나요?",
+                "집계 결과가 잘못 나왔을 때 원인을 어떻게 좁히시나요?"
               ],
               "positiveSignals": [
-                "입력 검증 범위와 예외 처리 방식을 구체적으로 설명한다",
-                "실패 시 출력 파일 상태를 어떻게 관리하는지 설명한다",
-                "라이브러리 미사용 선택의 트레이드오프를 설명한다"
+                "지원하지 않는 입력 형식과 그 이유를 명확히 설명한다",
+                "파싱 실패 시 검증 지점을 제시한다"
               ],
               "concernSignals": [
-                "형식 오류 처리를 고려하지 않았다고 답한다",
-                "집계 실패 시 동작을 설명하지 못한다",
-                "구현 선택의 이유를 설명하지 못한다"
+                "모든 CSV를 처리한다고 일반화해 답한다",
+                "입력 형식 가정의 한계를 인식하지 못한다"
               ],
-              "refs": ["맥락 연결 08d8214f"],
+              "refs": ["맥락 연결 a8aa72f0"],
               "refKinds": ["CONTEXT_LINK"],
               "source": "LLM",
               "lint": []
@@ -2282,17 +2193,17 @@
           "mustQuestions": [
             {
               "number": 1,
-              "question": "재고 부족으로 주문이 거절되는 경로를 구현하셨는데, 재고와 요청 수량을 비교하는 판단을 어디에 두고 어떤 기준으로 정하셨나요?",
+              "question": "R-03은 재고보다 많은 수량과 재고 0인 상품 요청을 모두 거절했습니다. 재고와 요청 수량을 비교하는 판단을 어디에 두셨나요?",
               "source": "LLM"
             },
             {
               "number": 2,
-              "question": "주문 생성 요청의 입력 검증을 구현하셨는데, 어떤 항목을 어떤 순서로 검증하고 검증 실패 시 상태를 어떻게 남기지 않도록 하셨나요?",
+              "question": "R-04는 여러 잘못된 입력을 400으로 거절했습니다. 수량과 상품 식별자 검증을 어느 지점에서 하기로 정하셨나요?",
               "source": "LLM"
             },
             {
               "number": 3,
-              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 멱등성과 재고 일관성을 유지하려면 무엇이 달라져야 한다고 보시나요?",
+              "question": "같은 서비스를 여러 인스턴스로 띄워 요청이 서로 다른 인스턴스로 들어가는 상황을 가정해 보겠습니다. 지금 구조에서 가장 먼저 바꾸실 부분은 어디인가요?",
               "source": "LLM"
             }
           ],
@@ -2329,7 +2240,7 @@
     {
       "name": "03-submission-status",
       "viewport": "desktop",
-      "url": "https://ohmyti.vercel.app/submissions/8ee90138-edf1-4a99-ae6e-62d5acc524e7",
+      "url": "https://ohmyti.vercel.app/submissions/c98810b5-ea18-4583-8d3b-cd42d4c83082",
       "file": "docs/gates/personas/03-submission-status-desktop.png",
       "status": 200,
       "horizontalOverflowPx": 0,
@@ -2339,7 +2250,7 @@
     {
       "name": "04-workbench",
       "viewport": "desktop",
-      "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162",
+      "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10",
       "file": "docs/gates/personas/04-workbench-desktop.png",
       "status": 200,
       "horizontalOverflowPx": 0,
@@ -2349,7 +2260,7 @@
     {
       "name": "05-workbench-r12",
       "viewport": "desktop",
-      "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162?criterion=R-12",
+      "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10?criterion=R-12",
       "file": "docs/gates/personas/05-workbench-r12-desktop.png",
       "status": 200,
       "horizontalOverflowPx": 0,
@@ -2379,7 +2290,7 @@
     {
       "name": "03-submission-status",
       "viewport": "mobile",
-      "url": "https://ohmyti.vercel.app/submissions/8ee90138-edf1-4a99-ae6e-62d5acc524e7",
+      "url": "https://ohmyti.vercel.app/submissions/c98810b5-ea18-4583-8d3b-cd42d4c83082",
       "file": "docs/gates/personas/03-submission-status-mobile.png",
       "status": 200,
       "horizontalOverflowPx": 0,
@@ -2389,7 +2300,7 @@
     {
       "name": "04-workbench",
       "viewport": "mobile",
-      "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162",
+      "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10",
       "file": "docs/gates/personas/04-workbench-mobile.png",
       "status": 200,
       "horizontalOverflowPx": 0,
@@ -2399,7 +2310,7 @@
     {
       "name": "05-workbench-r12",
       "viewport": "mobile",
-      "url": "https://ohmyti.vercel.app/evaluations/8b759d05-c1fb-4637-9fab-3786bbf35162?criterion=R-12",
+      "url": "https://ohmyti.vercel.app/evaluations/8dacf67a-16b6-4295-bc4b-d0d9a9e6ba10?criterion=R-12",
       "file": "docs/gates/personas/05-workbench-r12-mobile.png",
       "status": 200,
       "horizontalOverflowPx": 0,
