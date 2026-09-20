@@ -36,6 +36,7 @@ import {
   type CriterionRow,
   type EditorIssue,
 } from "@/lib/assignments/editor";
+import { EXAMPLE_ASSIGNMENT } from "@/lib/assignments/example-spec";
 import { Badge, Button, inputClassName } from "@/components/ui";
 import { IssueList, SpecPreview } from "./setup-views";
 
@@ -72,6 +73,8 @@ const cardClass =
 const cardTitleClass = "text-lg font-bold tracking-tight";
 const fieldClass = "flex flex-col gap-2";
 const labelClass = "text-sm font-semibold text-neutral-800";
+/** 입력란 설명 문구 (T-906) */
+const hintClass = "text-[13px] leading-relaxed text-neutral-500";
 const contractRowClass =
   "grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center sm:gap-3";
 /** 코드·경로 값 입력 (계약·하네스) */
@@ -202,6 +205,15 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
     });
   }
 
+  /** `예시 명세로 채우기` (T-906). 입력란만 채운다. 기준·배점은 `AI 초안 생성`이나 사람이 정한다 */
+  function fillExample() {
+    setName(EXAMPLE_ASSIGNMENT.name);
+    setDescription(EXAMPLE_ASSIGNMENT.description);
+    setTitle(EXAMPLE_ASSIGNMENT.title);
+    setSpec(EXAMPLE_ASSIGNMENT.specMarkdown);
+    setSpecTab("edit");
+  }
+
   function updateRow(index: number, patch: Partial<CriterionRow>) {
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   }
@@ -214,7 +226,19 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <section className="flex flex-col gap-4" aria-label="명세와 실행 계약">
           <div className={cardClass}>
-            <h2 className={cardTitleClass}>기본 정보</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className={cardTitleClass}>기본 정보</h2>
+              {props.mode === "new" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={fillExample}
+                  data-testid="fill-example-spec"
+                >
+                  예시 명세로 채우기
+                </Button>
+              ) : null}
+            </div>
             {props.mode === "new" ? (
               <>
                 <label className={fieldClass}>
@@ -231,6 +255,9 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
                   <span className={labelClass}>
                     설명 <span className="font-normal text-neutral-400">(선택)</span>
                   </span>
+                  <span className={hintClass}>
+                    과제 목록에서 이 과제를 알아볼 한 줄입니다. 지원자에게 보내는 명세가 아닙니다.
+                  </span>
                   <input
                     className={inputClassName}
                     name="description"
@@ -242,6 +269,10 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
             ) : null}
             <label className={fieldClass}>
               <span className={labelClass}>버전 제목</span>
+              <span className={hintClass}>
+                기준 버전을 구분하는 이름입니다(예: `v1`). 승인한 버전의 기준은 바꿀 수 없고, 고칠
+                때는 새 버전을 만듭니다.
+              </span>
               <input
                 className={inputClassName}
                 name="title"
@@ -292,6 +323,10 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
             <h2 className={cardTitleClass} aria-hidden="true">
               실행 계약
             </h2>
+            <p className={hintClass}>
+              워커가 격리 환경에서 제출물을 기동하고 확인하고 초기화하는 방법입니다. 모든 지원자의
+              제출물이 이 계약을 똑같이 따라야 같은 조건에서 채점할 수 있습니다.
+            </p>
             {(Object.keys(CONTRACT_FIELD_LABEL) as Array<keyof ContractForm>).map((key) => (
               <label key={key} className={contractRowClass}>
                 <span className="text-sm font-medium text-neutral-600">
@@ -411,17 +446,18 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
 
           {/* 기준 한 줄을 카드 한 장으로 그린다. 표 의미(tbody tr)는 유지하고 모양만 격자로 바꾼다 */}
           <table className="block w-full text-sm" data-testid="rubric-editor">
-            <thead className="sr-only">
-              <tr>
-                <th>ID</th>
-                <th>영역</th>
-                <th>요구사항</th>
-                <th>배점</th>
-                <th>방법</th>
-                <th>그룹</th>
-                <th>판정 조건</th>
-                <th>부분</th>
-                <th>삭제</th>
+            {/* 카드 격자로 그리므로 머리글은 표 위의 한 줄로 보인다 (T-906) */}
+            <thead className="block">
+              <tr className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-neutral-200 pb-2 text-left text-[13px] font-semibold text-neutral-500">
+                <th className="font-semibold">ID</th>
+                <th className="font-semibold">· 영역</th>
+                <th className="font-semibold">· 요구사항</th>
+                <th className="font-semibold">· 배점</th>
+                <th className="font-semibold">· 방법</th>
+                <th className="font-semibold">· 그룹</th>
+                <th className="font-semibold">· 판정 조건</th>
+                <th className="font-semibold">· 부분</th>
+                <th className="sr-only">삭제</th>
               </tr>
             </thead>
             <tbody className="flex flex-col gap-3">
@@ -553,9 +589,10 @@ export function AssignmentEditor(props: AssignmentEditorProps) {
 
           <label className={fieldClass}>
             <span className={labelClass}>추가 규칙 (JSON)</span>
-            <span className="text-[13px] leading-relaxed text-neutral-500">
-              그룹(groups)·부분 점수 하위 기준(partialRules)·독립 감점 사유(independentReasons)·정적
-              검사(staticChecks)
+            <span className={hintClass}>
+              위 표에 담기지 않는 기준 규칙입니다: 그룹(groups)·부분 점수 하위
+              기준(partialRules)·독립 감점 사유(independentReasons)·정적 검사(staticChecks). 비워 두면 빈
+              객체로 저장합니다.
             </span>
             <textarea
               className={`${textareaClass} min-h-40 font-mono text-[13px]`}

@@ -164,8 +164,10 @@ describe("/assignments", () => {
     expect(html).not.toContain("부트스트랩 승인");
   });
 
-  it("과제가 없으면 시드 안내를 보여 준다", () => {
+  it("T-906: 과제가 없으면 CLI 명령 대신 새 과제 만들기를 안내한다", () => {
     const html = renderToStaticMarkup(<AssignmentList items={[]} />);
-    expect(html).toContain("pnpm db:seed:sample");
+    expect(html).not.toContain("pnpm");
+    expect(html).toContain("/assignments/new");
+    expect(html).toContain("예시 명세");
   });
 });

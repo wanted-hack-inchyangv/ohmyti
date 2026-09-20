@@ -37,12 +37,11 @@ export function AssignmentList({ items }: { items: AssignmentListItem[] }) {
         title="등록된 과제가 없습니다"
         description={
           <>
-            <code className="font-mono text-[13px]">pnpm db:seed:sample</code>로 샘플 과제를
-            등록하거나{" "}
             <Link href="/assignments/new" className="font-semibold text-primary hover:underline">
               새 과제
             </Link>
-            를 만드세요.
+            에서 명세를 넣고 요구사항·배점을 정하면 첫 버전이 만들어집니다. 무엇을 넣을지 모르겠다면
+            예시 명세로 채운 뒤 AI 초안을 받아 볼 수 있습니다.
           </>
         }
       />
