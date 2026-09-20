@@ -409,15 +409,15 @@ describe("질문 구조 v3 (context-link, T-703)", () => {
     }
   });
 
-  it("프롬프트 v3에 질문 작성 규칙 (a)~(e)가 있다", () => {
-    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v3\+[0-9a-f]{8}$/);
+  it("프롬프트 v4에 질문 작성 규칙 (a)~(f)가 있다", () => {
+    expect(CONTEXT_LINK_PROMPT.promptVersion).toMatch(/^context-link@v4\+[0-9a-f]{8}$/);
     const rules = CONTEXT_LINK_PROMPT.system
       .split("\n")
       .filter((line) => /^\s+\([a-f]\)/.test(line))
       .map((line) => line.trim());
     expect(rules).toMatchInlineSnapshot(`
       [
-        "(a) 주 질문은 한 문장에 질문 하나다. 물음표는 하나만 쓰고, 이어서 묻고 싶은 내용은 probes로 내린다. 주 질문과 꼬리 질문은 각각 160자 이내다.",
+        "(a) 주 질문과 꼬리 질문은 항목마다 한 문장에 질문 하나다. 물음표는 하나만 쓰고, 이어서 묻고 싶은 내용은 별도의 probes 항목으로 내린다. 각각 160자 이내다.",
         "(b) observedInAssignment가 null이면 이번 과제와 비교하지 않는다. 이력서에 적힌 그 경험 자체를 묻는다.",
         "(c) 과제 결과를 근거로 이력서 주장을 추궁하지 않는다. '왜 이번 과제에서는 하지 않았나'가 아니라 두 구현의 실행 조건이나 보장 범위가 어떻게 달랐는지를 묻는다.",
         "(d) 수치 주장(p95 지연, 장애 0건, 성능 N배 등)은 그 수치를 어떻게 측정했는지를 묻는다.",
@@ -498,6 +498,32 @@ describe("관대한 출력 스키마 (context-link, T-708)", () => {
       "unassessedAreas",
     ]) {
       expect(schema, field).toContain(`"${field}"`);
+    }
+  });
+});
+
+describe("프롬프트 예시와 규칙 (context-link, T-801)", () => {
+  it("예시 연결의 주 질문과 꼬리 질문이 모두 질문 검사를 통과한다", () => {
+    for (const link of CONTEXT_LINK_EXAMPLE.links) {
+      expect(link.question).toBeDefined();
+      expect(lintInterviewQuestion({ ...link.question, refs: [1] })).toEqual([]);
+    }
+  });
+
+  it("꼬리 질문에도 한 문장에 질문 하나 규칙을 적용한다고 적었고 반례가 실제로 걸린다", () => {
+    expect(CONTEXT_LINK_PROMPT.system).toContain(
+      "주 질문과 꼬리 질문은 항목마다 한 문장에 질문 하나다",
+    );
+    const bad = [
+      "멱등 키는 어떤 값으로 만들었고 어디에 얼마 동안 저장했나요?",
+      "검증 로직을 어디에 두었고, 그 이유는 무엇인가요?",
+      "테스트를 먼저 작성한 범위가 어디였는지, 계층을 나눈 기준이 무엇이었는지 설명해 주시겠어요?",
+    ];
+    for (const text of bad) {
+      expect(lintInterviewQuestion({ question: text, refs: [1] }).map((v) => v.rule)).toContain(
+        "COMPOUND_QUESTION",
+      );
+      expect(CONTEXT_LINK_PROMPT.system).toContain(text);
     }
   });
 });

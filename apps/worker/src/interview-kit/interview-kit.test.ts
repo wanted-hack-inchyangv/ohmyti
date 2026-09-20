@@ -6,6 +6,7 @@ import {
   CONTEXT_DEFAULT_QUESTION,
   InterviewKitSchema,
   lintInterviewQuestion,
+  lintQuestionText,
   type DesignSignals,
   type SourceLocation,
 } from "@ohmyti/core";
@@ -18,6 +19,8 @@ import {
   acceptKitItems,
   assembleInterviewKit,
   buildInterviewKitInput,
+  INTERVIEW_KIT_EXAMPLE,
+  INTERVIEW_KIT_PROMPT,
   InterviewKitLenientOutputSchema,
   LLM_SLOT_KINDS,
   planInterviewSlots,
@@ -469,6 +472,31 @@ describe("후처리 (acceptKitItems · assembleInterviewKit)", () => {
       concernSignals: structured.concernSignals,
     });
     expect(kit.generation.dropped).toEqual([]);
+  });
+});
+
+describe("프롬프트 예시 (INTERVIEW_KIT_EXAMPLE, T-801)", () => {
+  it("슬롯 유형 5종마다 예시가 하나씩 있다", () => {
+    const kinds = INTERVIEW_KIT_EXAMPLE.questions.map((q) => q.slotId.split(":")[0]);
+    expect([...kinds].sort()).toEqual([...LLM_SLOT_KINDS].sort());
+  });
+
+  it("예시의 주 질문과 꼬리 질문이 모두 질문 검사를 통과한다", () => {
+    for (const item of INTERVIEW_KIT_EXAMPLE.questions) {
+      expect(lintInterviewQuestion({ ...item, refs: [1] })).toEqual([]);
+    }
+  });
+
+  it("복합 질문 반례가 실제로 검사에 걸리는 형태다", () => {
+    const bad = [
+      "재고와 요청 수량을 비교하는 판단을 어디에 두었고, 어떤 경우를 거절로 보았는지 설명해 주시겠어요?",
+      "지금 저장 구조에서 무엇이 유지되고 무엇이 사라지는지, 초기화 경로와 어떻게 맞물리는지 설명해 주시겠어요?",
+      "이 방식을 그대로 두면 어떤 지점이 어려워지고, 무엇을 바꾸시겠어요?",
+    ];
+    for (const text of bad) {
+      expect(lintQuestionText(text).map((v) => v.rule)).toContain("COMPOUND_QUESTION");
+      expect(INTERVIEW_KIT_PROMPT.system).toContain(text);
+    }
   });
 });
 
