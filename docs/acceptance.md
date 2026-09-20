@@ -45,7 +45,7 @@
 - `apps/web/lib/reviews/service.test.ts` — "R-12를 일부만 확정하면 PARTIAL + 하위 기준이 저장되고, 근거가 없던 감점에는 HUMAN_REVIEW 근거가 붙는다 (G-02)"
 - `apps/web/app/evaluations/[id]/code-evidence.test.tsx` — "표시된 스니펫이 스냅샷 파일의 해당 라인과 동일하고 라인 번호가 source 범위와 같다"
 - `e2e/workbench-stack.spec.ts` — "코드 탭: 핸들러 위치 스니펫이 리포트 근거와 같고 GitHub 링크는 고정 SHA만 쓴다"
-- 화면: `docs/demo/05-r05-replay.png`(R-05 감점의 실행 기록·코드 근거 6건), `docs/demo/07-mutation-m01.png`(G1 감점의 변형 실험 기록)
+- 화면: `docs/demo/03-workbench-r05-desktop.png`(R-05 감점의 실행 기록·코드 근거), `docs/demo/04-mutation-m01-desktop.png`(G1 감점의 변형 실험 기록). T-907에서 캡처 이름을 9단계 플로우 기준으로 바꿨다
 
 ## 3. 재생 화면과 리포트의 출처
 
@@ -81,7 +81,7 @@
 - `apps/worker/src/mutation/mutation.test.ts` — "하네스가 변형에서도 통과하는 픽스처는 EQUIVALENT로 기록되고 제출 테스트를 돌리지 않으며 SURVIVED로 세지 않는다"
 - `apps/worker/src/mutation/mutation.test.ts` — "DB 검사: SURVIVED 실험은 예외 없이 유효성 검증 기록의 verdict가 FAIL이고, 어긋난 행은 CHECK 제약이 거부한다"
 - `packages/analysis/src/mutation/operators.test.ts` — "변형이 타입 오류를 만들면 BUILD_FAIL이고 새 오류만 보고한다"
-- 화면: `docs/demo/07-mutation-m01.png`(C의 G2는 대상 로직이 없어 NOT_APPLICABLE이며 검토 대기로 남는다)
+- 화면: `docs/demo/04-mutation-m01-desktop.png`(C의 G2는 대상 로직이 없어 NOT_APPLICABLE이며 검토 대기로 남는다)
 
 ## 6. 실행 실패·근거 부족은 0점이 아니다
 
