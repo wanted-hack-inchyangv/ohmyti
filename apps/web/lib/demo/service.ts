@@ -17,6 +17,7 @@ import {
   findLatestEvaluation,
   findSavedDemoEvaluation,
   findSubmissionJob,
+  getAssignment,
   getAssignmentVersion,
   getSubmission,
   hasLiveWorker,
@@ -34,7 +35,16 @@ import {
 import { ARTIFACT_CONTENT_TYPES, artifactKeys, type ArtifactStore } from "@ohmyti/storage";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
+import { formatVersionLabel } from "@/lib/assignments/service";
 import { formatSavedAt, savedRunLabel } from "./format";
+import {
+  DEMO_RECOMMENDED_ORDER,
+  DEMO_SAMPLE_INFO,
+  sampleCheckHref,
+  sampleCommitHref,
+  type DemoSampleCheck,
+  type DemoSampleInfo,
+} from "./samples";
 
 export { formatSavedAt, savedRunLabel };
 
@@ -43,25 +53,13 @@ export interface DemoDeps {
   store: ArtifactStore;
 }
 
-/** 샘플 설명. 판정 결과를 미리 적지 않고 샘플이 무엇인지만 적는다 (결과는 저장된 실행에서 본다) */
-export const DEMO_SAMPLE_INFO: Record<DemoSampleId, { name: string; description: string }> = {
-  A: {
-    name: "정답 구현 A",
-    description: "명세를 모두 구현하고 제출 테스트를 갖춘 기준 구현",
-  },
-  B: {
-    name: "대안 정답 구현 B",
-    description: "구조가 다른 올바른 구현. 구조가 달라도 같은 요구사항을 충족하는지 본다",
-  },
-  C: {
-    name: "결함 구현 C",
-    description:
-      "같은 Idempotency-Key로 다시 보낸 주문에서 재고를 한 번 더 차감하는 결함이 있는 구현",
-  },
-  D: {
-    name: "적대적 샘플 D",
-    description: "C와 같은 결함에 README·주석·점수 파일로 채점을 조작하려는 문구를 넣은 샘플",
-  },
+export {
+  DEMO_RECOMMENDED_ORDER,
+  DEMO_SAMPLE_INFO,
+  sampleCheckHref,
+  sampleCommitHref,
+  type DemoSampleCheck,
+  type DemoSampleInfo,
 };
 
 export const DEMO_NOTICE = "준비된 샘플입니다. 결과와 숫자는 실제 실행에서 생성했습니다";
@@ -181,11 +179,33 @@ export async function readApprovalBadge(
   return approvalBadgeView(await readRubricApproval(deps.db, assignmentVersionId));
 }
 
-export interface DemoSampleCardView {
+export interface DemoSampleCheckView extends DemoSampleCheck {
+  /** 저장된 실행이 있을 때만 채워지는 워크벤치 딥링크 */
+  href: string | null;
+}
+
+export interface DemoSampleCardView extends DemoSampleInfo {
   id: DemoSampleId;
-  name: string;
-  description: string;
   saved: SavedRunView | null;
+  /** 고정 커밋 GitHub 링크 */
+  commitHref: string;
+  /** 짧게 보이는 커밋 SHA */
+  shortCommit: string;
+  checkViews: DemoSampleCheckView[];
+  /** 이 샘플로 채점을 요청하는 프리필 링크 (T-902) */
+  prefillHref: string;
+}
+
+/** 상단 과제 요약 블록 (T-901). 값은 DB의 승인된 버전에서 읽는다 */
+export interface DemoAssignmentSummary {
+  label: string;
+  assignmentVersionId: string;
+  /** 과제 상세 화면 */
+  href: string;
+  /** 명세 원문 발췌 (스토어에서 읽지 못하면 null) */
+  specExcerpt: string | null;
+  requirementCount: number;
+  totalPoints: number;
 }
 
 export interface DemoOverview {
@@ -193,16 +213,62 @@ export interface DemoOverview {
   samples: DemoSampleCardView[];
   /** 저장된 실행이 쓴 기준 버전의 승인 배지 (저장된 실행이 없으면 null) */
   approval: ApprovalBadgeView | null;
+  /** 저장된 실행이 쓴 과제 버전의 요약 (저장된 실행이 없으면 null) */
+  assignment: DemoAssignmentSummary | null;
+  recommendedOrder: typeof DEMO_RECOMMENDED_ORDER;
 }
 
-export async function readDemoOverview(deps: Pick<DemoDeps, "db">): Promise<DemoOverview> {
+/** 명세 원문에서 화면에 보일 발췌 한 문단. 표·목록·제목 줄은 건너뛴다 */
+export function specExcerptOf(markdown: string | null, maxChars = 320): string | null {
+  if (!markdown) return null;
+  for (const block of markdown.split(/\n{2,}/)) {
+    const text = block.trim();
+    if (!text || text.startsWith("#") || text.startsWith("|") || text.startsWith(">")) continue;
+    if (text.startsWith("-") || text.startsWith("*") || text.startsWith("```")) continue;
+    const oneLine = text.replace(/\s*\n\s*/g, " ");
+    return oneLine.length > maxChars ? `${oneLine.slice(0, maxChars).trimEnd()}…` : oneLine;
+  }
+  return null;
+}
+
+async function readAssignmentSummary(
+  deps: DemoDeps,
+  assignmentVersionId: string,
+): Promise<DemoAssignmentSummary | null> {
+  const version = await getAssignmentVersion(deps.db, assignmentVersionId);
+  if (!version) return null;
+  const [assignment, spec] = await Promise.all([
+    getAssignment(deps.db, version.assignmentId),
+    deps.store.get(version.specRef).catch(() => null),
+  ]);
+  const criteria = version.rubric.criteria;
+  return {
+    label: assignment ? formatVersionLabel(assignment.name, version) : `v${version.version}`,
+    assignmentVersionId,
+    href: `/assignments/${version.assignmentId}/versions/${version.version}`,
+    specExcerpt: specExcerptOf(spec ? Buffer.from(spec.body).toString("utf8") : null),
+    requirementCount: criteria.length,
+    totalPoints: criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
+  };
+}
+
+export async function readDemoOverview(deps: DemoDeps): Promise<DemoOverview> {
   const saved = await listSavedDemoEvaluations(deps.db);
-  const samples = DEMO_SAMPLE_IDS.map((id) => {
+  const samples: DemoSampleCardView[] = DEMO_SAMPLE_IDS.map((id) => {
     const item = saved.get(id);
+    const info = DEMO_SAMPLE_INFO[id];
+    const savedView = item ? savedRunView(item) : null;
     return {
       id,
-      ...DEMO_SAMPLE_INFO[id],
-      saved: item ? savedRunView(item) : null,
+      ...info,
+      saved: savedView,
+      commitHref: sampleCommitHref(info),
+      shortCommit: info.commitSha.slice(0, 12),
+      checkViews: info.checks.map((check) => ({
+        ...check,
+        href: savedView ? sampleCheckHref(savedView.evaluationId, check) : null,
+      })),
+      prefillHref: `/submissions/new?sample=${id}`,
     };
   });
   const latest = [...saved.values()].sort(
@@ -212,6 +278,8 @@ export async function readDemoOverview(deps: Pick<DemoDeps, "db">): Promise<Demo
     notice: DEMO_NOTICE,
     samples,
     approval: latest ? await readApprovalBadge(deps, latest.assignmentVersionId) : null,
+    assignment: latest ? await readAssignmentSummary(deps, latest.assignmentVersionId) : null,
+    recommendedOrder: DEMO_RECOMMENDED_ORDER,
   };
 }
 

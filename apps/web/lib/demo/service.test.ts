@@ -6,6 +6,7 @@ import {
   createTestDatabase,
   evaluations,
   findSubmissionJob,
+  getAssignmentVersion,
   getSubmission,
   getSubmissionContext,
   jobs,
@@ -27,6 +28,7 @@ import {
   readDemoOverview,
   readDemoRunStatus,
   savedRunLabel,
+  specExcerptOf,
   startDemoRun,
 } from "./service";
 import { sampleRunLabel } from "./format";
@@ -290,12 +292,59 @@ describe("새 실행 (DB·fs 스토어)", () => {
   });
 
   it("개요는 샘플 4개를 늘 보이고 저장된 실행이 있는 샘플만 링크한다", async () => {
-    const overview = await readDemoOverview({ db: tdb.db });
+    const overview = await readDemoOverview({ db: tdb.db, store });
     expect(overview.notice).toBe(DEMO_NOTICE);
     expect(overview.samples.map((s) => s.id)).toEqual(["A", "B", "C", "D"]);
     expect(overview.samples[0]!.saved).toBeNull();
     expect(overview.samples[3]!.saved?.label).toBe("저장된 실행 · 2026-09-19 07:00 KST");
     // seedEvaluation 버전은 검증 결과가 없으므로 완료 배지가 아니다
     expect(overview.approval).toMatchObject({ validated: false });
+  });
+
+  it("T-901: 확인할 것은 저장된 실행이 있을 때만 워크벤치 딥링크가 되고 카드에 고정 커밋 링크가 있다", async () => {
+    const overview = await readDemoOverview({ db: tdb.db, store });
+    const a = overview.samples.find((s) => s.id === "A")!;
+    const d = overview.samples.find((s) => s.id === "D")!;
+    // A는 이 테스트 DB에 저장된 실행이 없다
+    expect(a.saved).toBeNull();
+    expect(a.checkViews.every((c) => c.href === null)).toBe(true);
+    expect(a.prefillHref).toBe("/submissions/new?sample=A");
+
+    expect(d.saved).not.toBeNull();
+    const mutationCheck = d.checkViews.find((c) => c.mutationId)!;
+    expect(mutationCheck.href).toBe(
+      `/evaluations/${d.saved!.evaluationId}?criterion=${mutationCheck.criterionId}&mutation=${mutationCheck.mutationId}`,
+    );
+    expect(d.commitHref).toBe(`${d.repoUrl}/tree/${d.commitSha}`);
+    expect(d.shortCommit).toBe(d.commitSha.slice(0, 12));
+    expect(overview.recommendedOrder.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("T-901: 과제 요약의 요구사항 수·총 배점은 저장된 rubric에서 읽는다", async () => {
+    const overview = await readDemoOverview({ db: tdb.db, store });
+    const version = await getAssignmentVersion(tdb.db, versionId);
+    const criteria = version!.rubric.criteria;
+    expect(overview.assignment).toMatchObject({
+      assignmentVersionId: versionId,
+      requirementCount: criteria.length,
+      totalPoints: criteria.reduce((sum, c) => sum + c.maxPoints, 0),
+    });
+  });
+});
+
+describe("specExcerptOf", () => {
+  it("제목·표·목록·인용을 건너뛰고 첫 문단을 한 줄로 만든다", () => {
+    const markdown = [
+      "# 제목",
+      "| 표 | 머리 |",
+      "- 목록",
+      "> 인용",
+      "첫 문단입니다.\n두 번째 줄입니다.",
+      "두 번째 문단",
+    ].join("\n\n");
+    expect(specExcerptOf(markdown)).toBe("첫 문단입니다. 두 번째 줄입니다.");
+    expect(specExcerptOf(null)).toBeNull();
+    expect(specExcerptOf("# 제목만")).toBeNull();
+    expect(specExcerptOf("가".repeat(500), 10)).toBe(`${"가".repeat(10)}…`);
   });
 });
