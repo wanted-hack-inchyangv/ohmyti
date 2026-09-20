@@ -7,14 +7,14 @@ import {
   parseGitHubRepoUrl,
 } from "@ohmyti/core";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { Fragment, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { buttonClass, inputClassName } from "@/components/ui";
 import { createSubmissionFromFormAction } from "@/lib/submissions/actions";
 import type { ExampleResumeId, PrefillExample, PrefillValues } from "@/lib/submissions/prefill";
-import type { ApprovedVersionOption } from "@/lib/submissions/service";
+import type { ApprovedVersionSummary } from "@/lib/submissions/service";
 
 interface SubmissionFormProps {
-  options: ApprovedVersionOption[];
+  options: ApprovedVersionSummary[];
   /** `?sample=`·`?persona=`에서 읽은 초기값 (T-902). 아는 값이 아니면 빈 값이다 */
   prefill: PrefillValues;
   /** `예시로 채우기` 칩 목록 */
@@ -125,6 +125,9 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
   const disabled = options.length === 0 || pending;
   // 직접 고른 파일이 예시 이력서보다 우선한다 (서버 액션도 같은 순서다)
   const exampleResumeId = useExampleResume && !resumeName ? resumeId : null;
+  const selected = options.find((option) => option.id === assignmentVersionId) ?? null;
+  const parsedRepo = parseRepoLabel(repoUrl);
+  const hasContext = Boolean(exampleResumeId || resumeName || githubProfileUrl.trim());
 
   return (
     <form
@@ -136,7 +139,11 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
       <ExampleChips examples={examples} selectedId={exampleId} onSelect={applyExample} />
 
       <FormSection title="필수 정보" description="채점 기준이 될 과제와 제출된 저장소입니다.">
-        <Field label="채용 과제" error={fieldErrors.assignmentVersionId}>
+        <Field
+          label="채용 과제"
+          hint="승인된 과제 버전만 고를 수 있습니다. 고른 버전의 채점 기준으로만 판정하며, 승인 뒤에는 기준이 바뀌지 않습니다."
+          error={fieldErrors.assignmentVersionId}
+        >
           {options.length === 0 ? (
             <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700 ring-1 ring-neutral-200">
               승인된 과제 버전이 없습니다. 과제 설정 화면에서 기준을 승인한 뒤 제출할 수 있습니다.
@@ -170,6 +177,8 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
           )}
         </Field>
 
+        {selected ? <VersionSummary summary={selected} /> : null}
+
         <Field
           label="과제 저장소 URL"
           hint="공개 GitHub 저장소만 지원합니다. https://github.com/<owner>/<repo>[/tree/<ref>]"
@@ -184,6 +193,12 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
             aria-invalid={fieldErrors.repoUrl ? true : undefined}
             className={inputClass}
           />
+          {parsedRepo ? (
+            <span className="text-[13px] text-neutral-600" data-testid="repo-parsed">
+              읽은 저장소: <span className="font-mono font-semibold text-ink">{parsedRepo}</span> ·{" "}
+              {commitSha.trim() ? "고정 커밋으로 채점" : "기본 브랜치의 최신 커밋으로 채점"}
+            </span>
+          ) : null}
         </Field>
       </FormSection>
 
@@ -308,6 +323,44 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
         </p>
       ) : null}
 
+      <section
+        className="flex flex-col gap-2 rounded-xl bg-neutral-50 p-5 sm:p-6"
+        data-testid="submit-summary"
+      >
+        <h2 className="text-base font-bold tracking-tight">이대로 제출합니다</h2>
+        <dl className="grid grid-cols-[6.5rem_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+          <dt className="text-neutral-500">채점 대상</dt>
+          <dd className="text-neutral-800 [overflow-wrap:anywhere]">
+            {parsedRepo ? (
+              <>
+                <span className="font-mono font-semibold">{parsedRepo}</span> ·{" "}
+                {commitSha.trim() ? `커밋 ${commitSha.trim()}` : "기본 브랜치의 최신 커밋"}
+              </>
+            ) : (
+              "저장소 URL을 입력하세요"
+            )}
+          </dd>
+          <dt className="text-neutral-500">채점 기준</dt>
+          <dd className="text-neutral-800 [overflow-wrap:anywhere]">
+            {selected ? (
+              <>
+                {selected.label} · <span className="font-mono">{selected.rubricVersion}</span>
+              </>
+            ) : (
+              "과제를 선택하세요"
+            )}
+          </dd>
+          <dt className="text-neutral-500">맥락 자료</dt>
+          <dd className="text-neutral-800">
+            {hasContext ? "이력서·GitHub 프로필 있음" : "없음"}
+          </dd>
+        </dl>
+        <p className="text-[13px] leading-relaxed text-neutral-500">
+          맥락 자료는 면접 질문을 만드는 데만 씁니다. 채점 입력에는 들어가지 않으며, 이력서가 달라도
+          과제 판정과 점수는 같습니다.
+        </p>
+      </section>
+
       <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between sm:gap-6">
         <button
           type="submit"
@@ -321,6 +374,107 @@ export function SubmissionForm({ options, prefill, examples }: SubmissionFormPro
         </span>
       </div>
     </form>
+  );
+}
+
+/** 저장소 URL에서 `owner/repo`를 읽는다. 형식이 아니면 null (화면 안내용, 서버가 다시 검사한다) */
+function parseRepoLabel(value: string): string | null {
+  if (!value.trim()) return null;
+  try {
+    const parsed = parseGitHubRepoUrl(value);
+    return `${parsed.owner}/${parsed.repo}`;
+  } catch {
+    return null;
+  }
+}
+
+/** 고른 과제 버전의 요약 (T-903). 명세 발췌·배점 표·실행 계약·승인 시각을 저장된 값에서 옮긴다 */
+function VersionSummary({ summary }: { summary: ApprovedVersionSummary }) {
+  return (
+    <section
+      className="flex flex-col gap-4 rounded-lg bg-neutral-50 px-4 py-4 sm:px-5"
+      data-testid="version-summary"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-bold text-ink">
+          {summary.title}
+          <span className="ml-2 font-mono text-[13px] font-normal text-neutral-500">
+            {summary.rubricVersion}
+          </span>
+        </p>
+        <a href={summary.href} className="text-[13px] font-semibold text-primary hover:underline">
+          과제 상세 보기
+        </a>
+      </div>
+      {summary.specExcerpt ? (
+        <p className="text-[13px] leading-relaxed text-neutral-600">{summary.specExcerpt}</p>
+      ) : null}
+
+      {summary.criteria.length > 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[22rem] text-left text-[13px]">
+            <caption className="sr-only">요구사항과 배점</caption>
+            <thead>
+              <tr className="border-b border-neutral-200 text-neutral-500">
+                <th scope="col" className="py-1.5 pr-3 font-semibold">
+                  기준
+                </th>
+                <th scope="col" className="py-1.5 pr-3 font-semibold">
+                  요구사항
+                </th>
+                <th scope="col" className="py-1.5 pr-3 font-semibold">
+                  영역
+                </th>
+                <th scope="col" className="py-1.5 text-right font-semibold">
+                  배점
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {summary.criteria.map((criterion) => (
+                <tr key={criterion.id} className="border-b border-neutral-200/70">
+                  <td className="py-1.5 pr-3 font-mono text-neutral-700">{criterion.id}</td>
+                  <td className="py-1.5 pr-3 text-neutral-800">{criterion.title}</td>
+                  <td className="py-1.5 pr-3 text-neutral-500">{criterion.areaLabel}</td>
+                  <td className="py-1.5 text-right font-semibold text-ink">
+                    {criterion.maxPoints}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className="py-1.5 pr-3 font-semibold text-neutral-600" colSpan={3}>
+                  합계
+                </td>
+                <td
+                  className="py-1.5 text-right font-bold text-ink"
+                  data-testid="version-total-points"
+                >
+                  {summary.totalPoints}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      ) : null}
+
+      {summary.contract.length > 0 ? (
+        <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-1 text-[13px]">
+          {summary.contract.map((item) => (
+            <Fragment key={item.label}>
+              <dt className="text-neutral-500">{item.label}</dt>
+              <dd className="font-mono text-neutral-700 [overflow-wrap:anywhere]">{item.value}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      ) : null}
+
+      <p className="text-[13px] text-neutral-500">
+        버전 v{summary.version}
+        {summary.approvedAt ? ` · 승인 ${summary.approvedBy ?? "?"} · ${summary.approvedAt}` : ""}
+      </p>
+    </section>
   );
 }
 

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Notice, PageContainer, PageHeader } from "@/components/ui";
+import { getArtifactStore } from "@/lib/artifacts";
 import { getDb } from "@/lib/db";
 import {
-  listApprovedVersionOptions,
+  listApprovedVersionSummaries,
   STAGE_LABEL,
-  type ApprovedVersionOption,
+  type ApprovedVersionSummary,
 } from "@/lib/submissions/service";
 import { PREFILL_EXAMPLES, readPrefill } from "@/lib/submissions/prefill";
 import { SubmissionForm } from "./submission-form";
@@ -25,9 +26,9 @@ interface NewSubmissionPageProps {
  */
 export default async function NewSubmissionPage({ searchParams }: NewSubmissionPageProps) {
   const prefill = readPrefill(await searchParams);
-  let options: ApprovedVersionOption[];
+  let options: ApprovedVersionSummary[];
   try {
-    options = await listApprovedVersionOptions({ db: getDb().db });
+    options = await listApprovedVersionSummaries({ db: getDb().db, store: getArtifactStore() });
   } catch {
     // 연결 문자열 등 비밀값이 섞일 수 있으므로 오류 본문은 화면에 내지 않는다
     return (

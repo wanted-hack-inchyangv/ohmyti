@@ -345,6 +345,8 @@ describe("specExcerptOf", () => {
     expect(specExcerptOf(markdown)).toBe("첫 문단입니다. 두 번째 줄입니다.");
     expect(specExcerptOf(null)).toBeNull();
     expect(specExcerptOf("# 제목만")).toBeNull();
+    // `## 1. 과제 개요` 아래 문단을 먼저 쓴다
+    expect(specExcerptOf("첫 문단.\n\n## 1. 과제 개요\n\n개요 문단.")).toBe("개요 문단.");
     expect(specExcerptOf("가".repeat(500), 10)).toBe(`${"가".repeat(10)}…`);
   });
 });

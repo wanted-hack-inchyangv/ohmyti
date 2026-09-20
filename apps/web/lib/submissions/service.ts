@@ -24,6 +24,7 @@ import {
   parseGitHubRepoUrl,
   type EvaluationStage,
   type EvaluationStageRecord,
+  type ExecutionContract,
   type FailureKind,
   type ResumeTextStatus,
   type StageState,
@@ -49,6 +50,7 @@ import {
 } from "@ohmyti/db";
 import { ARTIFACT_CONTENT_TYPES, artifactKeys, type ArtifactStore } from "@ohmyti/storage";
 import { formatVersionLabel, type ActionResult } from "@/lib/assignments/service";
+import { specExcerpt } from "@/lib/spec-excerpt";
 import { MAX_MANUAL_RESUME_CHARS } from "./resume-text";
 
 export interface SubmissionDeps {
@@ -701,6 +703,97 @@ export async function listApprovedVersionOptions(
         version: version.version,
         rubricVersion: version.rubricVersion,
       })),
+  );
+}
+
+/**
+ * 폼의 과제 요약 패널 (T-903). 명세 발췌·요구사항 배점 표·실행 계약·승인 시각을 저장된 버전에서 읽는다.
+ * 화면은 값을 옮기기만 하고 점수를 만들지 않는다.
+ */
+export interface VersionCriterionView {
+  id: string;
+  title: string;
+  areaLabel: string;
+  maxPoints: number;
+}
+
+export interface ApprovedVersionSummary extends ApprovedVersionOption {
+  assignmentId: string;
+  /** 과제 상세 화면 */
+  href: string;
+  title: string;
+  specExcerpt: string | null;
+  criteria: VersionCriterionView[];
+  totalPoints: number;
+  /** 실행 계약 요약 (라벨·값) */
+  contract: Array<{ label: string; value: string }>;
+  approvedBy: string | null;
+  /** 승인 시각 (`YYYY-MM-DD HH:MM KST`). 없으면 null */
+  approvedAt: string | null;
+}
+
+export const RUBRIC_AREA_LABEL: Record<string, string> = {
+  REQUIRED_FEATURES: "요구 기능",
+  EDGE_AND_FAILURE: "경계·실패 처리",
+  TEST_EFFECTIVENESS: "테스트 실효성",
+  DESIGN: "설계·변경 용이성",
+  REPRODUCIBILITY_AND_DOCS: "실행 재현성·문서",
+};
+
+function contractSummary(contract: ExecutionContract): Array<{ label: string; value: string }> {
+  return [
+    { label: "기동 명령", value: contract.startCommand },
+    { label: "포트 환경변수", value: contract.portEnv },
+    { label: "준비 확인", value: `GET ${contract.healthPath}` },
+    { label: "초기화", value: contract.resetPath ? `POST ${contract.resetPath}` : "없음" },
+    { label: "실행 템플릿", value: contract.templateName },
+    { label: "Node", value: contract.nodeVersion },
+  ];
+}
+
+/** 명세 원문 발췌 (`@/lib/spec-excerpt`). 폼 패널은 조금 짧게 자른다 */
+export function versionSpecExcerpt(markdown: string | null, maxChars = 280): string | null {
+  return specExcerpt(markdown, maxChars);
+}
+
+export async function listApprovedVersionSummaries(
+  deps: SubmissionDeps,
+): Promise<ApprovedVersionSummary[]> {
+  const items = await listAssignments(deps.db);
+  const approved = items.flatMap((item) =>
+    item.versions
+      .filter((version) => version.status === "APPROVED")
+      .map((version) => ({ item, version })),
+  );
+  return Promise.all(
+    approved.map(async ({ item, version }) => {
+      const row = await getAssignmentVersion(deps.db, version.id);
+      const spec = row ? await deps.store.get(row.specRef).catch(() => null) : null;
+      const criteria = (row?.rubric.criteria ?? []).map((criterion) => ({
+        id: criterion.id,
+        title: criterion.title,
+        areaLabel: RUBRIC_AREA_LABEL[criterion.area] ?? criterion.area,
+        maxPoints: criterion.maxPoints,
+      }));
+      return {
+        id: version.id,
+        label: formatVersionLabel(item.name, version),
+        assignmentName: item.name,
+        version: version.version,
+        rubricVersion: version.rubricVersion,
+        assignmentId: item.id,
+        href: `/assignments/${item.id}/versions/${version.version}`,
+        title: version.title,
+        specExcerpt: versionSpecExcerpt(
+          spec ? Buffer.from(spec.body).toString("utf8") : null,
+        ),
+        criteria,
+        totalPoints: criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
+        contract: row ? contractSummary(row.executionContract) : [],
+        approvedBy: version.approvedBy,
+        approvedAt: version.approvedAt ? formatDeletionTime(version.approvedAt.toISOString()) : null,
+      };
+    }),
   );
 }
 

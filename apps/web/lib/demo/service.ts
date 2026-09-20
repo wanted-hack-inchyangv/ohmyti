@@ -36,6 +36,7 @@ import { ARTIFACT_CONTENT_TYPES, artifactKeys, type ArtifactStore } from "@ohmyt
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { formatVersionLabel } from "@/lib/assignments/service";
+import { specExcerpt } from "@/lib/spec-excerpt";
 import { formatSavedAt, savedRunLabel } from "./format";
 import {
   DEMO_RECOMMENDED_ORDER,
@@ -218,18 +219,8 @@ export interface DemoOverview {
   recommendedOrder: typeof DEMO_RECOMMENDED_ORDER;
 }
 
-/** 명세 원문에서 화면에 보일 발췌 한 문단. 표·목록·제목 줄은 건너뛴다 */
-export function specExcerptOf(markdown: string | null, maxChars = 320): string | null {
-  if (!markdown) return null;
-  for (const block of markdown.split(/\n{2,}/)) {
-    const text = block.trim();
-    if (!text || text.startsWith("#") || text.startsWith("|") || text.startsWith(">")) continue;
-    if (text.startsWith("-") || text.startsWith("*") || text.startsWith("```")) continue;
-    const oneLine = text.replace(/\s*\n\s*/g, " ");
-    return oneLine.length > maxChars ? `${oneLine.slice(0, maxChars).trimEnd()}…` : oneLine;
-  }
-  return null;
-}
+/** 명세 원문 발췌 (`@/lib/spec-excerpt`). 이전 이름을 유지한다 */
+export const specExcerptOf = specExcerpt;
 
 async function readAssignmentSummary(
   deps: DemoDeps,
@@ -246,7 +237,7 @@ async function readAssignmentSummary(
     label: assignment ? formatVersionLabel(assignment.name, version) : `v${version.version}`,
     assignmentVersionId,
     href: `/assignments/${version.assignmentId}/versions/${version.version}`,
-    specExcerpt: specExcerptOf(spec ? Buffer.from(spec.body).toString("utf8") : null),
+    specExcerpt: specExcerpt(spec ? Buffer.from(spec.body).toString("utf8") : null),
     requirementCount: criteria.length,
     totalPoints: criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
   };

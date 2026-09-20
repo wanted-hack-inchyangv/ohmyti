@@ -6,6 +6,7 @@ import {
   createEvaluation,
   createTestDatabase,
   deleteSubmissionRows,
+  getAssignmentVersion,
   getJob,
   getSubmission,
   getSubmissionContext,
@@ -29,6 +30,7 @@ import {
   isEnvironmentFailure,
   isTerminalSubmissionStatus,
   listApprovedVersionOptions,
+  listApprovedVersionSummaries,
   MAX_RESUME_BYTES,
   parseUnsupportedReason,
   readSubmissionStatus,
@@ -39,6 +41,7 @@ import {
   SubmissionFormSchema,
   summarizeStage,
   validateResume,
+  versionSpecExcerpt,
   type SubmissionDeps,
 } from "./service";
 
@@ -707,5 +710,32 @@ describe.skipIf(!hasTestDb)("submissions 서비스 (통합)", () => {
     ).resolves.toMatchObject({ ok: false, code: "SUBMISSION_NOT_FOUND" });
     // 없는 제출은 삭제 안내가 없다
     expect(await readDeletionNotice(deps, "00000000-0000-4000-8000-00000000abcd")).toBeNull();
+  });
+  it("T-903: 과제 요약은 저장된 rubric·실행 계약·승인 기록에서 읽는다", async () => {
+    const summaries = await listApprovedVersionSummaries(deps);
+    const summary = summaries.find((item) => item.id === approvedVersionId);
+    expect(summary, "승인된 시드 버전이 요약에 있어야 한다").toBeDefined();
+    const version = await getAssignmentVersion(tdb.db, approvedVersionId);
+    const criteria = version!.rubric.criteria;
+    expect(summary!.criteria).toHaveLength(criteria.length);
+    expect(summary!.totalPoints).toBe(criteria.reduce((sum, c) => sum + c.maxPoints, 0));
+    expect(summary!.href).toBe(
+      `/assignments/${version!.assignmentId}/versions/${version!.version}`,
+    );
+    // 실행 계약 요약은 저장된 계약의 값을 옮기기만 한다
+    const start = summary!.contract.find((item) => item.label === "기동 명령");
+    expect(start?.value).toBe(version!.executionContract.startCommand);
+    expect(summary!.rubricVersion).toBe(version!.rubricVersion);
+  });
+});
+
+describe("versionSpecExcerpt (T-903)", () => {
+  it("제목·표·목록·코드 블록을 건너뛰고 첫 문단을 한 줄로 만든다", () => {
+    expect(versionSpecExcerpt("# 제목\n\n| 표 |\n\n본문 한 줄.\n이어지는 줄.")).toBe(
+      "본문 한 줄. 이어지는 줄.",
+    );
+    expect(versionSpecExcerpt(null)).toBeNull();
+    expect(versionSpecExcerpt("- 목록만")).toBeNull();
+    expect(versionSpecExcerpt("가".repeat(400), 5)).toBe("가가가가가…");
   });
 });
