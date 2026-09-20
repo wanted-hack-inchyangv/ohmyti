@@ -89,10 +89,13 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
     display: none !important;
   }
 
+  /*
+   * 카드 단위로만 페이지 넘김을 막는다 (T-802). 절(`.report-section`)에 걸면 핵심 관측 절이 통째로 다음 쪽으로 밀려
+   * 1쪽에 한눈 요약만 남았다. 카드에만 걸면 절은 쪽 경계를 넘고 카드는 잘리지 않는다.
+   */
   .kit-card,
   .kit-plan,
   .kit-anchor,
-  .report-section,
   .report-card {
     break-inside: avoid;
     page-break-inside: avoid;
@@ -103,14 +106,43 @@ body:has([data-layout="full-width"]) [data-site-header-inner] {
     box-shadow: none;
   }
 
-  /* 채용 리포트는 A4 4쪽 안에 들어가야 해서 인쇄에서만 글자와 여백을 줄이고 카드를 두 단으로 편다 (T-706) */
+  /*
+   * 채용 리포트는 인쇄에서만 글자와 여백을 줄이고 카드를 두 단으로 편다 (T-706).
+   */
   [data-testid="hiring-report"] {
     font-size: 9.5px;
     line-height: 1.35;
   }
 
-  [data-testid="hiring-report"] .report-section {
-    gap: 4px;
+  /*
+   * 인쇄에서는 문서 뼈대를 flex에서 block으로 바꾼다 (T-802). Chromium은 flex 컨테이너를 페이지 경계에서 쪼개지 못해
+   * 절 하나가 통째로 다음 쪽으로 밀렸고, 내용이 4.6쪽인 리포트가 6쪽으로 나왔다. 간격은 gap 대신 margin으로 준다.
+   */
+  [data-testid="hiring-report"],
+  [data-testid="hiring-report"] .report-section,
+  [data-testid="hiring-report"] [data-testid="report-defects"],
+  [data-testid="hiring-report"] [data-testid="report-strengths"] {
+    display: block;
+  }
+
+  [data-testid="hiring-report"] .report-section > * + *,
+  [data-testid="hiring-report"] [data-testid="report-defects"] > * + *,
+  [data-testid="hiring-report"] [data-testid="report-strengths"] > * + * {
+    margin-top: 4px;
+  }
+
+  [data-testid="hiring-report"] .report-section + .report-section {
+    margin-top: 8px;
+  }
+
+  /*
+   * 두 단 배치는 grid 대신 다단(column)으로 그린다 (T-802). grid는 한 행의 두 칸이 같은 높이에서만 쪼개져
+   * 한쪽 칸이 남아도 비워 둔 채 다음 쪽으로 넘어갔고, 그 빈 공간이 리포트 한 쪽 분량이었다.
+   */
+  [data-testid="hiring-report"] .report-columns {
+    display: block;
+    columns: 2;
+    column-gap: 12px;
   }
 
   [data-testid="hiring-report"] .report-card {

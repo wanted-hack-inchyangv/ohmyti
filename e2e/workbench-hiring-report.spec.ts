@@ -40,7 +40,7 @@ import { stackArtifactRoot } from "../scripts/stack-local";
  * 채용 리포트 화면 E2E (T-706, PRD 14.3). 부록 A의 C(결함) 샘플과 같은 판정을 심고 `/evaluations/<id>/report`에서
  * 다음을 확인한다.
  * - 확인된 결함을 누르면 워크벤치의 그 기준 재생이 열린다
- * - `page.pdf()` 결과가 A4 4쪽 이내이고 1쪽에 점수 표기와 핵심 관측이 들어온다
+ * - `page.pdf()` 결과가 A4 4쪽 이내이고 1쪽에 점수 표기와 확인된 결함 카드가 들어온다. 페이지 넘김은 카드 단위로 막는다 (T-802)
  * - 데스크톱(1440px)·모바일(390px) 레이아웃 (스크린샷)
  * - 검토 대기·미확정 기준이 화면에 보이고 Markdown 복사에 금지 표현이 없다
  * - 워크벤치 헤더와 제출 상태 화면의 `채용 리포트` 링크
@@ -428,7 +428,9 @@ test("확인된 결함을 누르면 워크벤치의 그 기준 재생이 열린�
   await expect(page.getByTestId("workbench")).toHaveAttribute("data-selected-run", r05RunId);
 });
 
-test("PDF가 A4 4쪽 이내이고 1쪽에 점수 표기와 핵심 관측이 들어온다 (T-706)", async ({ page }) => {
+test("PDF가 A4 4쪽 이내이고 1쪽에 점수 표기와 확인된 결함 카드가 들어온다 (T-706·T-802)", async ({
+  page,
+}) => {
   await page.goto(`/evaluations/${evaluationId}/report`);
   await expect(page.getByTestId("hiring-report")).toBeVisible();
 
@@ -444,23 +446,53 @@ test("PDF가 A4 4쪽 이내이고 1쪽에 점수 표기와 핵심 관측이 들�
   expect(pageCount).toBeGreaterThan(0);
   expect(pageCount).toBeLessThanOrEqual(4);
 
-  // 인쇄 미디어에서 1절·2절이 A4 한 쪽(14mm 여백) 안에 들어가고 절은 경계에서 쪼개지지 않는다
+  // 인쇄 미디어에서 1쪽에 점수 표기와 확인된 결함 카드가 들어오고, 페이지 넘김은 절이 아니라 카드 단위로 막는다 (T-802)
   await page.emulateMedia({ media: "print" });
   const A4_CONTENT_PX = ((297 - 28) / 25.4) * 96;
-  const layout = await page.evaluate<{ bottom: number; breaks: string[] }>(
+  const layout = await page.evaluate<{
+    score: number;
+    defect: number;
+    sections: string[];
+    cards: string[];
+    cardHeights: number[];
+  }>(
     `(() => {
-      const sections = Array.from(document.querySelectorAll('.report-section'));
-      const second = document.querySelector('[data-section="2"]');
       const top = document.documentElement.getBoundingClientRect().top;
+      const bottom = (el) => el.getBoundingClientRect().bottom - top;
+      const cards = Array.from(document.querySelectorAll('.report-card'));
       return {
-        bottom: second.getBoundingClientRect().bottom - top,
-        breaks: sections.map((el) => getComputedStyle(el).breakInside),
+        score: bottom(document.querySelector('[data-testid="report-score"]')),
+        defect: bottom(document.querySelector('[data-testid="report-defects"] .report-card')),
+        sections: Array.from(document.querySelectorAll('.report-section')).map((el) => getComputedStyle(el).breakInside),
+        cards: cards.map((el) => getComputedStyle(el).breakInside),
+        cardHeights: cards.map((el) => el.getBoundingClientRect().height),
       };
     })()`,
   );
-  expect(layout.bottom).toBeLessThan(A4_CONTENT_PX);
-  expect(layout.breaks).toHaveLength(9);
-  for (const value of layout.breaks) expect(value).toBe("avoid");
+  expect(layout.score).toBeLessThan(A4_CONTENT_PX);
+  expect(layout.defect).toBeLessThan(A4_CONTENT_PX);
+  expect(layout.sections).toHaveLength(9);
+  for (const value of layout.sections) expect(value).toBe("auto");
+  expect(layout.cards.length).toBeGreaterThan(0);
+  for (const value of layout.cards) expect(value).toBe("avoid");
+  // `break-inside: avoid`는 한 쪽보다 높은 카드에는 듣지 않으므로 카드가 A4 한 쪽 안에 들어가는지도 확인한다
+  for (const height of layout.cardHeights) expect(height).toBeLessThan(A4_CONTENT_PX);
+
+  // 인쇄물의 핵심 관측 카드는 줄인 근거만 싣는다: 기준 1 + 재생 1 + 코드 위치 최대 2 (T-802)
+  const printRefs = await page.evaluate<{ kinds: string[]; condition: number }>(
+    `(() => {
+      const card = document.querySelector('[data-testid="report-defects"] .report-card');
+      const condition = card.querySelector('[data-testid="report-condition"]');
+      return {
+        kinds: Array.from(card.querySelectorAll('[data-testid="report-print-refs"] [data-print-ref]')).map((el) => el.getAttribute('data-print-ref')),
+        condition: condition ? condition.getBoundingClientRect().height : 0,
+      };
+    })()`,
+  );
+  expect(printRefs.kinds.length).toBeGreaterThan(0);
+  expect(printRefs.kinds.length).toBeLessThanOrEqual(4);
+  expect(printRefs.kinds.filter((kind) => kind === "SOURCE").length).toBeLessThanOrEqual(2);
+  expect(printRefs.condition).toBe(0);
   // 인쇄물에는 사이트 머리글과 화면 전용 안내가 빠지고 근거 주소가 글자로 남는다
   const hiddenInPrint = await page.evaluate<number[]>(
     `[document.querySelector('[data-testid="site-header"]'), document.querySelector('[data-print-hide]')].map((el) => el ? el.getBoundingClientRect().height : -1)`,

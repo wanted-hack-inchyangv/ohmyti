@@ -18,12 +18,13 @@ import {
   reportFixture,
 } from "@/lib/workbench/fixtures";
 import { buildHiringReport, type HiringReportInput } from "@/lib/reports/hiring-report";
+import type { KitRefView } from "@/lib/workbench/interview-kit";
 import {
   buildHiringReportView,
   HIRING_REPORT_DISCLAIMER,
   hiringReportHref,
 } from "@/lib/reports/hiring-report-view";
-import { HiringReportDocument } from "./report-document";
+import { HiringReportDocument, printRefs } from "./report-document";
 
 /**
  * 채용 리포트 화면 (T-706, PRD 14.3). 표시 모델과 렌더링을 함께 검사한다.
@@ -171,6 +172,45 @@ describe("채용 리포트 화면 · 한눈 요약과 핵심 관측", () => {
     expect(html).toContain("판정 조건:");
     // 영향 문장이 없을 때 빈 `영향:` 줄을 남기지 않는다
     expect(html).not.toContain("영향: </p>");
+  });
+});
+
+describe("채용 리포트 화면 · 인쇄물 축약 (T-802)", () => {
+  it("인쇄물 근거는 기준 1 + 재생 1 + 코드 위치 2로 줄이고 나머지 코드 위치는 개수로 센다", () => {
+    const ref = (kind: KitRefView["kind"], label: string): KitRefView => ({
+      kind,
+      label,
+      href: null,
+      exportUrl: null,
+    });
+    const refs = [
+      ref("CRITERION", "R-05"),
+      ref("EXECUTION_RECORD", "R-05 재생"),
+      ref("SOURCE", "src/a.ts:1-2"),
+      ref("SOURCE", "src/b.ts:3-4"),
+      ref("SOURCE", "src/c.ts:5-6"),
+      ref("MUTATION", "M-01"),
+    ];
+    const reduced = printRefs(refs);
+    expect(reduced.refs.map((r) => r.label)).toEqual([
+      "R-05",
+      "R-05 재생",
+      "src/a.ts:1-2",
+      "src/b.ts:3-4",
+    ]);
+    expect(reduced.overflow).toBe(1);
+    // 코드 위치가 상한 이하면 남는 개수가 없다
+    expect(printRefs(refs.slice(0, 4)).overflow).toBe(0);
+  });
+
+  it("화면에는 근거 전체와 판정 조건이 남고, 인쇄용 목록은 따로 그린다", () => {
+    const html = render({ profile: null });
+    expect(html).toContain("판정 조건:");
+    expect(html).toContain('data-testid="report-print-refs"');
+    // 화면 목록은 저장된 근거를 하나도 빼지 않는다
+    const view = viewOf({ profile: null });
+    const defect = view.defects[0]!;
+    for (const item of defect.refs) expect(html).toContain(item.label);
   });
 });
 

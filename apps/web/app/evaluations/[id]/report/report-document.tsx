@@ -26,10 +26,11 @@ const COMPETENCY_NAMES: Record<Competency, string> = Object.fromEntries(
  * 채용 리포트 문서 (TICKET.md T-706, PRD 14.3의 9개 절). 채용 담당자와 결정권자가 읽는 한 건의 문서다.
  *
  * - 값은 표시 모델(`buildHiringReportView`)에서만 온다. 이 컴포넌트는 점수·판정을 계산하지 않는다.
- * - 첫 화면(A4 1쪽)에 점수 표기와 핵심 관측이 들어오도록 1·2절을 먼저 둔다.
+ * - 첫 화면(A4 1쪽)에 점수 표기와 확인된 결함 카드가 들어오도록 1·2절을 먼저 둔다.
  * - 모든 관측 항목은 워크벤치 딥링크를 갖고, 인쇄물에는 링크 대신 기준 ID와 고정 SHA 주소를 글자로 싣는다.
+ * - 인쇄물의 핵심 관측 카드는 판정 조건 원문을 감추고 근거를 기준 1 + 재생 1 + 코드 위치 2로 줄인다 (T-802).
  * - 스코어카드는 사람이 기입하는 빈 양식이며 시스템이 값을 채우지 않는다.
- * - 절 단위 `break-inside: avoid`와 A4 규칙은 `globals.css`의 `@page`·`@media print`에 있다(`.report-section`).
+ * - 카드 단위 `break-inside: avoid`와 A4 규칙은 `globals.css`의 `@page`·`@media print`에 있다(`.report-card`).
  */
 export function HiringReportDocument({ view }: { view: HiringReportView }) {
   return (
@@ -123,7 +124,7 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
       </Section>
 
       <Section index={2} title="핵심 관측" testId="report-key-observations">
-        <div className="contents print:grid print:grid-cols-2 print:items-start print:gap-x-4">
+        <div className="report-columns contents print:grid print:grid-cols-2 print:items-start print:gap-x-4">
           <ObservationGroup
             title="확인된 결함"
             testId="report-defects"
@@ -140,7 +141,7 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
       </Section>
 
       <Section index={3} title="역량별 관측" testId="report-competencies">
-        <div className="flex flex-col gap-3 print:grid print:grid-cols-2 print:gap-1.5">
+        <div className="report-columns flex flex-col gap-3 print:grid print:grid-cols-2 print:gap-1.5">
           {view.competencies.map((competency) => (
             <div
               key={competency.competency}
@@ -318,7 +319,7 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
             {view.resumeLinks.notice}
           </p>
         ) : (
-          <div className="flex flex-col gap-3 print:grid print:grid-cols-2 print:gap-1.5">
+          <div className="report-columns flex flex-col gap-3 print:grid print:grid-cols-2 print:gap-1.5">
             {view.resumeLinks.links.map((link) => (
               <div
                 key={link.contextLinkId}
@@ -399,7 +400,7 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
       </Section>
 
       <Section index={7} title="평가 범위와 한계" testId="report-scope">
-        <div className="contents print:grid print:grid-cols-2 print:gap-x-4 print:gap-y-1">
+        <div className="report-columns contents print:grid print:grid-cols-2 print:gap-x-4 print:gap-y-1">
           <ScopeList
             title="미평가 영역"
             testId="report-unassessed"
@@ -479,7 +480,7 @@ export function HiringReportDocument({ view }: { view: HiringReportView }) {
             .map(([value, label]) => `${value} ${label}`)
             .join(" · ")}
         </p>
-        <div className="flex flex-col gap-2 print:grid print:grid-cols-2 print:gap-1.5">
+        <div className="report-columns flex flex-col gap-2 print:grid print:grid-cols-2 print:gap-1.5">
           {view.scorecard.competencies.map((competency) => (
             <div
               key={competency.competency}
@@ -672,7 +673,11 @@ function ObservationGroup({
                 영향: {item.impact}
               </p>
             ) : item.condition ? (
-              <p className="text-[12px] text-neutral-500" data-testid="report-condition">
+              /* 판정 조건 원문은 길어서 인쇄물에서는 감춘다. 같은 내용이 4절 요구사항 표에 있다 (T-802) */
+              <p
+                className="text-[12px] text-neutral-500 print:hidden"
+                data-testid="report-condition"
+              >
                 판정 조건: {item.condition}
               </p>
             ) : null}
@@ -684,7 +689,7 @@ function ObservationGroup({
                 {item.aiDraft}
               </p>
             ) : null}
-            <RefList refs={item.refs} />
+            <RefList refs={item.refs} printRefs={printRefs(item.refs)} />
           </div>
         ))
       )}
@@ -692,26 +697,97 @@ function ObservationGroup({
   );
 }
 
-/** 근거 목록. 화면은 딥링크, 인쇄물은 기준 ID와 고정 SHA 주소를 글자로 보인다 */
-function RefList({ refs }: { refs: readonly KitRefView[] }) {
+/** 인쇄물에 남길 근거 개수 상한 (T-802). 코드 위치는 상위 2개만 싣고 나머지는 개수로 센다 */
+export const PRINT_SOURCE_REFS = 2;
+
+/**
+ * 인쇄물용 근거 목록 (T-802). 화면은 저장된 근거를 모두 보이고, 인쇄물은 기준 1 + 재생 1 + 코드 위치 2로 줄인다.
+ * 줄인 코드 위치는 `overflow`에 개수로 남기고, 변이 근거는 같은 내용이 4절에 있으므로 싣지 않는다.
+ */
+export function printRefs(refs: readonly KitRefView[]): {
+  refs: KitRefView[];
+  overflow: number;
+} {
+  const pick = (kind: KitRefView["kind"], limit: number) =>
+    refs.filter((ref) => ref.kind === kind).slice(0, limit);
+  const sources = refs.filter((ref) => ref.kind === "SOURCE");
+  return {
+    refs: [
+      ...pick("CRITERION", 1),
+      ...pick("EXECUTION_RECORD", 1),
+      ...sources.slice(0, PRINT_SOURCE_REFS),
+    ],
+    overflow: Math.max(0, sources.length - PRINT_SOURCE_REFS),
+  };
+}
+
+/**
+ * 근거 목록. 화면은 딥링크, 인쇄물은 기준 ID와 고정 SHA 주소를 글자로 보인다.
+ * `printRefs`를 주면 인쇄물에서는 그 줄인 목록만 싣는다(T-802). 화면 표시는 언제나 `refs` 전체다.
+ */
+function RefList({
+  refs,
+  printRefs: print,
+}: {
+  refs: readonly KitRefView[];
+  printRefs?: { refs: KitRefView[]; overflow: number };
+}) {
   if (refs.length === 0) return null;
+  if (!print) {
+    return (
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
+        {refs.map((ref, index) => (
+          <li key={`${ref.kind}-${index}`} data-report-ref={ref.kind} className="min-w-0">
+            {ref.href ? (
+              <a href={ref.href} className="text-primary hover:underline print:hidden">
+                {ref.label}
+              </a>
+            ) : (
+              <span className="text-neutral-500 print:hidden">{ref.label}</span>
+            )}
+            <span className="hidden break-all text-neutral-600 print:inline">
+              {ref.exportUrl ? `${ref.label} (${ref.exportUrl})` : ref.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
-    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
-      {refs.map((ref, index) => (
-        <li key={`${ref.kind}-${index}`} data-report-ref={ref.kind} className="min-w-0">
-          {ref.href ? (
-            <a href={ref.href} className="text-primary hover:underline print:hidden">
-              {ref.label}
-            </a>
-          ) : (
-            <span className="text-neutral-500 print:hidden">{ref.label}</span>
-          )}
-          <span className="hidden break-all text-neutral-600 print:inline">
-            {ref.exportUrl ? `${ref.label} (${ref.exportUrl})` : ref.label}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] print:hidden">
+        {refs.map((ref, index) => (
+          <li key={`${ref.kind}-${index}`} data-report-ref={ref.kind} className="min-w-0">
+            {ref.href ? (
+              <a href={ref.href} className="text-primary hover:underline">
+                {ref.label}
+              </a>
+            ) : (
+              <span className="text-neutral-500">{ref.label}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <ul
+        className="hidden flex-wrap gap-x-3 gap-y-1 text-[12px] print:flex"
+        data-testid="report-print-refs"
+      >
+        {print.refs.map((ref, index) => (
+          <li key={`${ref.kind}-${index}`} data-print-ref={ref.kind} className="min-w-0 break-all">
+            <span className="text-neutral-600">
+              {ref.kind === "EXECUTION_RECORD" && ref.exportUrl
+                ? `${ref.label} (${ref.exportUrl})`
+                : ref.label}
+            </span>
+          </li>
+        ))}
+        {print.overflow > 0 ? (
+          <li className="text-neutral-500" data-print-ref="SOURCE_OVERFLOW">
+            코드 위치 {print.overflow}곳 더
+          </li>
+        ) : null}
+      </ul>
+    </>
   );
 }
 
