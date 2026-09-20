@@ -141,6 +141,11 @@ export const artifactKeys = {
     `demo/samples/${id(sampleId, "sampleId")}/snapshot-manifest.json`,
   /** 샘플 체험용 예시 이력서 (가상 인물). 제출마다 `submissions/<id>/resume.pdf`로 복사한다 */
   demoResume: (): string => "demo/resume.pdf",
+  /**
+   * 페르소나별 예시 이력서 (T-902). `pnpm demo:seed`가 `samples/personas/<핸들>/resume.pdf`를 여기에 올리고,
+   * 채점 요청 폼의 `예시 이력서 사용`이 허용 목록의 식별자로만 읽는다. 배포된 web은 저장소 파일을 읽을 수 없다.
+   */
+  personaResume: (handle: string): string => `demo/resumes/${id(handle, "handle")}.pdf`,
   /** AI 기준 초안 요청의 명세 원문 (T-406). 과제를 만들기 전에도 요청하므로 과제 ID 없이 내용 주소로 둔다 */
   rubricDraftSpec: (specDigest: string): string =>
     `rubric-drafts/specs/${digestSegment(specDigest)}.md`,

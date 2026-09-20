@@ -10,10 +10,15 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { buttonClass, inputClassName } from "@/components/ui";
 import { createSubmissionFromFormAction } from "@/lib/submissions/actions";
+import type { ExampleResumeId, PrefillExample, PrefillValues } from "@/lib/submissions/prefill";
 import type { ApprovedVersionOption } from "@/lib/submissions/service";
 
 interface SubmissionFormProps {
   options: ApprovedVersionOption[];
+  /** `?sample=`·`?persona=`에서 읽은 초기값 (T-902). 아는 값이 아니면 빈 값이다 */
+  prefill: PrefillValues;
+  /** `예시로 채우기` 칩 목록 */
+  examples: PrefillExample[];
 }
 
 type FieldErrors = Partial<
@@ -63,12 +68,15 @@ export function validateClientFields(values: {
 
 const inputClass = inputClassName;
 
-export function SubmissionForm({ options }: SubmissionFormProps) {
+export function SubmissionForm({ options, prefill, examples }: SubmissionFormProps) {
   const [assignmentVersionId, setAssignmentVersionId] = useState(options[0]?.id ?? "");
-  const [repoUrl, setRepoUrl] = useState("");
-  const [commitSha, setCommitSha] = useState("");
-  const [githubProfileUrl, setGithubProfileUrl] = useState("");
+  const [repoUrl, setRepoUrl] = useState(prefill.repoUrl);
+  const [commitSha, setCommitSha] = useState(prefill.commitSha);
+  const [githubProfileUrl, setGithubProfileUrl] = useState(prefill.githubProfileUrl);
   const [resumeName, setResumeName] = useState<string | null>(null);
+  const [exampleId, setExampleId] = useState<string | null>(prefill.exampleId);
+  const [resumeId, setResumeId] = useState<ExampleResumeId | null>(prefill.resumeId);
+  const [useExampleResume, setUseExampleResume] = useState(prefill.resumeId !== null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -104,7 +112,19 @@ export function SubmissionForm({ options }: SubmissionFormProps) {
     });
   }
 
+  function applyExample(example: PrefillExample) {
+    setExampleId(example.id);
+    setRepoUrl(example.repoUrl);
+    setCommitSha(example.commitSha);
+    setGithubProfileUrl(example.githubProfileUrl);
+    setResumeId(example.resumeId);
+    setUseExampleResume(example.resumeId !== null);
+    setFieldErrors({});
+  }
+
   const disabled = options.length === 0 || pending;
+  // 직접 고른 파일이 예시 이력서보다 우선한다 (서버 액션도 같은 순서다)
+  const exampleResumeId = useExampleResume && !resumeName ? resumeId : null;
 
   return (
     <form
@@ -113,6 +133,8 @@ export function SubmissionForm({ options }: SubmissionFormProps) {
       noValidate
       aria-describedby={serverError ? "submission-server-error" : undefined}
     >
+      <ExampleChips examples={examples} selectedId={exampleId} onSelect={applyExample} />
+
       <FormSection title="필수 정보" description="채점 기준이 될 과제와 제출된 저장소입니다.">
         <Field label="채용 과제" error={fieldErrors.assignmentVersionId}>
           {options.length === 0 ? (
@@ -218,6 +240,26 @@ export function SubmissionForm({ options }: SubmissionFormProps) {
           </span>
         </Field>
 
+        {resumeId ? (
+          <div className="flex flex-col gap-1.5">
+            <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={useExampleResume}
+                onChange={(event) => setUseExampleResume(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-primary)]"
+                data-testid="use-example-resume"
+              />
+              <span className="text-[15px] font-semibold text-ink">예시 이력서 사용</span>
+            </label>
+            <p className="text-[13px] leading-relaxed text-neutral-500">
+              가상 인물의 예시 이력서를 붙입니다. 파일 선택 창에는 미리 채울 수 없어 이 항목으로
+              대신합니다. 직접 고른 파일이 있으면 그 파일을 씁니다.
+            </p>
+          </div>
+        ) : null}
+        <input type="hidden" name="exampleResumeId" value={exampleResumeId ?? ""} />
+
         <Field
           label="GitHub 프로필 URL (선택)"
           hint="https://github.com/<login>. 이력서·과제와 관련된 공개 저장소만 보충 조회합니다."
@@ -279,6 +321,72 @@ export function SubmissionForm({ options }: SubmissionFormProps) {
         </span>
       </div>
     </form>
+  );
+}
+
+/** `예시로 채우기` 칩 (T-902). 누르면 입력란이 한 번에 채워진다 */
+function ExampleChips({
+  examples,
+  selectedId,
+  onSelect,
+}: {
+  examples: PrefillExample[];
+  selectedId: string | null;
+  onSelect: (example: PrefillExample) => void;
+}) {
+  if (examples.length === 0) return null;
+  const groups = [
+    { kind: "SAMPLE" as const, title: "샘플 구현", hint: "공개 샘플 저장소의 고정 커밋입니다." },
+    {
+      kind: "PERSONA" as const,
+      title: "가상 지원자",
+      hint: "지어낸 인물의 과제 제출물과 이력서입니다.",
+    },
+  ];
+  return (
+    <section
+      className="flex flex-col gap-4 rounded-xl bg-neutral-50 p-5 sm:p-6"
+      data-testid="prefill-chips"
+    >
+      <div className="flex flex-col gap-1">
+        <h2 className="text-base font-bold tracking-tight">예시로 채우기</h2>
+        <p className="text-sm leading-relaxed text-neutral-500">
+          입력란을 직접 채우는 대신 아래에서 하나를 고르면 저장소 URL·커밋 SHA·프로필 URL이
+          채워집니다.
+        </p>
+      </div>
+      {groups.map((group) => {
+        const items = examples.filter((example) => example.kind === group.kind);
+        if (items.length === 0) return null;
+        return (
+          <div key={group.kind} className="flex flex-col gap-2">
+            <p className="text-[13px] font-semibold text-neutral-500">
+              {group.title}
+              <span className="ml-2 font-normal text-neutral-400">{group.hint}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {items.map((example) => (
+                <button
+                  key={example.id}
+                  type="button"
+                  onClick={() => onSelect(example)}
+                  title={example.hint}
+                  aria-pressed={selectedId === example.id}
+                  data-testid={`prefill-chip-${example.id}`}
+                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    selectedId === example.id
+                      ? "bg-primary text-surface"
+                      : "bg-surface text-neutral-700 ring-1 ring-neutral-200 hover:ring-primary/50"
+                  }`}
+                >
+                  {example.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 

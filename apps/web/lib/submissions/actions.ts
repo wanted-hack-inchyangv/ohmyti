@@ -6,6 +6,7 @@
  */
 import { getArtifactStore } from "@/lib/artifacts";
 import { getDb } from "@/lib/db";
+import { exampleResumeKey } from "./prefill";
 import {
   createSubmissionWithContext,
   requestDeletion,
@@ -29,6 +30,18 @@ async function resumeOf(formData: FormData): Promise<ResumeUpload | null> {
   return { bytes: new Uint8Array(await value.arrayBuffer()), fileName: value.name };
 }
 
+/**
+ * `예시 이력서 사용` (T-902). 폼이 보낸 **식별자**를 허용 목록의 아티팩트 키로 바꿔 읽는다. 목록에 없는 값이나
+ * 경로 문자열로는 아무것도 읽지 않는다. 읽은 바이트는 업로드와 같은 `validateResume` 경로를 지난다.
+ */
+async function exampleResumeOf(formData: FormData): Promise<ResumeUpload | null> {
+  const key = exampleResumeKey(fieldOf(formData, "exampleResumeId"));
+  if (!key) return null;
+  const object = await getArtifactStore().get(key);
+  if (!object) return null;
+  return { bytes: new Uint8Array(object.body), fileName: "example-resume.pdf" };
+}
+
 /** 폼 제출. 성공하면 새 제출 ID를 돌려주고 클라이언트가 `/submissions/<id>`로 이동한다. 실패 사유는 폼이 그대로 보여 준다 (G-09) */
 export async function createSubmissionFromFormAction(
   formData: FormData,
@@ -41,7 +54,7 @@ export async function createSubmissionFromFormAction(
       commitSha: fieldOf(formData, "commitSha") ?? "",
       githubProfileUrl: fieldOf(formData, "githubProfileUrl") ?? "",
     },
-    await resumeOf(formData),
+    (await resumeOf(formData)) ?? (await exampleResumeOf(formData)),
   );
   return result;
 }

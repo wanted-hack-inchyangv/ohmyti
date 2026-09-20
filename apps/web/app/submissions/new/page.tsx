@@ -6,6 +6,7 @@ import {
   STAGE_LABEL,
   type ApprovedVersionOption,
 } from "@/lib/submissions/service";
+import { PREFILL_EXAMPLES, readPrefill } from "@/lib/submissions/prefill";
 import { SubmissionForm } from "./submission-form";
 
 export const metadata: Metadata = { title: "제출 · CodeGraph Reviewer" };
@@ -14,8 +15,16 @@ export const dynamic = "force-dynamic";
 const DESCRIPTION =
   "공개 GitHub 저장소를 승인된 과제 기준으로 채점합니다. 이력서와 GitHub 프로필은 선택이며, 없어도 과제 채점은 진행됩니다.";
 
-/** PRD 6장 ② 입력 폼. 과제 선택지는 승인된 버전뿐이다 (T-201) */
-export default async function NewSubmissionPage() {
+interface NewSubmissionPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/**
+ * PRD 6장 ② 입력 폼. 과제 선택지는 승인된 버전뿐이다 (T-201).
+ * T-902에서 `?sample=A|B|C|D`·`?persona=<핸들>` 프리필을 더했다. 아는 값이 아니면 빈 폼이다.
+ */
+export default async function NewSubmissionPage({ searchParams }: NewSubmissionPageProps) {
+  const prefill = readPrefill(await searchParams);
   let options: ApprovedVersionOption[];
   try {
     options = await listApprovedVersionOptions({ db: getDb().db });
@@ -33,7 +42,7 @@ export default async function NewSubmissionPage() {
   return (
     <PageContainer width="narrow">
       <PageHeader eyebrow="채점 요청" title="제출" description={DESCRIPTION} />
-      <SubmissionForm options={options} />
+      <SubmissionForm options={options} prefill={prefill} examples={PREFILL_EXAMPLES} />
       <StagePreview />
     </PageContainer>
   );

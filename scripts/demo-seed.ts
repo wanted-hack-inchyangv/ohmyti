@@ -2,7 +2,8 @@
  * `pnpm demo:seed` (T-505): 샘플 체험(`/demo`)의 저장된 실행을 실제 파이프라인으로 만든다. 하드코딩한 결과는 없다.
  *
  * 1. `db:seed:sample`과 같은 함수로 샘플 과제를 현재 하네스 버전으로 승인해 둔다(이미 있으면 그대로).
- * 2. 예시 이력서(`samples/order-api/demo/resume.txt`, 가상 인물)를 PDF로 만들어 `demo/resume.pdf`에 둔다.
+ * 2. 예시 이력서(`samples/order-api/demo/resume.txt`, 가상 인물)를 PDF로 만들어 `demo/resume.pdf`에 두고,
+ *    페르소나 4종의 `samples/personas/<핸들>/resume.pdf`를 `demo/resumes/<핸들>.pdf`에 올린다(T-902 `예시 이력서 사용`).
  * 3. 샘플 A/B/C/D마다 `is_sample` + `demo_sample_id` 제출을 만든다. 저장된 샘플 스냅샷(`demo/samples/<id>/`)이 있으면
  *    제출 키로 복사하고 SHA를 고정해 둔다(워커의 REPO_CHECK가 GitHub를 부르지 않고 재사용한다). 없으면 공개 샘플 저장소
  *    (`samples/order-api/sample-repos.json`)의 고정 커밋을 워커가 GitHub에서 수집하고, 끝난 뒤 그 스냅샷을 저장된 샘플
@@ -61,6 +62,27 @@ import {
 } from "./stack-local";
 
 export const DEMO_RESUME_FILE = path.join(SAMPLE_DIR, "demo", "resume.txt");
+/** 페르소나 예시 이력서 원본 (T-902) */
+export const PERSONA_DIR = path.join(SAMPLE_DIR, "..", "personas");
+export const PERSONA_RESUME_HANDLES = ["seojin", "taeyun", "gaeun", "dohyun"] as const;
+
+/** `samples/personas/<핸들>/resume.pdf` → `demo/resumes/<핸들>.pdf`. 없는 파일은 건너뛰고 올린 핸들을 돌려준다 */
+export async function uploadPersonaResumes(store: ArtifactStore): Promise<string[]> {
+  const uploaded: string[] = [];
+  for (const handle of PERSONA_RESUME_HANDLES) {
+    let bytes: Buffer;
+    try {
+      bytes = await readFile(path.join(PERSONA_DIR, handle, "resume.pdf"));
+    } catch {
+      continue;
+    }
+    await store.put(artifactKeys.personaResume(handle), bytes, {
+      contentType: ARTIFACT_CONTENT_TYPES.resume,
+    });
+    uploaded.push(handle);
+  }
+  return uploaded;
+}
 export const SAMPLE_REPOS_FILE = path.join(SAMPLE_DIR, "sample-repos.json");
 export const DEMO_SEED_DEFAULTS = {
   timeoutMs: 40 * 60_000,
@@ -383,6 +405,8 @@ async function main(): Promise<number> {
     await store.put(resumeRef, demoResumePdf(await readFile(DEMO_RESUME_FILE, "utf8")), {
       contentType: ARTIFACT_CONTENT_TYPES.resume,
     });
+    const personas = await uploadPersonaResumes(store);
+    console.log(`  예시 이력서: demo/resume.pdf + 페르소나 ${personas.length}개 (${personas.join(", ") || "없음"})`);
 
     if (!values["external-worker"]) {
       const ports = stackPorts();
